@@ -70,7 +70,7 @@ Cause: it fires `authui-open` (`authui-sign-in.ts:517`) and only the modal's own
 Fix: when `!this.embedded`, call `openModal("account")` from `modal-controller.ts`; keep the event for the
 embedded case.
 
-### 7. Tab strip is unreachable on narrow screens
+### 7. DONE (2026-09-20) Tab strip is unreachable on narrow screens
 Observed at 375 px and 320 px: `.tabs` is `inline-flex` with `justify-content: center` and `overflow-x: auto`,
 so the overflow is clipped on both sides. The selected "Profile" tab is scrolled out of view and cannot be
 reached; "Activity" is cut to "A". No scrollbar (hidden on purpose).

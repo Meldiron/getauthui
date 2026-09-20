@@ -396,7 +396,7 @@ export const base = css`
   .tabs {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     height: 36px;
     width: fit-content;
     max-width: 100%;
@@ -407,6 +407,7 @@ export const base = css`
     padding: 3px;
     gap: 2px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
   :host([data-theme="dark"]) .tabs {
     background: color-mix(in oklab, var(--authui-muted) 80%, transparent);
@@ -417,7 +418,7 @@ export const base = css`
     justify-content: center;
     gap: 6px;
     height: 100%;
-    flex: 1;
+    flex: 0 0 auto;
     padding: 4px 10px;
     border-radius: var(--authui-radius-md);
     border: 1px solid transparent;

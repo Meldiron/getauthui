@@ -186,6 +186,19 @@ export class AuthUIAccount extends AuthUIElement {
     this.errors = {};
   }
 
+  protected updated(changed: Map<string, unknown>): void {
+    if (changed.has("active")) {
+      requestAnimationFrame(() => {
+        const selected = this.renderRoot.querySelector(
+          '.tab[aria-selected="true"]'
+        ) as HTMLElement | null;
+        if (selected && typeof selected.scrollIntoView === "function") {
+          selected.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+        }
+      });
+    }
+  }
+
   /** Run an action with a busy key, surfacing errors under that key. Handles MFA step-up. */
   private async run(key: string, action: () => Promise<void>, success?: string): Promise<void> {
     if (this.busy) return;
