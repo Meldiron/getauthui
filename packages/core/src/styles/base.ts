@@ -545,6 +545,8 @@ export const base = css`
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    min-width: 0;
+    flex: 1;
   }
   .between {
     display: flex;

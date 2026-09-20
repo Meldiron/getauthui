@@ -50,6 +50,22 @@ export class AuthUIAccount extends AuthUIElement {
         display: flex;
         align-items: center;
         gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      .identity .row-title {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .identity .row-title .badge {
+        display: inline-flex;
+        vertical-align: middle;
+        margin-inline-start: 6px;
+      }
+      .between > .btn {
+        flex-shrink: 0;
       }
       .identity .avatar {
         width: 44px;
@@ -532,12 +548,16 @@ export class AuthUIAccount extends AuthUIElement {
         <div class="identity">
           <span class="avatar">${label[0] ?? "?"}</span>
           <div class="row-main">
-            <span class="row-title">
+            <span class="row-title" title=${label}>
               ${label}
               ${u.mfa ? html`<span class="badge badge-success">${icons.shieldCheck} MFA</span>` : nothing}
               ${authStore.isPreview ? html`<span class="badge badge-info">${this.t("preview")}</span>` : nothing}
             </span>
-            ${u.email && u.name ? html`<span class="row-sub">${u.email}</span>` : nothing}
+            ${
+              u.email && u.name
+                ? html`<span class="row-sub" title=${u.email}>${u.email}</span>`
+                : nothing
+            }
           </div>
         </div>
         <button class="btn btn-outline btn-sm" @click=${() => authStore.signOut()}>

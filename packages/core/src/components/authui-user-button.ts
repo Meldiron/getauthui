@@ -40,6 +40,7 @@ export class AuthUIUserButton extends AuthUIElement {
         top: calc(100% + 6px);
         inset-inline-end: 0;
         min-width: 220px;
+        max-width: min(320px, 90vw);
         background: var(--authui-popover);
         color: var(--authui-popover-foreground);
         border: 1px solid var(--authui-border);
@@ -52,6 +53,8 @@ export class AuthUIUserButton extends AuthUIElement {
         gap: 2px;
       }
       .menu-header {
+        min-width: 0;
+        overflow: hidden;
         padding: 8px 10px 10px;
         display: flex;
         flex-direction: column;
@@ -59,6 +62,14 @@ export class AuthUIUserButton extends AuthUIElement {
         border-bottom: 1px solid var(--authui-border);
         margin-bottom: 4px;
       }
+      .menu .row-title,
+      .menu .row-sub {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .menu-item {
         display: flex;
         align-items: center;
@@ -145,8 +156,12 @@ export class AuthUIUserButton extends AuthUIElement {
         this.menuOpen
           ? html`<div class="menu" role="menu">
               <div class="menu-header">
-                <span class="row-title">${label}</span>
-                ${user.email && user.name ? html`<span class="row-sub">${user.email}</span>` : nothing}
+                <span class="row-title" title=${label}>${label}</span>
+                ${
+                  user.email && user.name
+                    ? html`<span class="row-sub" title=${user.email}>${user.email}</span>`
+                    : nothing
+                }
               </div>
               <button
                 class="menu-item"

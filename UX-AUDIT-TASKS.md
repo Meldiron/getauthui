@@ -77,7 +77,7 @@ reached; "Activity" is cut to "A". No scrollbar (hidden on purpose).
 Fix (`styles/base.ts:396`): use `justify-content: flex-start` (or `safe center`), give tabs `flex: 0 0 auto`,
 scroll the selected tab into view on select, and consider a `<select>` or wrapping layout under 400 px.
 
-### 8. Long name or email breaks the account header and the page layout
+### 8. DONE (2026-09-20) Long name or email breaks the account header and the page layout
 Observed: 60-char name plus 90-char email. Desktop: the email overflows the card and the "Sign out" button is
 pushed outside the panel. Mobile: the whole page becomes ~1300 px wide and horizontally scrollable. The inline
 signed-in panel wraps the avatar onto its own line and the email runs past the card edge. The user menu grows

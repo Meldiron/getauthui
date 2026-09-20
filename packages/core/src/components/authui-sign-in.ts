@@ -520,8 +520,12 @@ export class AuthUISignIn extends AuthUIElement {
           <div class="inline">
             <span class="avatar">${label[0] ?? "?"}</span>
             <div class="row-main">
-              <span class="row-title">${label}</span>
-              ${user.email && user.name ? html`<span class="row-sub">${user.email}</span>` : nothing}
+              <span class="row-title" title=${label}>${label}</span>
+              ${
+                user.email && user.name
+                  ? html`<span class="row-sub" title=${user.email}>${user.email}</span>`
+                  : nothing
+              }
             </div>
           </div>
         </div>
