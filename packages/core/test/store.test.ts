@@ -56,6 +56,22 @@ describe("AuthStore", () => {
     expect(account.state.mfaPending).toBe(false);
   });
 
+  it("purges a blocked session and surfaces the blocked error after sign-in", async () => {
+    authStore.configure(config);
+    account.state.blocked = true;
+    await expect(authStore.signInWithEmailPassword("a@b.co", "correct-horse")).rejects.toMatchObject({
+      type: "user_blocked",
+    });
+    expect(authStore.getState().status).toBe("signed-out");
+    expect(authStore.getState().user).toBeNull();
+    expect(authStore.getState().pending).toMatchObject({
+      type: "notice",
+      tone: "error",
+    });
+    expect(account.deleteSession).toHaveBeenCalled();
+    account.state.blocked = false;
+  });
+
   it("signs out when the current session is deleted by id", async () => {
     authStore.configure(config);
     await authStore.signInWithEmailPassword("a@b.co", "correct-horse");

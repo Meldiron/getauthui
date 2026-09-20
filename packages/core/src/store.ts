@@ -189,6 +189,19 @@ export class AuthStore {
             /* factors stay unknown; UI offers all */
           }
           this.setState({ status: "mfa-required", user: null, mfaFactors: factors });
+        } else if (isErrorType(err, ErrorTypes.userBlocked)) {
+          await this.purgeLocalSession();
+          this.setState({
+            status: "signed-out",
+            user: null,
+            mfaFactors: null,
+            pending: {
+              type: "notice",
+              tone: "error",
+              message: this.getStrings().errorUserBlocked,
+            },
+          });
+          if (wasSignedIn) this.emit("signed-out", undefined);
         } else {
           this.setState({ status: "signed-out", user: null, mfaFactors: null });
           if (wasSignedIn) this.emit("signed-out", undefined);
@@ -202,9 +215,47 @@ export class AuthStore {
 
   private async afterSignIn(): Promise<void> {
     await this.refresh();
+    if (this.state.status !== "signed-in" && this.state.status !== "mfa-required") {
+      const pending = this.state.pending;
+      if (pending?.type === "notice" && pending.tone === "error") {
+        throw Object.assign(new Error(pending.message), {
+          type: ErrorTypes.userBlocked,
+          code: 401,
+        });
+      }
+    }
     const url = this.config?.successUrl;
     if (url && this.state.status === "signed-in" && typeof window !== "undefined") {
       window.location.assign(url);
+    }
+  }
+
+  /**
+   * Drop a poisoned Appwrite session (e.g. after user_blocked). Deletes the
+   * current session when possible and clears the SDK fallback without reading it.
+   */
+  private async purgeLocalSession(): Promise<void> {
+    try {
+      await this.account?.deleteSession("current");
+    } catch {
+      /* session may already be unusable */
+    }
+    try {
+      this.client?.setSession("");
+    } catch {
+      /* older SDKs */
+    }
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.removeItem("cookieFallback");
+      } catch {
+        /* private mode */
+      }
+    }
+    // Rebuild the client so any in-memory fallback cookies cannot poison later calls.
+    if (this.config && !this.preview) {
+      this.client = new Client().setEndpoint(this.config.endpoint).setProject(this.config.project);
+      this.account = new Account(this.client);
     }
   }
 

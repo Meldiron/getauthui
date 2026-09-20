@@ -5,6 +5,7 @@ export function createAccountMock() {
   const state = {
     user: null as null | Record<string, unknown>,
     mfaPending: false,
+    blocked: false,
   };
   const err = (type: string, code = 401) => Object.assign(new Error(type), { type, code });
 
@@ -12,6 +13,7 @@ export function createAccountMock() {
     state,
     get: vi.fn(async () => {
       if (state.mfaPending) throw err("user_more_factors_required");
+      if (state.blocked) throw err("user_blocked");
       if (!state.user) throw err("general_unauthorized_scope");
       return state.user;
     }),

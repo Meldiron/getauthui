@@ -51,6 +51,7 @@ beforeEach(() => {
   account = (globalThis as any).__account as AccountMock;
   account.state.user = null;
   account.state.mfaPending = false;
+  account.state.blocked = false;
   authStore.reset();
 });
 

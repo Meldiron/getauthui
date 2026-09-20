@@ -51,7 +51,7 @@ Fix: if `s.current`, call `authStore.signOut()` (current) or treat the deleted I
 the session list's current entry; then let the normal signed-out handling take over. Consider hiding the
 icon on the current row and pointing to "Sign out" instead.
 
-### 5. Blocked user: silent failure and a poisoned local session
+### 5. DONE (2026-09-20) Blocked user: silent failure and a poisoned local session
 Observed (real): a blocked user requests an SMS code, enters it, `createSession` succeeds, then `account.get()`
 fails with `user_blocked`. The UI shows nothing (the code form just stays), the SDK keeps the session in
 `localStorage.cookieFallback`, and from then on every request from that browser, including sign-in attempts
