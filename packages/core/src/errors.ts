@@ -44,8 +44,11 @@ export const ErrorTypes = {
 export function toAuthUIError(err: unknown): AuthUIError {
   if (err && typeof err === "object") {
     const e = err as { message?: string; type?: string; code?: number };
+    let message = typeof e.message === "string" ? e.message : "Unknown error";
+    // Appwrite Cloud sometimes returns HTML 404 bodies (e.g. /account/logs).
+    if (/^\s*<(!doctype|html)/i.test(message)) message = "";
     return {
-      message: typeof e.message === "string" ? e.message : "Unknown error",
+      message,
       type: typeof e.type === "string" ? e.type : "",
       code: typeof e.code === "number" ? e.code : 0,
     };
@@ -114,5 +117,7 @@ export function describeError(
   if (e.code === 0 && /fetch|network/i.test(e.message)) return s.errorNetwork;
   // Never surface raw messages that still contain Appwrite backtick param markers.
   if (/Invalid `\w+` param/i.test(e.message)) return s.errorGeneric;
+  if (/^\s*<(!doctype|html)/i.test(e.message)) return s.errorGeneric;
   return e.message || s.errorGeneric;
 }
+

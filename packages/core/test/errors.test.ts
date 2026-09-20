@@ -64,6 +64,16 @@ describe("errors", () => {
     ).toBe(defaultStrings.errorInvalidPhone);
   });
 
+  it("strips HTML error bodies so they never reach the UI", () => {
+    const html = "<!DOCTYPE html><html><body>not found</body></html>";
+    expect(toAuthUIError({ message: html, type: "general_route_not_found", code: 404 }).message).toBe(
+      ""
+    );
+    expect(describeError({ message: html, type: "general_route_not_found", code: 404 }, defaultStrings)).toBe(
+      defaultStrings.errorGeneric
+    );
+  });
+
   it("formats placeholders", () => {
     expect(format("Hi {name}, {n} left", { name: "Ada", n: 2 })).toBe("Hi Ada, 2 left");
     expect(format("Missing {x}")).toBe("Missing {x}");

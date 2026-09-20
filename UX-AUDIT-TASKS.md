@@ -103,7 +103,7 @@ in every submit handler (`authui-sign-in.ts:119` and siblings, account handlers)
 `general_argument_invalid` in `describeError()` (`errors.ts:64`) to per-field strings by parsing the param
 name, falling back to `errorGeneric`.
 
-### 10. Whole HTML error pages leak into the error event and could reach the UI
+### 10. DONE (2026-09-20) Whole HTML error pages leak into the error event and could reach the UI
 Observed: on Cloud 2.2.0 `GET /account/logs` returns an HTML 404 page; the `error` event's `message` is the
 entire page (the harness log became 64 000 px wide). Any 404/HTML response would render as an alert.
 Fix: in `toAuthUIError()` (`errors.ts:43`) detect `^\s*<(!doctype|html)` and replace the message with
