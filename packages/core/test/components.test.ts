@@ -70,6 +70,32 @@ describe("<authui-config>", () => {
     expect(cfg.signUp).toBe(false);
     expect(cfg.branding).toMatchObject({ name: "Acme", theme: "dark", primary: "#ff0000" });
   });
+
+  it("can turn email-password off when methods lists other options", async () => {
+    await mount(
+      `<authui-config endpoint="https://x/v1" project="p" methods="oauth:google oauth:github"></authui-config>`
+    );
+    expect(authStore.getConfig()!.methods).toEqual({
+      oauth: ["google", "github"],
+      emailPassword: false,
+    });
+
+    authStore.reset();
+    await mount(
+      `<authui-config endpoint="https://x/v1" project="p" methods="magic-url email-otp phone"></authui-config>`
+    );
+    expect(authStore.getConfig()!.methods).toMatchObject({
+      emailPassword: false,
+      magicUrl: true,
+      emailOtp: true,
+      phone: true,
+    });
+  });
+
+  it("defaults email-password on when methods is empty", async () => {
+    await mount(`<authui-config endpoint="https://x/v1" project="p"></authui-config>`);
+    expect(authStore.getConfig()!.methods.emailPassword).toBe(true);
+  });
 });
 
 describe("<authui-sign-in>", () => {

@@ -34,7 +34,7 @@ Fix: on `signed-out` (and on `signed-in`) in `syncFromStore()`, reset `token`, `
 `password`, `error`, `notice` and go to `sign-in` (respecting the `view` attribute). Also clear `token` in
 `onVerifyCode` (`:218`) on success.
 
-### 3. `<authui-config methods="…">` can never turn email + password off
+### 3. DONE (2026-09-20) `<authui-config methods="…">` can never turn email + password off
 Observed: `methods="oauth:google oauth:github"` and `methods="magic-url email-otp phone"` both still render the
 email/password form and the "Sign up" link.
 Cause: `toConfig()` (`components/authui-config.ts:73`) only sets `emailPassword = true`; when the token is absent

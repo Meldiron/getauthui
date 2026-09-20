@@ -62,7 +62,8 @@ export class AuthUIConfigElement extends LitElement {
 
   toConfig(): AuthUIConfig {
     const methods: AuthUIMethods = { oauth: [] };
-    for (const token of this.methods.split(/[\s,]+/).filter(Boolean)) {
+    const tokens = this.methods.split(/[\s,]+/).filter(Boolean);
+    for (const token of tokens) {
       if (token.startsWith("oauth:")) methods.oauth!.push(token.slice(6) as OAuthProviderName);
       else if (token === "email-password") methods.emailPassword = true;
       else if (token === "magic-url") methods.magicUrl = true;
@@ -70,7 +71,8 @@ export class AuthUIConfigElement extends LitElement {
       else if (token === "phone") methods.phone = true;
       else if (token === "anonymous" || token === "guest") methods.anonymous = true;
     }
-    if (methods.emailPassword === undefined && !this.methods.trim()) methods.emailPassword = true;
+    // When methods is set, only enable email+password if it was listed. Empty attr keeps the default on.
+    methods.emailPassword = tokens.length > 0 ? tokens.includes("email-password") : true;
 
     return {
       endpoint: this.endpoint,
