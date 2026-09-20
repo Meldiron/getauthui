@@ -8,6 +8,7 @@ import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
+import { openModal } from "../modal-controller.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -535,7 +536,10 @@ export class AuthUISignIn extends AuthUIElement {
           }
           <button
             class="btn btn-outline btn-block"
-            @click=${() => this.fire("authui-open", { view: "account" })}
+            @click=${() => {
+              if (this.embedded) this.fire("authui-open", { view: "account" });
+              else openModal("account");
+            }}
           >
             ${icons.settings} ${this.t("manageAccount")}
           </button>

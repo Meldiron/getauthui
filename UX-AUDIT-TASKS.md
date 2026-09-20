@@ -62,7 +62,7 @@ Fix: in `refresh()`, when the error is `user_blocked`, try `deleteSession("curre
 session (`client.setSession("")` and remove the SDK's `cookieFallback` entry), set a pending error notice with
 `errorUserBlocked`, and make `afterSignIn()` reject so the form shows the message.
 
-### 6. Inline "Manage account" button is dead outside the modal
+### 6. DONE (2026-09-20) Inline "Manage account" button is dead outside the modal
 Observed: `<authui-sign-in>` signed-in state, click "Manage account": nothing happens. Only works when the
 panel is inside `<authui-modal>`.
 Cause: it fires `authui-open` (`authui-sign-in.ts:517`) and only the modal's own dialog listens

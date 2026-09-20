@@ -204,6 +204,26 @@ describe("<authui-sign-in>", () => {
     expect(shadowText(el)).toContain("Sign out");
   });
 
+  it("opens the account modal from Manage account when not embedded", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const btn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("Manage account")
+    )!;
+    btn.click();
+    await tick();
+    await tick();
+    const modal = document.querySelector("authui-modal") as HTMLElement & { open?: boolean };
+    expect(modal).not.toBeNull();
+    // Allow the microtask that dispatches authui:open to run.
+    await tick();
+    await (modal as any).updateComplete;
+    expect(modal.open || modal.shadowRoot?.querySelector("dialog")?.open).toBeTruthy();
+  });
+
   it("resets the sign-in panel after sign-out from a passwordless step", async () => {
     authStore.configure(config);
     await tick();
