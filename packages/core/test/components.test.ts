@@ -400,26 +400,23 @@ describe("<authui-modal> and <authui-button>", () => {
 });
 
 describe("<authui-account>", () => {
-  it("renders tabs and hides activity when logs are unsupported", async () => {
+  it("hides the Activity tab when /account/logs is unsupported", async () => {
     authStore.configure(config);
     await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
-    const el = await mount<HTMLElement & { select: (t: string) => void }>(
-      `<authui-account></authui-account>`
-    );
+    const el = await mount<HTMLElement>(`<authui-account tab="activity"></authui-account>`);
+    await tick();
+    await tick();
     await tick();
     await (el as any).updateComplete;
     const tabs = [...el.shadowRoot!.querySelectorAll("[role=tab]")].map((t) =>
       t.textContent!.trim()
     );
-    expect(tabs).toEqual(["Profile", "Security", "Sessions", "Connections", "Activity"]);
-    (el.shadowRoot!.querySelectorAll("[role=tab]")[4] as HTMLButtonElement).click();
-    await tick();
-    await tick();
-    await (el as any).updateComplete;
-    const after = [...el.shadowRoot!.querySelectorAll("[role=tab]")].map((t) =>
-      t.textContent!.trim()
-    );
-    expect(after).not.toContain("Activity");
+    expect(tabs).toEqual(["Profile", "Security", "Sessions", "Connections"]);
+    expect(tabs).not.toContain("Activity");
+    // Opened on activity via attr; should fall back to profile after the probe fails.
+    const selected = el.shadowRoot!.querySelector('[role=tab][aria-selected="true"]');
+    expect(selected?.textContent?.trim()).toBe("Profile");
+    expect(shadowText(el)).not.toMatch(/No recent activity/i);
   });
 
   it("lists sessions", async () => {

@@ -158,7 +158,9 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private sessions: Models.Session[] | null = null;
   @state() private identities: Models.Identity[] | null = null;
   @state() private logs: Models.Log[] | null = null;
-  @state() private logsSupported = true;
+  /** null = probing, true = show Activity, false = hide. */
+  @state() private logsSupported: boolean | null = null;
+  private logsProbeStarted = false;
   @state() private confirmDelete = false;
 
   connectedCallback(): void {
@@ -176,9 +178,12 @@ export class AuthUIAccount extends AuthUIElement {
   /** Lazily load data for the active tab once a user is available. */
   private ensureLoaded(): void {
     if (!this.user || this.busy) return;
+    if (!this.logsProbeStarted) void this.probeLogsSupport();
     if (this.active === "sessions" && this.sessions === null) void this.loadSessions();
     else if (this.active === "connections" && this.identities === null) void this.loadIdentities();
-    else if (this.active === "activity" && this.logs === null) void this.loadLogs();
+    else if (this.active === "activity" && this.logsSupported === true && this.logs === null)
+      void this.loadLogs();
+    else if (this.active === "activity" && this.logsSupported === false) this.active = "profile";
     else if (this.active === "security" && this.factors === null) void this.loadFactors();
   }
 
@@ -260,14 +265,33 @@ export class AuthUIAccount extends AuthUIElement {
     });
   }
 
+  /** Probe once so Activity is never shown on servers without /account/logs. */
+  private async probeLogsSupport(): Promise<void> {
+    if (this.logsProbeStarted) return;
+    this.logsProbeStarted = true;
+    try {
+      this.logs = await authStore.listLogs();
+      this.logsSupported = true;
+    } catch {
+      this.logsSupported = false;
+      this.logs = [];
+      if (this.active === "activity") this.active = "profile";
+    }
+  }
+
   private async loadLogs(): Promise<void> {
+    if (this.logsSupported === false) {
+      if (this.active === "activity") this.active = "profile";
+      return;
+    }
     this.busy = "logs";
     try {
       this.logs = await authStore.listLogs();
     } catch {
-      // Appwrite 2.x self-hosted removed /account/logs; hide the tab quietly.
+      // Route missing (Cloud 2.2.0 / some self-hosted): hide the tab and leave Activity.
       this.logsSupported = false;
       this.logs = [];
+      if (this.active === "activity") this.active = "profile";
     } finally {
       this.busy = "";
     }

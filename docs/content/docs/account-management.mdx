@@ -32,4 +32,4 @@ Lists connected OAuth identities with the provider's email or user ID, offers to
 
 ## Activity
 
-The account security log from `account.listLogs()`, when the server exposes it. Appwrite Cloud does. Self-hosted Appwrite 2.x removed the endpoint, and in that case the tab hides itself after the first failed request.
+The account security log from `account.listLogs()`, when the server exposes it. Appwrite Cloud 2.2.0 does not (the route returns 404), and some self-hosted builds omit it too. Auth UI probes once on load and only shows the Activity tab when the endpoint responds successfully.

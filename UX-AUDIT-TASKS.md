@@ -109,7 +109,7 @@ entire page (the harness log became 64 000 px wide). Any 404/HTML response would
 Fix: in `toAuthUIError()` (`errors.ts:43`) detect `^\s*<(!doctype|html)` and replace the message with
 `errorGeneric` while keeping `code`/`type`; never render HTML-looking messages in `describeError()`.
 
-### 11. Activity tab: wrong docs claim and an orphaned tab after the first click
+### 11. DONE (2026-09-20) Activity tab: wrong docs claim and an orphaned tab after the first click
 Observed (real): tab list shows "Activity"; clicking it calls `listLogs`, gets 404, the tab vanishes, no tab is
 selected, and the panel shows a card titled "Activity" with "No recent activity." Docs say Cloud supports it
 (`docs/content/docs/account-management.mdx:35`); Cloud 2.2.0 does not.
