@@ -13,4 +13,11 @@ describe("shared layout styles", () => {
     expect(cssText).toMatch(/\.inline\s*\{[^}]*min-width:\s*0/s);
     expect(cssText).toMatch(/\.inline\s*\{[^}]*flex:\s*1/s);
   });
+
+  it("stretches an odd trailing OAuth provider across both columns", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(
+      /\.providers\.two\s*>\s*:last-child:nth-child\(odd\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s
+    );
+  });
 });

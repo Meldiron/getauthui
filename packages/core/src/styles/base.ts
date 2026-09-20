@@ -277,6 +277,9 @@ export const base = css`
   }
 
   /* ── Alert ── */
+  .alert:has(.dismiss) {
+    padding-inline-end: 36px;
+  }
   .alert {
     position: relative;
     width: 100%;
@@ -656,6 +659,9 @@ export const base = css`
   }
   .providers.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .providers.two > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
   .providers .btn svg {
     width: 18px;

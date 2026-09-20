@@ -197,3 +197,30 @@ describe("AuthStore", () => {
     expect(authStore.getStrings().signUp).toBe("Sign up");
   });
 });
+
+describe("handleRedirect notices", () => {
+  it("maps invalid magic-url secrets with describeError", async () => {
+    window.history.replaceState(null, "", "/app?authui=magic-url&userId=u9&secret=bad");
+    account.createSession.mockRejectedValueOnce({
+      type: "user_invalid_token",
+      message: "Invalid token passed in the request.",
+      code: 401,
+    });
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const pending = authStore.getState().pending;
+    expect(pending).toMatchObject({ type: "notice", tone: "error" });
+    expect((pending as any).message).toMatch(/invalid or has expired/i);
+    expect((pending as any).message).not.toMatch(/Invalid token passed/i);
+  });
+
+  it("shows an error for incomplete recovery returns", async () => {
+    window.history.replaceState(null, "", "/app?authui=recovery");
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const pending = authStore.getState().pending;
+    expect(pending).toMatchObject({ type: "notice", tone: "error" });
+  });
+});

@@ -39,6 +39,9 @@ export const signInStyles = css`
     align-self: center;
     margin-bottom: 4px;
   }
+  .alert:has(.dismiss) {
+    padding-inline-end: 36px;
+  }
   .alert .dismiss {
     position: absolute;
     top: 4px;

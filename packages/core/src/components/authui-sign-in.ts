@@ -5,7 +5,7 @@ import { AuthUIElement } from "./element.js";
 import { signInStyles } from "./sign-in.styles.js";
 import { authStore, type MfaFactor } from "../store.js";
 import { describeError, ErrorTypes, isErrorType } from "../errors.js";
-import { icons, providerIcon } from "../icons.js";
+import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
@@ -39,6 +39,9 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private notice: { tone: "success" | "info" | "error"; message: string } | null = null;
   @state() private showPassword = false;
   @state() private token: PendingToken | null = null;
+  private focusOnStep = false;
+  @state() private resendCooldownUntil = 0;
+
   @state() private challenge: { id: string; factor: MfaFactor } | null = null;
   @state() private recovery: { userId: string; secret: string } | null = null;
 
@@ -63,7 +66,8 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("step")) {
+    if (changed.has("step") && (this.focusOnStep || this.embedded)) {
+      this.focusOnStep = false;
       requestAnimationFrame(() => this.firstInput?.focus());
     }
   }
@@ -74,14 +78,17 @@ export class AuthUISignIn extends AuthUIElement {
     if (status === "mfa-required" && this.step !== "mfa") {
       this.go("mfa");
     }
-    if (status === "signed-in" || status === "signed-out") {
+    const holdingRecovery =
+      this.step === "reset-password" ||
+      pending?.type === "reset-password" ||
+      this.recovery !== null;
+    if ((status === "signed-in" || status === "signed-out") && !holdingRecovery) {
       const stuck =
         this.step === "mfa" ||
         this.step === "phone" ||
         this.step === "email-otp" ||
         this.step === "magic-url" ||
         this.step === "forgot-password" ||
-        this.step === "reset-password" ||
         this.token !== null ||
         this.challenge !== null;
       if (stuck || status === "signed-out") {
@@ -101,22 +108,32 @@ export class AuthUISignIn extends AuthUIElement {
       this.notice = { tone: "error", message: this.t("errorOAuth") };
       authStore.setPending(null);
     }
-    if (pending?.type === "notice") {
+    if (pending?.type === "notice" && !this.notice) {
       this.notice = {
         tone: pending.tone === "error" ? "error" : pending.tone,
         message: pending.message,
       };
-      authStore.setPending(null);
+      // Leave pending so other surfaces (modal) can also show it until dismissed.
     }
   }
 
   /** Navigate between screens and reset transient state. */
+  private dismissNotice(): void {
+    this.notice = null;
+    if (this.auth.pending?.type === "notice") authStore.setPending(null);
+  }
+
   go(step: Step): void {
+    if (step === "sign-up" && this.config?.signUp === false) step = "sign-in";
+    this.focusOnStep = true;
     this.step = step;
     this.error = "";
     this.notice = null;
+    if (this.auth.pending?.type === "notice") authStore.setPending(null);
     this.busy = false;
     this.showPassword = false;
+    this.password = "";
+    this.passwordConfirm = "";
     if (step !== "mfa") this.challenge = null;
     if (step !== "email-otp" && step !== "phone" && step !== "magic-url") this.token = null;
     this.fire("authui-view", { view: step });
@@ -206,6 +223,7 @@ export class AuthUISignIn extends AuthUIElement {
       this.password = "";
       this.passwordConfirm = "";
       this.recovery = null;
+      if (this.auth.pending?.type === "reset-password") authStore.setPending(null);
       this.notice = { tone: "success", message: this.t("passwordUpdated") };
       this.go("sign-in");
     });
@@ -320,7 +338,7 @@ export class AuthUISignIn extends AuthUIElement {
                 <div class="alert-body">${this.notice.message}</div>
                 <button
                   class="btn btn-ghost btn-icon dismiss"
-                  @click=${() => (this.notice = null)}
+                  @click=${() => this.dismissNotice()}
                   aria-label=${this.t("close")}
                 >
                   ${icons.x}
@@ -366,12 +384,21 @@ export class AuthUISignIn extends AuthUIElement {
     }
     }
     return html`
-      <header class="header">
-        ${logo ? html`<img class="logo" src=${logo} alt=${name || "Logo"} />` : nothing}
+      <div class="header">
+        ${logo
+          ? html`<img
+              class="logo"
+              src=${logo}
+              alt=""
+              @error=${(e: Event) => {
+                (e.target as HTMLImageElement).hidden = true;
+              }}
+            />`
+          : nothing}
         ${authStore.isPreview ? html`<span class="badge badge-info preview">${this.t("preview")}</span>` : nothing}
         <h2 class="title" id="authui-title">${title}</h2>
         ${description ? html`<p class="description">${description}</p>` : nothing}
-      </header>
+      </div>
     `;
   }
 
@@ -429,7 +456,7 @@ export class AuthUISignIn extends AuthUIElement {
             type="button"
             class="btn btn-ghost btn-icon"
             @click=${() => (this.showPassword = !this.showPassword)}
-            aria-label=${this.showPassword ? "Hide password" : "Show password"}
+            aria-label=${this.showPassword ? this.t("hidePassword") : this.t("showPassword")}
             tabindex="-1"
           >
             ${this.showPassword ? icons.eyeOff : icons.eye}
@@ -468,6 +495,8 @@ export class AuthUISignIn extends AuthUIElement {
           type="text"
           inputmode="numeric"
           autocomplete="one-time-code"
+          maxlength="6"
+          pattern="[0-9]*"
           required
           .value=${this.code}
           @input=${this.bind("code")}
@@ -509,7 +538,7 @@ export class AuthUISignIn extends AuthUIElement {
 
     switch (this.step) {
       case "sign-up":
-        return this.renderSignUp();
+        return this.config?.signUp === false ? this.renderSignIn() : this.renderSignUp();
       case "forgot-password":
         return this.renderForgot();
       case "reset-password":
@@ -534,7 +563,7 @@ export class AuthUISignIn extends AuthUIElement {
       <div class="stack">
         <div class="row">
           <div class="inline">
-            <span class="avatar">${label[0] ?? "?"}</span>
+            <span class="avatar">${avatarInitial(label)}</span>
             <div class="row-main">
               <span class="row-title" title=${label}>${label}</span>
               ${
@@ -727,7 +756,17 @@ export class AuthUISignIn extends AuthUIElement {
           ${icons.alert}
           <div class="alert-body">${this.t("errorInvalidToken")}</div>
         </div>
-        ${this.backLink()}
+        <div class="links">
+          <button
+            type="button"
+            class="btn btn-link"
+            @click=${() => {
+              this.go("forgot-password");
+            }}
+          >
+            ${this.t("requestNewLink")}
+          </button>
+        </div>
       </div>`;
     }
     return html`
@@ -737,7 +776,21 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.passwordField({ label: this.t("confirmPassword"), autocomplete: "new-password", id: "authui-password-confirm", field: "passwordConfirm" })}
           ${this.renderError()} ${this.submitButton(this.t("resetPassword"))}
         </form>
-        ${this.backLink()}
+        <div class="links">
+          <button
+            type="button"
+            class="btn btn-link"
+            @click=${() => {
+              this.step = "sign-in";
+              this.error = "";
+              this.notice = null;
+              this.focusOnStep = true;
+              this.fire("authui-view", { view: "sign-in" });
+            }}
+          >
+            ${icons.arrowLeft} ${this.t("back")}
+          </button>
+        </div>
       </div>
     `;
   }
@@ -769,14 +822,39 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendMagicLink"))}
         </form>
         ${this.backLink()}
+        ${this.legal()}
       </div>
     `;
   }
 
+  private async onResendCode(): Promise<void> {
+    const token = this.token;
+    if (!token || Date.now() < this.resendCooldownUntil) return;
+    this.error = "";
+    await this.run(async () => {
+      if (token.kind === "phone") {
+        const next = await authStore.sendPhoneOtp(token.target);
+        this.token = { userId: next.userId, kind: "phone", target: token.target };
+      } else {
+        const next = await authStore.sendEmailOtp(token.target);
+        this.token = {
+          userId: next.userId,
+          kind: "email-otp",
+          target: token.target,
+          phrase: next.phrase,
+        };
+      }
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
+    });
+  }
+
   private renderCodeEntry(): TemplateResult {
+    const isPhone = this.token?.kind === "phone";
+    const cooling = Date.now() < this.resendCooldownUntil;
     return html`
       <div class="alert alert-info" role="status">
-        ${icons.mail}
+        ${isPhone ? icons.smartphone : icons.mail}
         <div class="alert-body">${this.t("codeSent", { target: this.token!.target })}</div>
       </div>
       ${this.phraseBox(this.token!.phrase)}
@@ -784,12 +862,24 @@ export class AuthUISignIn extends AuthUIElement {
         ${this.codeField()} ${this.renderError()} ${this.submitButton(this.t("verifyCode"))}
       </form>
       <div class="links">
-        <button type="button" class="btn btn-link" @click=${() => (this.token = null)}>
-          ${this.t("sendCode")}
+        <button
+          type="button"
+          class="btn btn-link"
+          ?disabled=${cooling || this.busy}
+          @click=${() => void this.onResendCode()}
+        >
+          ${this.t("resendCode")}
         </button>
         <span aria-hidden="true">·</span>
-        <button type="button" class="btn btn-link" @click=${() => this.go("sign-in")}>
-          ${this.t("back")}
+        <button
+          type="button"
+          class="btn btn-link"
+          @click=${() => {
+            this.token = null;
+            this.error = "";
+          }}
+        >
+          ${isPhone ? this.t("useDifferentPhone") : this.t("useDifferentEmail")}
         </button>
       </div>
     `;
@@ -803,6 +893,7 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>
         ${this.backLink()}
+        ${this.legal()}
       </div>
     `;
   }
@@ -828,6 +919,7 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>
         ${this.backLink()}
+        ${this.legal()}
       </div>
     `;
   }

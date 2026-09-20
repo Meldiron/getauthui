@@ -440,3 +440,67 @@ describe("<authui-account>", () => {
     expect(shadowText(el)).toContain("Create your account");
   });
 });
+
+describe("UX audit follow-ups", () => {
+  it("falls back to the user icon when the avatar label is a phone number", async () => {
+    const { avatarInitial } = await import("../src/icons.js");
+    expect(avatarInitial("+15555550100")).not.toBe("+");
+    expect(avatarInitial("Ada")).toBe("A");
+    expect(avatarInitial("42")).toBe("4");
+  });
+
+  it("forces sign-in when signUp is disabled", async () => {
+    authStore.configure({ ...config, signUp: false });
+    await tick();
+    const el = await mount<HTMLElement & { view?: string }>(
+      `<authui-sign-in view="sign-up"></authui-sign-in>`
+    );
+    await (el as any).updateComplete;
+    await tick();
+    expect(shadowText(el)).not.toMatch(/Create account/i);
+    expect(shadowText(el)).toMatch(/Welcome back|Sign in/i);
+  });
+
+  it("renders sign-in (not wide account) when opening account while signed out", async () => {
+    authStore.configure(config);
+    await tick();
+    const modal = await mount<HTMLElement & { open: boolean; show: (v?: string) => void }>(
+      `<authui-modal></authui-modal>`
+    );
+    modal.show("account");
+    await modal.updateComplete;
+    expect(modal.open).toBe(true);
+    const dialog = modal.shadowRoot!.querySelector("dialog");
+    expect(dialog?.classList.contains("wide")).toBe(false);
+    expect(modal.shadowRoot!.querySelector("authui-sign-in")).not.toBeNull();
+    expect(modal.shadowRoot!.querySelector("authui-account")).toBeNull();
+  });
+
+  it("shows Resend code and a phone icon on the SMS code screen", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, phone: true, oauth: [] },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const phoneBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /phone/i.test(b.textContent ?? "")
+    );
+    expect(phoneBtn).toBeTruthy();
+    phoneBtn!.click();
+    await (el as any).updateComplete;
+    const input = el.shadowRoot!.querySelector("#authui-phone") as HTMLInputElement;
+    input.value = "+15555550100";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const form = el.shadowRoot!.querySelector("form")!;
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    const text = shadowText(el);
+    expect(text).toMatch(/Resend code/);
+    expect(text).toMatch(/Use a different phone/);
+    expect(text).not.toMatch(/Send code ·|Send code\s*·/);
+  });
+});

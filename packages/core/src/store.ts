@@ -19,7 +19,7 @@ function call<T>(target: object, names: string[], args: unknown[]): Promise<T> {
 export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
 import { defaultStrings } from "./i18n.js";
 import { PreviewAccount } from "./preview.js";
-import { ErrorTypes, isErrorType, toAuthUIError } from "./errors.js";
+import { describeError, ErrorTypes, isErrorType, toAuthUIError } from "./errors.js";
 import type {
   AuthUIConfig,
   AuthUIEventMap,
@@ -689,11 +689,22 @@ export class AuthStore {
     const secret = params.get("secret") ?? "";
     this.cleanUrl();
 
+    const incomplete = () => {
+      this.setState({
+        pending: {
+          type: "notice",
+          message: this.getStrings().errorInvalidToken,
+          tone: "error",
+        },
+      });
+    };
+
     try {
       switch (action) {
         case "oauth":
         case "magic-url":
           if (userId && secret) await this.acct().createSession(userId, secret);
+          else incomplete();
           break;
         case "oauth-failed":
           this.setState({ pending: { type: "oauth-failed" } });
@@ -701,6 +712,7 @@ export class AuthStore {
         case "recovery":
           if (userId && secret)
             this.setState({ pending: { type: "reset-password", userId, secret } });
+          else incomplete();
           break;
         case "verify-email":
           if (userId && secret) {
@@ -716,13 +728,14 @@ export class AuthStore {
                 tone: "success",
               },
             });
-          }
+          } else incomplete();
           break;
       }
     } catch (err) {
       const e = toAuthUIError(err);
+      const message = describeError(err, this.getStrings(), "link");
       this.emit("error", e);
-      this.setState({ pending: { type: "notice", message: e.message, tone: "error" } });
+      this.setState({ pending: { type: "notice", message, tone: "error" } });
     }
     return true;
   }

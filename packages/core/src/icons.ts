@@ -167,3 +167,9 @@ export function toneIcon(tone: "success" | "error" | "info" | "warning"): Templa
   if (tone === "error" || tone === "warning") return icons.alert;
   return icons.info;
 }
+
+/** First alphanumeric glyph for avatars; phone "+" falls back to the user icon. */
+export function avatarInitial(label: string) {
+  const ch = (label.trim()[0] ?? "?").toUpperCase();
+  return /[A-Z0-9]/i.test(ch) ? ch : icons.user;
+}

@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { AuthUIElement } from "./element.js";
 import { authStore } from "../store.js";
 import { openModal } from "../modal-controller.js";
-import { icons } from "../icons.js";
+import { avatarInitial, icons } from "../icons.js";
 
 /**
  * Avatar with a menu: shows a sign-in button while signed out, and the user's
@@ -127,8 +127,49 @@ export class AuthUIUserButton extends AuthUIElement {
   };
 
   private onKeydown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") this.menuOpen = false;
+    if (!this.menuOpen) {
+      if ((e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") && e.target === this.renderRoot?.querySelector(".trigger")) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          this.menuOpen = true;
+          requestAnimationFrame(() => this.focusMenuItem(0));
+        }
+      }
+      return;
+    }
+    const items = [...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? [])] as HTMLElement[];
+    const current = items.findIndex((el) => el === this.shadowRoot?.activeElement);
+    if (e.key === "Escape") {
+      e.preventDefault();
+      this.menuOpen = false;
+      (this.renderRoot?.querySelector(".trigger") as HTMLElement | null)?.focus();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      this.focusMenuItem(current < 0 ? 0 : (current + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      this.focusMenuItem(current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      this.focusMenuItem(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      this.focusMenuItem(items.length - 1);
+    }
   };
+
+  private focusMenuItem(index: number): void {
+    const items = [...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? [])] as HTMLElement[];
+    items[index]?.focus();
+  };
+
+  protected updated(changed: Map<string, unknown>): void {
+    if (changed.has("menuOpen") && this.menuOpen) {
+      requestAnimationFrame(() => this.focusMenuItem(0));
+    }
+  }
 
   protected render() {
     const { status, user } = this.auth;
@@ -149,7 +190,7 @@ export class AuthUIUserButton extends AuthUIElement {
         aria-label=${label}
       >
         <span class="avatar"
-          >${this.src ? html`<img src=${this.src} alt="" />` : (label[0] ?? "?")}</span
+          >${this.src ? html`<img src=${this.src} alt="" />` : avatarInitial(label)}</span
         >
       </button>
       ${

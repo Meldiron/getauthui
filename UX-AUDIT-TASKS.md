@@ -157,21 +157,21 @@ anything typed and makes it the account password. Fix: when `!user.passwordUpdat
 "Create a password" with a hint that it becomes the sign-in password (`authui-account.ts:691` and the phone
 equivalent).
 
-### 19. Avatar shows "+" for phone-only users
+### 19. DONE (2026-09-20) Avatar shows "+" for phone-only users
 Observed: header avatar, user button and signed-in row all render "+" (first char of `+15555550100`).
 Fix: in the label/initial helper (`authui-sign-in.ts:499`, account and user-button equivalents) fall back to
 the `user` icon (or first digit) when the label is not alphanumeric; show a friendlier label such as the
 formatted phone.
 
-### 20. "Send code" link on the code-entry screen is ambiguous and does not resend
+### 20. DONE (2026-09-20) "Send code" link on the code-entry screen is ambiguous and does not resend
 It navigates back to the email/phone form (`authui-sign-in.ts:742`) while keeping the previous error. Fix: rename
 to "Resend code" and actually call `sendEmailOtp`/`sendPhoneOtp` again with a short cooldown; add a
 separate "Use a different email" link.
 
-### 21. SMS code notice uses an envelope icon
+### 21. DONE (2026-09-20) SMS code notice uses an envelope icon
 `renderCodeEntry()` (`authui-sign-in.ts:731`) always uses `icons.mail`. Use `icons.smartphone` for `phone`.
 
-### 22. Modal keeps the wide account layout when nobody is signed in
+### 22. DONE (2026-09-20) Modal keeps the wide account layout when nobody is signed in
 Observed: `AuthUI.open("account")` or `<authui-button view="account">` while signed out, and signing out from
 inside the account modal, both leave a 600 px dialog containing a 420 px sign-in form aligned left with blank
 space on the right. Sign-in success inside that nested panel does not close the modal (`onSuccess`
@@ -181,7 +181,7 @@ Fix: in `show()`/render (`authui-modal.ts:112`, `:156`) render `sign-in` wheneve
 close the modal (or switch view) on `signed-out`, and listen for `authui-success` on the dialog so nested
 panels are covered.
 
-### 23. Redirect-return notices show raw server text and are consumed by whichever component renders first
+### 23. DONE (2026-09-20) Redirect-return notices show raw server text and are consumed by whichever component renders first
 Observed: `?authui=magic-url` with a bad secret shows "Invalid token passed in the request." instead of the
 mapped "This link is invalid or has expired."; `?authui=verify-email` with a bad secret likewise. When an inline
 `<authui-sign-in>` exists (even inside a hidden `<authui-show>`) it consumes the one-shot notice, so the modal
@@ -190,117 +190,117 @@ Fix: use `describeError()` in `handleRedirect()` (`store.ts:666`); show an error
 returns; make notices sticky until dismissed rather than consumed on first render, or route them to the modal
 only when the redirect was started from it.
 
-### 24. Reset-password screen loses the one-shot token on "Back"
+### 24. DONE (2026-09-20) Reset-password screen loses the one-shot token on "Back"
 `renderReset()` (`authui-sign-in.ts:679`) drops `recovery` on navigation and the URL was already cleaned. Fix: keep
 the pending recovery until it succeeds or the page unloads, and on an expired token offer a "Request a new
 link" button that goes to `forgot-password` with the email prefilled when known.
 
-### 25. Inline panels steal focus on page load
+### 25. DONE (2026-09-20) Inline panels steal focus on page load
 `updated()` (`authui-sign-in.ts:66`) focuses the first input on every step change including the initial
 render, so a page with an inline panel scrolls to the form and loses the reader's place; two panels fight for
 focus. Fix: autofocus only after a user-initiated step change or when `embedded` inside an open modal.
 
-### 26. `signUp: false` is not enforced for direct navigation
+### 26. DONE (2026-09-20) `signUp: false` is not enforced for direct navigation
 `view="sign-up"` or `AuthUI.open("sign-up")` still render the sign-up form. Fix: in `go()`/`renderStep()`
 redirect to `sign-in` when `config.signUp === false`.
 
-### 27. Long TOTP secret is dumped inline
+### 27. DONE (2026-09-20) Long TOTP secret is dumped inline
 Appwrite 2.2.0 returns a 104-character secret; it is rendered inside the hint sentence ("Or enter this key
 manually: HVDK…") and wraps into a wall of text (`authui-account.ts:994`). Fix: render the key in its own
 `.code` block, grouped in 4-character chunks, with a Copy button.
 
-### 28. Destructive actions have no confirmation
+### 28. DONE (2026-09-20) Destructive actions have no confirmation
 "Regenerate" recovery codes (`authui-account.ts:389`), "Remove" authenticator, "Disconnect" identity and
 "Sign out everywhere" run immediately. Add the same two-step confirm used for Delete account, at least for
 regenerate and remove.
 
-### 29. "Recovery codes" button label is unclear once codes exist
+### 29. DONE (2026-09-20) "Recovery codes" button label is unclear once codes exist
 `has ? t("recoveryCodes") : t("generateRecoveryCodes")` (`authui-account.ts:1060`) yields a noun as a button
 label. Use "View recovery codes". Also explain that Appwrite lets codes be read only once after generation
 and that viewing requires a recent second factor.
 
-### 30. Enabling MFA with no usable factor gives no warning
+### 30. DONE (2026-09-20) Enabling MFA with no usable factor gives no warning
 The switch (`authui-account.ts:341`) flips to "Enabled" even when no authenticator, verified email or phone
 exists, so the account is not actually protected. Show an inline warning and link to "Add authenticator".
 
-### 31. Odd number of OAuth providers leaves an orphan half-width button
+### 31. DONE (2026-09-20) Odd number of OAuth providers leaves an orphan half-width button
 With 3 or 13 providers the last button sits alone in the left column (`base.ts:652`,
 `authui-sign-in.ts:532`). Fix: `.providers.two > :last-child:nth-child(odd) { grid-column: 1 / -1 }`.
 
-### 32. Legal footer missing on passwordless screens
+### 32. DONE (2026-09-20) Legal footer missing on passwordless screens
 Terms/Privacy (`authui-sign-in.ts:441`) render on sign-in and sign-up only, not on magic URL, email OTP or
 phone screens where an account can also be created. Render it on every screen that can create an account.
 
-### 33. Password value persists when switching between sign-in and sign-up
+### 33. DONE (2026-09-20) Password value persists when switching between sign-in and sign-up
 Typed password is kept across `go()`; clear `password`/`passwordConfirm` on navigation (email may stay).
 
-### 34. Connections footer buttons lack a verb and feedback
+### 34. DONE (2026-09-20) Connections footer buttons lack a verb and feedback
 Buttons read "Google", "GitHub" (`authui-account.ts:1270`) with no "Connect" label, no busy state, and the
 click is not wrapped in `run()` so a failure is an unhandled rejection. Label them "Connect Google", route
 through `run()`.
 
-### 35. Sessions empty state reuses the activity string
+### 35. DONE (2026-09-20) Sessions empty state reuses the activity string
 `noActivity` (`authui-account.ts:1176`, `i18n.ts:90`) is shown for an empty sessions list. Add `noSessions`.
 
-### 36. Update button enabled with an empty required field
+### 36. DONE (2026-09-20) Update button enabled with an empty required field
 Name card: clearing the name keeps "Update" enabled (`authui-account.ts:664`) and the server rejects it. Disable
 when the trimmed value is empty or unchanged; same for email and phone.
 
-### 37. Enter key in the phone verification code field does nothing
+### 37. DONE (2026-09-20) Enter key in the phone verification code field does nothing
 The code input lives in the phone form whose submit button is disabled while the number is unchanged, and
 "Verify code" is `type="button"` (`authui-account.ts:770`, `:799`). Handle Enter in the code field to verify.
 
-### 38. Verification email button has no cooldown
+### 38. DONE (2026-09-20) Verification email button has no cooldown
 "Verify email" can be clicked repeatedly, each click sends another email and shows the same notice. Disable
 for 30 to 60 s after a send and say "Sent. You can resend in 45 s".
 
-### 39. Loading state layout jump
+### 39. DONE (2026-09-20) Loading state layout jump
 While `status === "loading"` `<authui-account>` renders a bare spinner with no card (`authui-account.ts:463`)
 while `<authui-sign-in>` renders a card with a title, so the layout jumps when data arrives. Render the panel
 chrome with a spinner inside.
 
-### 40. Broken logo URL shows a broken-image icon with alt text
+### 40. DONE (2026-09-20) Broken logo URL shows a broken-image icon with alt text
 No `onerror` fallback for `branding.logo`; hide the image on error.
 
 ---
 
 ## P2: accessibility and i18n
 
-### 41. Dialog has no accessible name
+### 41. DONE (2026-09-20) Dialog has no accessible name
 `aria-labelledby="authui-title"` (`authui-modal.ts:160`) points at an ID inside a nested shadow root, which
 does not resolve. Set `aria-label` from the current screen title (expose it through the `authui-view` event
 or a property) or move the title into the modal's own shadow root.
 
-### 42. Tabs are not keyboard operable per the ARIA pattern
+### 42. DONE (2026-09-20) Tabs are not keyboard operable per the ARIA pattern
 `role="tablist"` (`authui-account.ts:482`) with buttons only; arrow keys do nothing, there is no roving
 `tabindex`, no `aria-controls`, no `role="tabpanel"`. Implement the WAI-ARIA tabs pattern.
 
-### 43. User menu is not a keyboard menu
+### 43. DONE (2026-09-20) User menu is not a keyboard menu
 Opens with Enter, but ArrowDown does not move focus into it and items are not focused on open
 (`authui-user-button.ts:118`). Focus the first item on open, support Arrow/Home/End, Escape returns focus to
 the trigger.
 
-### 44. `<header>` inside the sign-in panel creates a duplicate banner landmark
+### 44. DONE (2026-09-20) `<header>` inside the sign-in panel creates a duplicate banner landmark
 axe: `landmark-no-duplicate-banner` when the panel is on a page with its own `<header>`
 (`authui-sign-in.ts:331`). Use a `<div>` or `role="presentation"`.
 
-### 45. Focus lands on the close button when the modal auto-opens
+### 45. DONE (2026-09-20) Focus lands on the close button when the modal auto-opens
 When the modal opens from a redirect notice no step change happens, so the first input is not focused and the
 X button takes focus. Focus the first input (or the alert) on `open`.
 
-### 46. Hardcoded English strings bypass `t()`
+### 46. DONE (2026-09-20) Hardcoded English strings bypass `t()`
 "MFA" badge (`authui-account.ts:518`), "QR code" alt (`:992`), "Show password"/"Hide password"
 (`authui-sign-in.ts:394`), "Logo" alt, the "d" suffix from task 15. Add string keys.
 
-### 47. Dismissible alert text runs under the X button
+### 47. DONE (2026-09-20) Dismissible alert text runs under the X button
 `.alert .dismiss` is absolutely positioned; long notices wrap beneath it (`sign-in.styles.ts`). Add
 `padding-inline-end: 36px` to dismissible alerts.
 
-### 48. OTP inputs lack constraints
+### 48. DONE (2026-09-20) OTP inputs lack constraints
 `type="text"` with no `maxlength`, `pattern`, or auto-submit on 6 digits for TOTP/OTP fields. Add
 `maxlength="6"` and `pattern="[0-9]*"` where the factor is numeric (keep free text for recovery codes).
 
-### 49. Copy button gives no failure feedback
+### 49. DONE (2026-09-20) Copy button gives no failure feedback
 `onCopyCodes` (`authui-account.ts:395`) swallows clipboard errors; show "Copy failed, select the codes" or
 fall back to selecting the text.
 
@@ -308,11 +308,11 @@ fall back to selecting the text.
 
 ## Docs corrections
 
-- `docs/content/docs/account-management.mdx:35`: Cloud 2.2.0 has no `/account/logs`; describe the tab as
+- DONE (2026-09-20) `docs/content/docs/account-management.mdx:35`: Cloud 2.2.0 has no `/account/logs`; describe the tab as
   conditional on the server version.
-- `docs/content/docs/components/modal.mdx:36`: the "Manage account from the inline panel" behaviour does not
+- DONE (2026-09-20) `docs/content/docs/components/modal.mdx:36`: the "Manage account from the inline panel" behaviour does not
   work until task 6 is fixed.
-- `docs/content/docs/mfa.mdx`: mention that verifying a new authenticator does not count as a recent challenge
+- DONE (2026-09-20) `docs/content/docs/mfa.mdx`: mention that verifying a new authenticator does not count as a recent challenge
   on the server (viewing recovery codes right after enrolment triggers step-up), unlike preview mode, and that
   Appwrite 2.x lets recovery codes be read only once after generation.
 

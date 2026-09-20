@@ -5,7 +5,7 @@ import { AuthUIElement } from "./element.js";
 import { authStore, type MfaFactor } from "../store.js";
 import { previewQrDataUrl } from "../preview.js";
 import { describeError, ErrorTypes, isErrorType } from "../errors.js";
-import { icons, providerIcon } from "../icons.js";
+import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "activity";
@@ -162,6 +162,11 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private logsSupported: boolean | null = null;
   private logsProbeStarted = false;
   @state() private confirmDelete = false;
+  @state() private confirmRegenerate = false;
+  @state() private confirmRemoveAuthenticator = false;
+  @state() private confirmSignOutAll = false;
+  @state() private confirmDisconnectId: string | null = null;
+  @state() private verifyEmailCooldownUntil = 0;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -203,6 +208,22 @@ export class AuthUIAccount extends AuthUIElement {
     const u = this.user;
     return !!u && !u.email && !u.phone;
   }
+
+  private onTabsKeydown = (e: KeyboardEvent) => {
+    const tabs = [...(this.renderRoot?.querySelectorAll('[role="tab"]') ?? [])] as HTMLElement[];
+    if (!tabs.length) return;
+    const i = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
+    let next = i;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % tabs.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    const id = tabs[next]!.id.replace("authui-tab-", "") as Tab;
+    this.select(id);
+    requestAnimationFrame(() => tabs[next]?.focus());
+  };
 
   private select(tab: Tab): void {
     this.active = tab;
@@ -380,7 +401,12 @@ export class AuthUIAccount extends AuthUIElement {
   };
 
   private onSendVerification = () => {
-    void this.run("verify", () => authStore.sendEmailVerification(), this.t("verificationSent"));
+    if (Date.now() < this.verifyEmailCooldownUntil) return;
+    void this.run("verify", async () => {
+      await authStore.sendEmailVerification();
+      this.verifyEmailCooldownUntil = Date.now() + 45000;
+      window.setTimeout(() => this.requestUpdate(), 45000);
+    }, this.t("verificationSent"));
   };
 
   private onSendPhoneVerification = () => {
@@ -452,6 +478,11 @@ export class AuthUIAccount extends AuthUIElement {
   };
 
   private onRemoveAuthenticator = () => {
+    if (!this.confirmRemoveAuthenticator) {
+      this.confirmRemoveAuthenticator = true;
+      return;
+    }
+    this.confirmRemoveAuthenticator = false;
     void this.run("remove-authenticator", async () => {
       await authStore.removeAuthenticator();
       await this.loadFactors();
@@ -471,6 +502,11 @@ export class AuthUIAccount extends AuthUIElement {
   };
 
   private onRegenerateRecoveryCodes = () => {
+    if (!this.confirmRegenerate) {
+      this.confirmRegenerate = true;
+      return;
+    }
+    this.confirmRegenerate = false;
     void this.run("recovery", async () => {
       this.recoveryCodes = await authStore.regenerateRecoveryCodes();
     });
@@ -483,7 +519,19 @@ export class AuthUIAccount extends AuthUIElement {
       this.copied = true;
       setTimeout(() => (this.copied = false), 1500);
     } catch {
-      /* clipboard unavailable */
+      this.setNotice("error", this.t("copyFailed"));
+    }
+  };
+
+  private onCopySecret = async () => {
+    const secret = this.authenticator?.secret;
+    if (!secret) return;
+    try {
+      await navigator.clipboard.writeText(secret);
+      this.copied = true;
+      setTimeout(() => (this.copied = false), 1500);
+    } catch {
+      this.setNotice("error", this.t("copyFailed"));
     }
   };
 
@@ -522,10 +570,20 @@ export class AuthUIAccount extends AuthUIElement {
   };
 
   private onSignOutAll = () => {
+    if (!this.confirmSignOutAll) {
+      this.confirmSignOutAll = true;
+      return;
+    }
+    this.confirmSignOutAll = false;
     void this.run("sessions-all", () => authStore.signOutEverywhere());
   };
 
   private onDeleteIdentity = (id: string) => {
+    if (this.confirmDisconnectId !== id) {
+      this.confirmDisconnectId = id;
+      return;
+    }
+    this.confirmDisconnectId = null;
     void this.run(`identity-${id}`, async () => {
       await authStore.deleteIdentity(id);
       this.identities = (this.identities ?? []).filter((i) => i.$id !== id);
@@ -552,7 +610,9 @@ export class AuthUIAccount extends AuthUIElement {
       </div>`;
     }
     if (this.auth.status === "loading")
-      return html`<div class="empty"><span class="spinner"></span></div>`;
+      return html`<div class="panel ${this.embedded ? "embedded" : ""}" part="panel">
+        <div class="empty"><span class="spinner"></span></div>
+      </div>`;
     if (!this.user) {
       return html`<div class="panel ${this.embedded ? "embedded" : ""}">
         <authui-sign-in embedded></authui-sign-in>
@@ -570,13 +630,16 @@ export class AuthUIAccount extends AuthUIElement {
     return html`
       <div class="panel ${this.embedded ? "embedded" : ""}" part="panel">
         ${this.renderIdentity()}
-        <div class="tabs" role="tablist">
+        <div class="tabs" role="tablist" @keydown=${this.onTabsKeydown}>
           ${tabs.map(
             (t) =>
               html`<button
                 class="tab"
                 role="tab"
+                id=${`authui-tab-${t.id}`}
+                aria-controls=${`authui-panel-${t.id}`}
                 aria-selected=${this.active === t.id ? "true" : "false"}
+                tabindex=${this.active === t.id ? "0" : "-1"}
                 @click=${() => this.select(t.id)}
               >
                 ${t.label}
@@ -604,7 +667,18 @@ export class AuthUIAccount extends AuthUIElement {
               </div>`
             : nothing
         }
-        ${this.stepUp ? this.renderStepUp() : this.renderTab()}
+        ${
+          this.stepUp
+            ? this.renderStepUp()
+            : html`<div
+                class="tabpanel"
+                role="tabpanel"
+                id=${`authui-panel-${this.active}`}
+                aria-labelledby=${`authui-tab-${this.active}`}
+              >
+                ${this.renderTab()}
+              </div>`
+        }
       </div>
     `;
   }
@@ -615,11 +689,11 @@ export class AuthUIAccount extends AuthUIElement {
     return html`
       <div class="between">
         <div class="identity">
-          <span class="avatar">${label[0] ?? "?"}</span>
+          <span class="avatar">${avatarInitial(label)}</span>
           <div class="row-main">
             <span class="row-title" title=${label}>
               ${label}
-              ${u.mfa ? html`<span class="badge badge-success">${icons.shieldCheck} MFA</span>` : nothing}
+              ${u.mfa ? html`<span class="badge badge-success">${icons.shieldCheck} ${this.t("mfaBadge")}</span>` : nothing}
               ${authStore.isPreview ? html`<span class="badge badge-info">${this.t("preview")}</span>` : nothing}
             </span>
             ${
@@ -769,7 +843,7 @@ export class AuthUIAccount extends AuthUIElement {
           class="btn btn-primary btn-sm"
           type="submit"
           form="name-form"
-          ?disabled=${!!this.busy || this.nameInput === u.name}
+          ?disabled=${!!this.busy || !this.nameInput.trim() || this.nameInput === u.name}
         >
           ${this.spinner("name")} ${this.t("update")}
         </button>`
@@ -825,9 +899,17 @@ export class AuthUIAccount extends AuthUIElement {
                   class="btn btn-outline btn-sm"
                   type="button"
                   @click=${this.onSendVerification}
-                  ?disabled=${!!this.busy}
+                  ?disabled=${!!this.busy || Date.now() < this.verifyEmailCooldownUntil}
                 >
-                  ${this.spinner("verify")} ${this.t("verifyEmail")}
+                  ${this.spinner("verify")}
+                  ${Date.now() < this.verifyEmailCooldownUntil
+                    ? this.t("verificationResendIn", {
+                        seconds: Math.max(
+                          1,
+                          Math.ceil((this.verifyEmailCooldownUntil - Date.now()) / 1000)
+                        ),
+                      })
+                    : this.t("verifyEmail")}
                 </button>`
               : nothing
           }
@@ -835,7 +917,7 @@ export class AuthUIAccount extends AuthUIElement {
             class="btn btn-primary btn-sm"
             type="submit"
             form="email-form"
-            ?disabled=${!!this.busy || this.emailInput === u.email}
+            ?disabled=${!!this.busy || !this.emailInput.trim() || this.emailInput === u.email}
           >
             ${this.spinner("email")} ${this.t("update")}
           </button>
@@ -892,8 +974,17 @@ export class AuthUIAccount extends AuthUIElement {
                     id="acc-phone-code"
                     inputmode="numeric"
                     autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="[0-9]*"
+                    required
                     .value=${this.phoneCode}
                     @input=${this.bind("phoneCode")}
+                    @keydown=${(e: KeyboardEvent) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        this.onConfirmPhoneVerification(e);
+                      }
+                    }}
                   />
                 </div>`
               : nothing
@@ -929,7 +1020,7 @@ export class AuthUIAccount extends AuthUIElement {
             class="btn btn-primary btn-sm"
             type="submit"
             form="phone-form"
-            ?disabled=${!!this.busy || this.phoneInput === u.phone}
+            ?disabled=${!!this.busy || !this.phoneInput.trim() || this.phoneInput === u.phone}
           >
             ${this.spinner("phone")} ${this.t("update")}
           </button>
@@ -948,7 +1039,7 @@ export class AuthUIAccount extends AuthUIElement {
         this.confirmDelete
           ? html`<div class="inline">
               <button
-                class="btn btn-destructive btn-sm"
+                class="btn btn-outline btn-sm warn"
                 @click=${this.onDeleteAccount}
                 ?disabled=${!!this.busy}
               >
@@ -1078,6 +1169,31 @@ export class AuthUIAccount extends AuthUIElement {
             aria-label=${this.t("twoFactor")}
           ></button>
         </div>
+        ${
+          u.mfa &&
+          !(this.factors?.totp || u.emailVerification || u.phoneVerification)
+            ? html`<div class="alert alert-warning" role="status">
+                ${icons.alert}
+                <div class="alert-body">
+                  ${this.t("mfaNoFactorWarning")}
+                  ${
+                    !(this.factors?.totp)
+                      ? html`<div class="links">
+                          <button
+                            type="button"
+                            class="btn btn-link"
+                            @click=${this.onAddAuthenticator}
+                            ?disabled=${!!this.busy || !!this.authenticator}
+                          >
+                            ${this.t("authenticatorAdd")}
+                          </button>
+                        </div>`
+                      : nothing
+                  }
+                </div>
+              </div>`
+            : nothing
+        }
         ${this.error("mfa")}
         <div class="separator"></div>
         <div class="toggle-row">
@@ -1089,13 +1205,29 @@ export class AuthUIAccount extends AuthUIElement {
           </div>
           ${
             hasTotp
-              ? html`<button
-                  class="btn btn-outline btn-sm"
-                  @click=${this.onRemoveAuthenticator}
-                  ?disabled=${!!this.busy}
-                >
-                  ${this.spinner("remove-authenticator")} ${this.t("remove")}
-                </button>`
+              ? this.confirmRemoveAuthenticator
+                ? html`<div class="inline">
+                    <button
+                      class="btn btn-outline btn-sm warn"
+                      @click=${this.onRemoveAuthenticator}
+                      ?disabled=${!!this.busy}
+                    >
+                      ${this.spinner("remove-authenticator")} ${this.t("remove")}
+                    </button>
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      @click=${() => (this.confirmRemoveAuthenticator = false)}
+                    >
+                      ${this.t("cancel")}
+                    </button>
+                  </div>`
+                : html`<button
+                    class="btn btn-outline btn-sm"
+                    @click=${this.onRemoveAuthenticator}
+                    ?disabled=${!!this.busy}
+                  >
+                    ${this.spinner("remove-authenticator")} ${this.t("remove")}
+                  </button>`
               : this.authenticator
                 ? nothing
                 : html`<button
@@ -1112,11 +1244,19 @@ export class AuthUIAccount extends AuthUIElement {
           this.authenticator
             ? html`<form class="form" @submit=${this.onVerifyAuthenticator} novalidate>
                 <p class="hint">${this.t("authenticatorScan")}</p>
-                <img class="qr" src=${qrUrl} alt="QR code" />
-                <p class="hint center">
-                  ${this.t("authenticatorManual")}:
-                  <span class="code">${this.authenticator.secret}</span>
-                </p>
+                <img class="qr" src=${qrUrl} alt=${this.t("qrCodeAlt")} />
+                <p class="hint center">${this.t("authenticatorManual")}</p>
+                <div class="inline">
+                  <span class="code">${this.authenticator.secret.match(/.{1,4}/g)?.join(" ") ?? this.authenticator.secret}</span>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    @click=${() => void this.onCopySecret()}
+                  >
+                    ${this.copied ? icons.check : icons.copy}
+                    ${this.copied ? this.t("copied") : this.t("authenticatorCopyKey")}
+                  </button>
+                </div>
                 <div class="field">
                   <label class="label" for="acc-totp">${this.t("code")}</label>
                   <input
@@ -1124,6 +1264,8 @@ export class AuthUIAccount extends AuthUIElement {
                     id="acc-totp"
                     inputmode="numeric"
                     autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="[0-9]*"
                     required
                     .value=${this.authenticatorCode}
                     @input=${this.bind("authenticatorCode")}
@@ -1153,7 +1295,7 @@ export class AuthUIAccount extends AuthUIElement {
     const has = this.factors?.recoveryCode ?? false;
     return this.card(
       this.t("recoveryCodes"),
-      this.t("recoveryCodesDescription"),
+      this.t("recoveryCodesDescription") + " " + this.t("recoveryCodesOnceHint"),
       html`<div class="kv">
         ${
           this.recoveryCodes
@@ -1180,9 +1322,35 @@ export class AuthUIAccount extends AuthUIElement {
                   ?disabled=${!!this.busy}
                 >
                   ${this.spinner("recovery")} ${icons.key}
-                  ${has ? this.t("recoveryCodes") : this.t("generateRecoveryCodes")}
+                  ${has ? this.t("viewRecoveryCodes") : this.t("generateRecoveryCodes")}
                 </button>
-                ${has ? html`<button class="btn btn-ghost btn-sm" @click=${this.onRegenerateRecoveryCodes} ?disabled=${!!this.busy}>${icons.refresh} ${this.t("regenerateRecoveryCodes")}</button>` : nothing}
+                ${
+                  has
+                    ? this.confirmRegenerate
+                      ? html`<div class="inline">
+                          <button
+                            class="btn btn-outline btn-sm warn"
+                            @click=${this.onRegenerateRecoveryCodes}
+                            ?disabled=${!!this.busy}
+                          >
+                            ${icons.refresh} ${this.t("regenerateRecoveryCodes")}
+                          </button>
+                          <button
+                            class="btn btn-ghost btn-sm"
+                            @click=${() => (this.confirmRegenerate = false)}
+                          >
+                            ${this.t("cancel")}
+                          </button>
+                        </div>`
+                      : html`<button
+                          class="btn btn-ghost btn-sm"
+                          @click=${this.onRegenerateRecoveryCodes}
+                          ?disabled=${!!this.busy}
+                        >
+                          ${icons.refresh} ${this.t("regenerateRecoveryCodes")}
+                        </button>`
+                    : nothing
+                }
               </div>`
         }
         ${this.error("recovery")}
@@ -1254,6 +1422,9 @@ export class AuthUIAccount extends AuthUIElement {
                   <input
                     class="input ${s.challenge.factor === "recoverycode" ? "mono" : "input-otp"}"
                     id="acc-stepup"
+                    inputmode=${s.challenge.factor === "recoverycode" ? "text" : "numeric"}
+                    maxlength=${s.challenge.factor === "recoverycode" ? "64" : "6"}
+                    pattern=${s.challenge.factor === "recoverycode" ? ".*" : "[0-9]*"}
                     autocomplete="one-time-code"
                     required
                     .value=${this.stepUpCode}
@@ -1296,7 +1467,7 @@ export class AuthUIAccount extends AuthUIElement {
           list === null
             ? html`<div class="empty"><span class="spinner"></span></div>`
             : list.length === 0
-              ? html`<div class="empty">${this.t("noActivity")}</div>`
+              ? html`<div class="empty">${this.t("noSessions")}</div>`
               : list.map(
                   (s) =>
                     html`<div class="row">
@@ -1332,13 +1503,31 @@ export class AuthUIAccount extends AuthUIElement {
         this.t("signOutAllSessions"),
         this.t("signOutAllSessionsDescription"),
         html`${this.error("sessions-all")}
-          <button
-            class="btn btn-outline btn-sm warn"
-            @click=${this.onSignOutAll}
-            ?disabled=${!!this.busy}
-          >
-            ${this.spinner("sessions-all")} ${icons.logOut} ${this.t("signOutAllSessions")}
-          </button>`,
+        ${
+          this.confirmSignOutAll
+            ? html`<div class="inline">
+                <button
+                  class="btn btn-outline btn-sm warn"
+                  @click=${this.onSignOutAll}
+                  ?disabled=${!!this.busy}
+                >
+                  ${this.spinner("sessions-all")} ${icons.logOut} ${this.t("signOutAllSessions")}
+                </button>
+                <button
+                  class="btn btn-ghost btn-sm"
+                  @click=${() => (this.confirmSignOutAll = false)}
+                >
+                  ${this.t("cancel")}
+                </button>
+              </div>`
+            : html`<button
+                class="btn btn-outline btn-sm warn"
+                @click=${this.onSignOutAll}
+                ?disabled=${!!this.busy}
+              >
+                ${this.spinner("sessions-all")} ${icons.logOut} ${this.t("signOutAllSessions")}
+              </button>`
+        }`,
         undefined,
         true
       )}
@@ -1371,14 +1560,37 @@ export class AuthUIAccount extends AuthUIElement {
                         </div>
                       </div>
                       <div class="row-actions">
-                        <button
-                          class="btn btn-ghost btn-sm"
-                          @click=${() => this.onDeleteIdentity(i.$id)}
-                          ?disabled=${!!this.busy}
-                        >
-                          ${this.busy === `identity-${i.$id}` ? html`<span class="spinner"></span>` : nothing}
-                          ${this.t("disconnect")}
-                        </button>
+                        ${
+                          this.confirmDisconnectId === i.$id
+                            ? html`<div class="inline">
+                                <button
+                                  class="btn btn-outline btn-sm warn"
+                                  @click=${() => this.onDeleteIdentity(i.$id)}
+                                  ?disabled=${!!this.busy}
+                                >
+                                  ${this.busy === `identity-${i.$id}`
+                                    ? html`<span class="spinner"></span>`
+                                    : nothing}
+                                  ${this.t("disconnect")}
+                                </button>
+                                <button
+                                  class="btn btn-ghost btn-sm"
+                                  @click=${() => (this.confirmDisconnectId = null)}
+                                >
+                                  ${this.t("cancel")}
+                                </button>
+                              </div>`
+                            : html`<button
+                                class="btn btn-ghost btn-sm"
+                                @click=${() => this.onDeleteIdentity(i.$id)}
+                                ?disabled=${!!this.busy}
+                              >
+                                ${this.busy === `identity-${i.$id}`
+                                  ? html`<span class="spinner"></span>`
+                                  : nothing}
+                                ${this.t("disconnect")}
+                              </button>`
+                        }
                       </div>
                     </div>`
                 )
@@ -1390,9 +1602,12 @@ export class AuthUIAccount extends AuthUIElement {
                 (p) =>
                   html`<button
                     class="btn btn-outline btn-sm"
-                    @click=${() => authStore.signInWithOAuth(p)}
+                    @click=${() =>
+                      void this.run(`connect-${p}`, () => authStore.signInWithOAuth(p))}
+                    ?disabled=${!!this.busy}
                   >
-                    ${providerIcon(p)} ${providerLabel(p)}
+                    ${this.spinner(`connect-${p}`)} ${providerIcon(p)}
+                    ${this.t("connectProvider", { provider: providerLabel(p) })}
                   </button>`
               )}`
           : undefined

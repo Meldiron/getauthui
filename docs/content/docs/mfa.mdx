@@ -24,15 +24,15 @@ The **Security** tab of the account screen has a **Two-factor authentication** c
 2. The user scans it and types the six-digit code. `updateMFAAuthenticator()` verifies it.
 3. Flip the **Two-factor authentication** switch to enforce MFA on the account with `updateMFA(true)`.
 
-Appwrite only requires a second factor when the account both has MFA enabled and has at least one usable factor, so switching it on before adding an authenticator is harmless.
+Appwrite only requires a second factor when the account both has MFA enabled and has at least one usable factor. Auth UI still warns if you enable the switch with no authenticator and no verified email or phone, because the setting alone does not protect the account until a factor exists.
 
 ## Recovery codes
 
-**Generate recovery codes** creates a set of one-time codes and shows them with a copy button. Each code signs in once. **Regenerate** replaces the whole set.
+**Generate recovery codes** creates a set of one-time codes and shows them with a copy button. Each code signs in once. On Appwrite 2.x the full list can be read only once after generation; later attempts need a fresh second factor (or regenerate). **Regenerate** replaces the whole set.
 
 ## Step-up verification
 
-Reading or regenerating recovery codes and removing an authenticator are protected: Appwrite requires a factor verified within the last 30 minutes and otherwise answers `user_challenge_required`. Auth UI catches that, shows an inline challenge card, and retries the original action once the challenge succeeds.
+Reading or regenerating recovery codes and removing an authenticator are protected: Appwrite requires a factor verified within the last 30 minutes and otherwise answers `user_challenge_required`. Verifying a newly enrolled authenticator does **not** count as that recent challenge on the server (unlike preview mode), so opening recovery codes right after enrolment often triggers step-up. Auth UI catches `user_challenge_required`, shows an inline challenge card, and retries the original action once the challenge succeeds.
 
 ## Disabling MFA in the UI
 

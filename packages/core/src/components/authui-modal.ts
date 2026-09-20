@@ -110,8 +110,10 @@ export class AuthUIModal extends AuthUIElement {
   private onCloseEvent = () => this.hide();
 
   show(view?: AuthUIView): void {
-    if (view) this.view = view;
+    if (view === "account" && this.auth.status !== "signed-in") this.view = "sign-in";
+    else if (view) this.view = view;
     else if (this.auth.status === "signed-in") this.view = "account";
+    else this.view = "sign-in";
     this.open = true;
   }
 
@@ -121,7 +123,10 @@ export class AuthUIModal extends AuthUIElement {
 
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("open") && this.dialog) {
-      if (this.open && !this.dialog.open) this.dialog.showModal();
+      if (this.open && !this.dialog.open) {
+        this.dialog.showModal();
+        requestAnimationFrame(() => this.focusPrimary());
+      }
       if (!this.open && this.dialog.open) this.dialog.close();
     }
     if (changed.has("auth")) {
@@ -134,6 +139,12 @@ export class AuthUIModal extends AuthUIElement {
       if (pending?.type === "notice" && pending !== this.handledPending) {
         this.handledPending = pending;
         this.open = true;
+      }
+      if (this.open && this.view === "account" && this.auth.status !== "signed-in") {
+        this.view = "sign-in";
+      }
+      if (this.open && this.auth.status === "signed-out" && this.view === "account") {
+        this.view = "sign-in";
       }
     }
   }
@@ -152,12 +163,26 @@ export class AuthUIModal extends AuthUIElement {
     if (e.target === this.dialog) this.hide();
   };
 
+  private focusPrimary(): void {
+    const root = this.dialog;
+    if (!root) return;
+    const host = root.querySelector("authui-sign-in, authui-account") as
+      | (HTMLElement & { shadowRoot?: ShadowRoot })
+      | null;
+    const sr = host?.shadowRoot;
+    const target =
+      (sr?.querySelector(".alert[role=alert], .alert[role=status]") as HTMLElement | null) ??
+      (sr?.querySelector("input:not([type=hidden]), button.choice, [role=tab]") as HTMLElement | null);
+    target?.focus?.();
+  }
+
   protected render() {
-    const account = this.view === "account";
+    const signedIn = this.auth.status === "signed-in";
+    const account = this.view === "account" && signedIn;
     return html`
       <dialog
         class=${account ? "wide" : ""}
-        aria-labelledby="authui-title"
+        aria-label=${account ? this.t("dialogAccount") : this.t("dialogSignIn")}
         @close=${() => (this.open = false)}
         @cancel=${(e: Event) => {
           e.preventDefault();
@@ -165,6 +190,7 @@ export class AuthUIModal extends AuthUIElement {
         }}
         @click=${this.onBackdrop}
         @authui-open=${this.onInnerOpen}
+        @authui-success=${this.onSuccess}
       >
         <div class="body">
           <button
@@ -181,8 +207,7 @@ export class AuthUIModal extends AuthUIElement {
                 ? html`<authui-account embedded></authui-account>`
                 : html`<authui-sign-in
                     embedded
-                    .view=${this.view}
-                    @authui-success=${this.onSuccess}
+                    .view=${this.view === "account" ? "sign-in" : this.view}
                   ></authui-sign-in>`
           }
         </div>
