@@ -73,6 +73,9 @@ export class AuthUISignIn extends AuthUIElement {
     if (status === "mfa-required" && this.step !== "mfa") {
       this.go("mfa");
     }
+    if ((status === "signed-in" || status === "signed-out") && this.step === "mfa") {
+      this.go("sign-in");
+    }
     if (pending?.type === "reset-password" && this.step !== "reset-password") {
       this.recovery = { userId: pending.userId, secret: pending.secret };
       this.go("reset-password");
@@ -242,6 +245,7 @@ export class AuthUISignIn extends AuthUIElement {
       await authStore.completeMfaChallenge(challenge.id, this.code);
       this.code = "";
       this.challenge = null;
+      this.go("sign-in");
       this.fire("authui-success", { method: "mfa" });
     }, "code");
   };

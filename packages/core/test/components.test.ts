@@ -125,6 +125,48 @@ describe("<authui-sign-in>", () => {
     expect(text).not.toContain("Send code by SMS");
   });
 
+  it("leaves the MFA chooser after a successful challenge", async () => {
+    account.state.mfaPending = true;
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: true,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+    };
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(authStore.getState().status).toBe("mfa-required");
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toContain("Two-factor authentication");
+
+    const authenticator = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("authenticator")
+    )!;
+    authenticator.click();
+    await tick();
+    await (el as any).updateComplete;
+
+    const code = el.shadowRoot!.querySelector<HTMLInputElement>("#authui-code")!;
+    code.value = "123456";
+    code.dispatchEvent(new Event("input"));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect(authStore.getState().status).toBe("signed-in");
+    const text = shadowText(el);
+    expect(text).toContain("Signed in as");
+    expect(text).not.toContain("Two-factor authentication");
+    expect(text).not.toContain("Send code by SMS");
+  });
+
   it("renders the signed-in state with sign out", async () => {
     authStore.configure(config);
     await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
