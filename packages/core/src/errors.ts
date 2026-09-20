@@ -68,12 +68,12 @@ export function isErrorType(err: unknown, type: string): boolean {
 export function describeError(
   err: unknown,
   s: AuthUIStrings,
-  context: "link" | "code" = "link"
+  context: "link" | "code" | "password" = "link"
 ): string {
   const e = toAuthUIError(err);
   switch (e.type) {
     case ErrorTypes.invalidCredentials:
-      return s.errorInvalidCredentials;
+      return context === "password" ? s.errorCurrentPassword : s.errorInvalidCredentials;
     case ErrorTypes.userAlreadyExists:
     case ErrorTypes.emailAlreadyExists:
     case ErrorTypes.phoneAlreadyExists:

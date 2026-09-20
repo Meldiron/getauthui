@@ -114,6 +114,7 @@ export class AuthUISignIn extends AuthUIElement {
   go(step: Step): void {
     this.step = step;
     this.error = "";
+    this.notice = null;
     this.busy = false;
     this.showPassword = false;
     if (step !== "mfa") this.challenge = null;
@@ -337,14 +338,12 @@ export class AuthUISignIn extends AuthUIElement {
     const name = this.productName;
     let title = "";
     let description = "";
+    if (this.auth.status === "signed-in") {
+      title = this.t("signedInAs");
+    } else {
     switch (this.step) {
       case "sign-in":
-        title =
-          this.auth.status === "signed-in"
-            ? this.t("signedInAs")
-            : name
-              ? this.t("signInTitle", { name })
-              : this.t("welcomeBack");
+        title = name ? this.t("signInTitle", { name }) : this.t("welcomeBack");
         break;
       case "sign-up":
         title = name ? this.t("signUpTitle", { name }) : this.t("createAccount");
@@ -364,6 +363,7 @@ export class AuthUISignIn extends AuthUIElement {
         title = this.t("mfaTitle");
         description = this.t("mfaDescription");
         break;
+    }
     }
     return html`
       <header class="header">

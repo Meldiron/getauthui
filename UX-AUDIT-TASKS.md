@@ -117,41 +117,41 @@ Fix: when `loadLogs()` (`authui-account.ts:225`) fails with `general_route_not_f
 `profile` (or keep the tab and show an explanatory empty state). Better: probe once on hydrate and hide the tab
 before it is ever shown. Update the docs.
 
-### 12. Header title is wrong for the signed-in state and after passwordless sign-in
+### 12. DONE (2026-09-20) Header title is wrong for the signed-in state and after passwordless sign-in
 Observed: after sign-up the card reads "Sign up for Acme" above "Test Person / Manage account / Sign out";
 after SMS sign-in it reads "Continue with phone". Only the `sign-in` step maps to "Signed in as".
 Fix: in `renderHeader()` (`authui-sign-in.ts:302`) check `status === "signed-in"` before the step switch.
 (Resolved automatically once task 2 resets the step, but keep the guard.)
 
-### 13. Success and error notices survive navigation
+### 13. DONE (2026-09-20) Success and error notices survive navigation
 Observed: "If an account exists for …, a reset link is on its way." stays visible on the email-OTP screen;
 "That code is not valid" stays after clicking "Send code" back to the email form (`authui-sign-in.ts:742`); in
 the account panel "Done" sits at the top through the rest of the session (no dismiss button).
 Fix: clear `notice` and `error` in `go()` (`:94`) and when `token` is reset; add a dismiss button and a
 timeout to account notices (`authui-account.ts:497`); clear `notice` when a new action starts.
 
-### 14. "Done" is a poor success message
+### 14. DONE (2026-09-20) "Done" is a poor success message
 Observed: every account update (name, email, TOTP verified, phone verified) shows a green alert reading just
 "Done" (`authui-account.ts:262` and others).
 Fix: specific strings: "Name updated", "Email updated. Verify the new address.", "Authenticator added",
 "Phone verified". Add keys to `types.ts`/`i18n.ts`.
 
-### 15. "Enabled"/"Disabled" built by string concatenation
+### 15. DONE (2026-09-20) "Enabled"/"Disabled" built by string concatenation
 `${u.mfa ? this.t("enable") : this.t("disable")}d` (`authui-account.ts:947`) breaks every translation.
 Fix: add `enabled`/`disabled` strings.
 
-### 16. Delete account copy is in the wrong tense
+### 16. DONE (2026-09-20) Delete account copy is in the wrong tense
 "Your account is disabled and you are signed out. An administrator can restore it." (`i18n.ts:92`) reads as if
 it already happened. Fix: "Deleting disables your account and signs you out everywhere. An administrator can
 restore it." Also show a confirmation notice after deletion (currently the modal silently swaps to the sign-in
 form, task 22).
 
-### 17. Wrong message when the current password is wrong on Change password
+### 17. DONE (2026-09-20) Wrong message when the current password is wrong on Change password
 Observed: `user_invalid_credentials` from `updatePassword` renders "Invalid email or password." Fix: pass a
 context to `describeError()` (`errors.ts:64`) so password change shows "Current password is incorrect." Make
 the current-password field `required` when `passwordUpdate` is set (`authui-account.ts:876`).
 
-### 18. "Current password" is misleading for passwordless accounts
+### 18. DONE (2026-09-20) "Current password" is misleading for passwordless accounts
 Observed: a phone-only user (no password) changing email is asked for "Current password"; Appwrite accepts
 anything typed and makes it the account password. Fix: when `!user.passwordUpdate`, label the field
 "Create a password" with a hint that it becomes the sign-in password (`authui-account.ts:691` and the phone

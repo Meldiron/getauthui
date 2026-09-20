@@ -259,6 +259,17 @@ export interface AuthUIStrings {
   copied: string;
   copy: string;
   done: string;
+  nameUpdated: string;
+  emailUpdated: string;
+  phoneUpdated: string;
+  phoneVerified: string;
+  authenticatorAdded: string;
+  accountConverted: string;
+  enabled: string;
+  disabled: string;
+  createPassword: string;
+  createPasswordHint: string;
+  errorCurrentPassword: string;
   errorGeneric: string;
   errorInvalidCredentials: string;
   errorInvalidEmail: string;

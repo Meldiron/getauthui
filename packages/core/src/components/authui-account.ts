@@ -223,8 +223,18 @@ export class AuthUIAccount extends AuthUIElement {
     }
   }
 
-  /** Run an action with a busy key, surfacing errors under that key. Handles MFA step-up. */
-    private requireValid(e: Event): boolean {
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private setNotice(tone: "success" | "error" | "info", message: string): void {
+    this.notice = { tone, message };
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => {
+      this.notice = null;
+      this.noticeTimer = null;
+    }, 8000);
+  }
+
+  private requireValid(e: Event): boolean {
     const form = e.target as HTMLFormElement | null;
     if (form && typeof form.reportValidity === "function" && !form.reportValidity()) return false;
     return true;
@@ -234,16 +244,21 @@ export class AuthUIAccount extends AuthUIElement {
     if (this.busy) return;
     this.busy = key;
     this.errors = { ...this.errors, [key]: "" };
+    this.notice = null;
     try {
       await action();
-      if (success) this.notice = { tone: "success", message: success };
+      if (success) this.setNotice("success", success);
     } catch (err) {
       if (isErrorType(err, ErrorTypes.challengeRequired)) {
         this.stepUp = { retry: () => this.run(key, action, success) };
       } else {
         this.errors = {
           ...this.errors,
-          [key]: describeError(err, this.strings, key.includes("code") ? "code" : "link"),
+          [key]: describeError(
+            err,
+            this.strings,
+            key.includes("code") ? "code" : key === "password" ? "password" : "link"
+          ),
         };
       }
     } finally {
@@ -322,7 +337,7 @@ export class AuthUIAccount extends AuthUIElement {
   private onUpdateName = (e: Event) => {
     e.preventDefault();
     if (!this.requireValid(e)) return;
-    void this.run("name", () => authStore.updateName(this.nameInput), this.t("done"));
+    void this.run("name", () => authStore.updateName(this.nameInput), this.t("nameUpdated"));
   };
 
   private onUpdateEmail = (e: Event) => {
@@ -334,7 +349,7 @@ export class AuthUIAccount extends AuthUIElement {
         await authStore.updateEmail(this.emailInput, this.emailPassword);
         this.emailPassword = "";
       },
-      this.t("done")
+      this.t("emailUpdated")
     );
   };
 
@@ -347,7 +362,7 @@ export class AuthUIAccount extends AuthUIElement {
         await authStore.updatePhone(this.phoneInput, this.phonePassword);
         this.phonePassword = "";
       },
-      this.t("done")
+      this.t("phoneUpdated")
     );
   };
 
@@ -360,7 +375,7 @@ export class AuthUIAccount extends AuthUIElement {
         await authStore.convertGuest(this.emailInput, this.emailPassword, this.guestName);
         this.emailPassword = "";
       },
-      this.t("done")
+      this.t("accountConverted")
     );
   };
 
@@ -385,7 +400,7 @@ export class AuthUIAccount extends AuthUIElement {
         this.phoneCode = "";
         this.phoneCodeSent = false;
       },
-      this.t("done")
+      this.t("phoneVerified")
     );
   };
 
@@ -432,7 +447,7 @@ export class AuthUIAccount extends AuthUIElement {
         this.authenticatorCode = "";
         await this.loadFactors();
       },
-      this.t("done")
+      this.t("authenticatorAdded")
     );
   };
 
@@ -573,6 +588,19 @@ export class AuthUIAccount extends AuthUIElement {
             ? html`<div class="alert alert-${this.notice.tone}" role="status">
                 ${this.notice.tone === "success" ? icons.checkCircle : icons.info}
                 <div class="alert-body">${this.notice.message}</div>
+                <button
+                  class="btn btn-ghost btn-icon dismiss"
+                  @click=${() => {
+                    this.notice = null;
+                    if (this.noticeTimer) {
+                      clearTimeout(this.noticeTimer);
+                      this.noticeTimer = null;
+                    }
+                  }}
+                  aria-label=${this.t("close")}
+                >
+                  ${icons.x}
+                </button>
               </div>`
             : nothing
         }
@@ -768,16 +796,23 @@ export class AuthUIAccount extends AuthUIElement {
           ${
             this.emailInput !== u.email
               ? html`<div class="field">
-                  <label class="label" for="acc-email-password">${this.t("currentPassword")}</label>
+                  <label class="label" for="acc-email-password"
+                    >${u.passwordUpdate ? this.t("currentPassword") : this.t("createPassword")}</label
+                  >
                   <input
                     class="input"
                     id="acc-email-password"
                     type="password"
                     .value=${this.emailPassword}
                     @input=${this.bind("emailPassword")}
-                    autocomplete="current-password"
+                    autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
                     required
                   />
+                  ${
+                    u.passwordUpdate
+                      ? nothing
+                      : html`<p class="hint">${this.t("createPasswordHint")}</p>`
+                  }
                 </div>`
               : nothing
           }
@@ -828,16 +863,23 @@ export class AuthUIAccount extends AuthUIElement {
           ${
             this.phoneInput !== u.phone
               ? html`<div class="field">
-                  <label class="label" for="acc-phone-password">${this.t("currentPassword")}</label>
+                  <label class="label" for="acc-phone-password"
+                    >${u.passwordUpdate ? this.t("currentPassword") : this.t("createPassword")}</label
+                  >
                   <input
                     class="input"
                     id="acc-phone-password"
                     type="password"
                     .value=${this.phonePassword}
                     @input=${this.bind("phonePassword")}
-                    autocomplete="current-password"
+                    autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
                     required
                   />
+                  ${
+                    u.passwordUpdate
+                      ? nothing
+                      : html`<p class="hint">${this.t("createPasswordHint")}</p>`
+                  }
                 </div>`
               : nothing
           }
@@ -958,6 +1000,7 @@ export class AuthUIAccount extends AuthUIElement {
                           .value=${this.oldPassword}
                           @input=${this.bind("oldPassword")}
                           autocomplete="current-password"
+                          required
                         />
                       </div>`
                     : nothing
@@ -1024,7 +1067,7 @@ export class AuthUIAccount extends AuthUIElement {
         <div class="toggle-row">
           <div class="row-main">
             <span class="row-title">${this.t("twoFactor")}</span>
-            <span class="row-sub">${u.mfa ? this.t("enable") : this.t("disable")}d</span>
+            <span class="row-sub">${u.mfa ? this.t("enabled") : this.t("disabled")}</span>
           </div>
           <button
             class="switch"

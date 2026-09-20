@@ -18,6 +18,12 @@ describe("errors", () => {
     );
   });
 
+  it("maps invalid credentials to current-password copy when changing password", () => {
+    const err = { type: "user_invalid_credentials", message: "x", code: 401 };
+    expect(describeError(err, defaultStrings, "password")).toBe(defaultStrings.errorCurrentPassword);
+    expect(describeError(err, defaultStrings)).toBe(defaultStrings.errorInvalidCredentials);
+  });
+
   it("reads invalid tokens as wrong codes when the user typed a code", () => {
     const err = { type: "user_invalid_token", message: "x", code: 401 };
     expect(describeError(err, defaultStrings, "code")).toBe(defaultStrings.errorInvalidCode);
