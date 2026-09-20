@@ -56,6 +56,16 @@ describe("AuthStore", () => {
     expect(account.state.mfaPending).toBe(false);
   });
 
+  it("signs out when the current session is deleted by id", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    expect(authStore.getState().status).toBe("signed-in");
+    // Mock deleteSession clears the user for any id; store must detect the guest state.
+    await authStore.signOut("s1");
+    expect(authStore.getState().status).toBe("signed-out");
+    expect(authStore.getState().user).toBeNull();
+  });
+
   it("navigates to successUrl after sign in", async () => {
     const original = window.location;
     const assign = vi.fn();

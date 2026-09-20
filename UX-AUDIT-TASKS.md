@@ -41,7 +41,7 @@ Cause: `toConfig()` (`components/authui-config.ts:73`) only sets `emailPassword 
 it stays `undefined`, and `renderSignIn()` treats `m.emailPassword !== false` as enabled (`authui-sign-in.ts:556`).
 Fix: when the attribute is non-empty, set `emailPassword = tokens.includes("email-password")`. Add a test.
 
-### 4. Signing out the current session from the Sessions list leaves a zombie signed-in state
+### 4. DONE (2026-09-20) Signing out the current session from the Sessions list leaves a zombie signed-in state
 Observed (real): click the sign-out icon on the row marked "This device". The row disappears, the list says
 "No recent activity.", the header still shows the user, and every later action fails with
 `User (role: guests) missing scopes (["account"])`.

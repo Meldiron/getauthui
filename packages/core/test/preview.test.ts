@@ -98,7 +98,8 @@ describe("preview mode", () => {
     expect((await authStore.listLogs()).length).toBeGreaterThan(0);
     await authStore.signOut(sessions[1].$id);
     expect((await authStore.listSessions()).length).toBe(2);
-    await authStore.signOut();
+    expect(authStore.getState().status).toBe("signed-in");
+    await authStore.signOut(sessions[0].$id);
     expect(authStore.getState().status).toBe("signed-out");
   }, 20000);
 

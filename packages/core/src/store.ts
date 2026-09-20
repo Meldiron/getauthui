@@ -463,6 +463,14 @@ export class AuthStore {
     if (sessionId === "current") {
       this.setState({ status: "signed-out", user: null, mfaFactors: null });
       this.emit("signed-out", undefined);
+      return;
+    }
+    // Deleting by id still ends the local session when that id was the current device.
+    try {
+      await this.acct().get();
+    } catch {
+      this.setState({ status: "signed-out", user: null, mfaFactors: null });
+      this.emit("signed-out", undefined);
     }
   }
 

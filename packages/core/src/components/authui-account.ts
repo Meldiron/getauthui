@@ -425,6 +425,12 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onDeleteSession = (id: string) => {
     void this.run(`session-${id}`, async () => {
+      const isCurrent = (this.sessions ?? []).some((s) => s.$id === id && s.current);
+      if (isCurrent) {
+        await authStore.signOut();
+        this.sessions = [];
+        return;
+      }
       await authStore.signOut(id);
       this.sessions = (this.sessions ?? []).filter((s) => s.$id !== id);
     });

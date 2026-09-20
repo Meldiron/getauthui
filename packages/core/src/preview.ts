@@ -408,7 +408,8 @@ export class PreviewAccount {
 
   async deleteSession(sessionId = "current") {
     return this.delay(() => {
-      if (sessionId === "current") {
+      const target = this.sessions.find((s) => s.$id === sessionId);
+      if (sessionId === "current" || target?.current) {
         this.reset();
       } else {
         this.sessions = this.sessions.filter((s) => s.$id !== sessionId);

@@ -61,9 +61,12 @@ export function createAccountMock() {
       state.mfaPending = false;
       return { $id: "s1" };
     }),
-    deleteSession: vi.fn(async () => {
-      state.user = null;
-      state.mfaPending = false;
+    deleteSession: vi.fn(async (sessionId = "current") => {
+      // Only the current session clears the local user (mirrors real Appwrite).
+      if (sessionId === "current" || sessionId === "s1") {
+        state.user = null;
+        state.mfaPending = false;
+      }
       return {};
     }),
     deleteSessions: vi.fn(async () => {
