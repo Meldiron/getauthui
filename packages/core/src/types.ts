@@ -261,6 +261,10 @@ export interface AuthUIStrings {
   done: string;
   errorGeneric: string;
   errorInvalidCredentials: string;
+  errorInvalidEmail: string;
+  errorInvalidPassword: string;
+  errorInvalidPhone: string;
+  errorInvalidName: string;
   errorUserExists: string;
   errorUserBlocked: string;
   errorRateLimit: string;

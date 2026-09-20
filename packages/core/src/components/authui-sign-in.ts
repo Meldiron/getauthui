@@ -136,8 +136,16 @@ export class AuthUISignIn extends AuthUIElement {
     }
   }
 
+  /** Honour native constraint validation before calling Appwrite. */
+  private requireValid(e: Event): boolean {
+    const form = e.target as HTMLFormElement | null;
+    if (form && typeof form.reportValidity === "function" && !form.reportValidity()) return false;
+    return true;
+  }
+
   private onSignIn = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       await authStore.signInWithEmailPassword(this.email, this.password);
       this.password = "";
@@ -147,6 +155,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onSignUp = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
       this.password = "";
@@ -175,6 +184,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onForgot = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       await authStore.sendPasswordRecovery(this.email);
       this.notice = { tone: "success", message: this.t("resetLinkSent", { email: this.email }) };
@@ -183,6 +193,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onReset = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     if (this.password !== this.passwordConfirm) {
       this.error = this.t("errorPasswordMismatch");
       return;
@@ -201,6 +212,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onMagicUrl = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       const token = await authStore.sendMagicUrl(this.email);
       this.token = {
@@ -214,6 +226,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onEmailOtp = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       const token = await authStore.sendEmailOtp(this.email);
       this.token = {
@@ -228,6 +241,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onPhoneOtp = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(async () => {
       const token = await authStore.sendPhoneOtp(this.phone);
       this.token = { userId: token.userId, kind: "phone", target: this.phone };
@@ -237,6 +251,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onVerifyCode = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     const token = this.token;
     if (!token) return;
     void this.run(async () => {
@@ -257,6 +272,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onVerifyFactor = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     const challenge = this.challenge;
     if (!challenge) return;
     void this.run(async () => {

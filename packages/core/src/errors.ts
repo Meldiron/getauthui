@@ -38,6 +38,7 @@ export const ErrorTypes = {
   authMethodUnsupported: "user_auth_method_unsupported",
   countMaxExceeded: "user_count_exceeded",
   targetAlreadyExists: "user_target_already_exists",
+  argumentInvalid: "general_argument_invalid",
 } as const;
 
 export function toAuthUIError(err: unknown): AuthUIError {
@@ -102,6 +103,16 @@ export function describeError(
     case ErrorTypes.authMethodUnsupported:
       return s.errorMethodDisabled;
   }
+  if (e.type === ErrorTypes.argumentInvalid || /Invalid `\w+` param/i.test(e.message)) {
+    const param = e.message.match(/Invalid `([^`]+)` param/i)?.[1]?.toLowerCase();
+    if (param === "email") return s.errorInvalidEmail;
+    if (param === "password") return s.errorInvalidPassword;
+    if (param === "phone") return s.errorInvalidPhone;
+    if (param === "name") return s.errorInvalidName;
+    return s.errorGeneric;
+  }
   if (e.code === 0 && /fetch|network/i.test(e.message)) return s.errorNetwork;
+  // Never surface raw messages that still contain Appwrite backtick param markers.
+  if (/Invalid `\w+` param/i.test(e.message)) return s.errorGeneric;
   return e.message || s.errorGeneric;
 }

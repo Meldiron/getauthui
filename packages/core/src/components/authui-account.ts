@@ -219,6 +219,12 @@ export class AuthUIAccount extends AuthUIElement {
   }
 
   /** Run an action with a busy key, surfacing errors under that key. Handles MFA step-up. */
+    private requireValid(e: Event): boolean {
+    const form = e.target as HTMLFormElement | null;
+    if (form && typeof form.reportValidity === "function" && !form.reportValidity()) return false;
+    return true;
+  }
+
   private async run(key: string, action: () => Promise<void>, success?: string): Promise<void> {
     if (this.busy) return;
     this.busy = key;
@@ -291,11 +297,13 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onUpdateName = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run("name", () => authStore.updateName(this.nameInput), this.t("done"));
   };
 
   private onUpdateEmail = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(
       "email",
       async () => {
@@ -308,6 +316,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onUpdatePhone = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(
       "phone",
       async () => {
@@ -320,6 +329,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onConvertGuest = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(
       "guest",
       async () => {
@@ -343,6 +353,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onConfirmPhoneVerification = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(
       "verify-phone-code",
       async () => {
@@ -356,6 +367,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onChangePassword = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     if (this.newPassword !== this.newPasswordConfirm) {
       this.errors = { ...this.errors, password: this.t("errorPasswordMismatch") };
       return;
@@ -387,6 +399,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onVerifyAuthenticator = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     void this.run(
       "authenticator-code",
       async () => {
@@ -445,6 +458,7 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onStepUpVerify = (e: Event) => {
     e.preventDefault();
+    if (!this.requireValid(e)) return;
     const s = this.stepUp;
     if (!s?.challenge) return;
     void this.run("stepup-code", async () => {

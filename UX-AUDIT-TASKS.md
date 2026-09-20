@@ -92,7 +92,7 @@ white-space: nowrap` on `.row-title` where it holds the name, `max-width: min(32
 
 ## P1: wrong, confusing or unpolished behaviour
 
-### 9. Raw Appwrite validation messages with backticks reach the user
+### 9. DONE (2026-09-20) Raw Appwrite validation messages with backticks reach the user
 Observed: empty sign-up submit shows "Invalid `email` param: Value must be a valid email address"; short
 password shows "Invalid `password` param: Password must be between 8 and 256 characters long."; phone without
 "+" shows "Invalid `phone` param: Phone number must start with a '+' can have a maximum of fifteen digits.";

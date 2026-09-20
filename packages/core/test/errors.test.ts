@@ -43,6 +43,27 @@ describe("errors", () => {
     expect(toAuthUIError("boom")).toEqual({ message: "boom", type: "", code: 0 });
   });
 
+  it("maps general_argument_invalid to per-field copy", () => {
+    expect(
+      describeError(
+        { type: "general_argument_invalid", message: "Invalid `email` param: Value must be a valid email address", code: 400 },
+        defaultStrings
+      )
+    ).toBe(defaultStrings.errorInvalidEmail);
+    expect(
+      describeError(
+        { type: "general_argument_invalid", message: "Invalid `password` param: Password must be between 8 and 256 characters long.", code: 400 },
+        defaultStrings
+      )
+    ).toBe(defaultStrings.errorInvalidPassword);
+    expect(
+      describeError(
+        { type: "general_argument_invalid", message: "Invalid `phone` param: Phone number must start with a '+'", code: 400 },
+        defaultStrings
+      )
+    ).toBe(defaultStrings.errorInvalidPhone);
+  });
+
   it("formats placeholders", () => {
     expect(format("Hi {name}, {n} left", { name: "Ada", n: 2 })).toBe("Hi Ada, 2 left");
     expect(format("Missing {x}")).toBe("Missing {x}");
