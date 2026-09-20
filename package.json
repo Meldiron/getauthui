@@ -1,0 +1,28 @@
+{
+  "name": "authui-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter @getauthui/core build",
+    "test": "pnpm --filter @getauthui/core test",
+    "check": "pnpm --filter @getauthui/core check",
+    "lint": "eslint packages/",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,mdx,css}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,mdx,css}\" --ignore-path .gitignore",
+    "dev:core": "pnpm --filter @getauthui/core dev",
+    "dev:docs": "pnpm --filter docs dev",
+    "build:docs": "pnpm --filter @getauthui/core build && pnpm --filter docs build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}

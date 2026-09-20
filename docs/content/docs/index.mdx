@@ -1,0 +1,49 @@
+---
+title: Introduction
+description: Auth UI is a drop-in authentication interface for Appwrite. One script tag gives you every sign-in method, MFA, session management and account settings as web components that run on your own domain.
+---
+
+## What it is
+
+Auth UI is a set of framework-agnostic web components built with [Lit](https://lit.dev) on top of the official [Appwrite Web SDK](https://appwrite.io/docs/sdks#client). You add it to any page, point it at your Appwrite project, and get a complete, accessible, themeable authentication experience:
+
+- **Sign in and sign up** with email and password, including password recovery.
+- **Passwordless** sign in with magic URLs, email one-time codes and SMS codes.
+- **OAuth2** with every provider Appwrite supports, with brand icons for the common ones.
+- **Guest sessions** that can later be upgraded to a full account.
+- **Multi-factor authentication**: challenges during sign in, authenticator app enrollment with a QR code, recovery codes, and step-up verification for protected actions.
+- **Account management**: profile, email and phone verification, password changes, active sessions, connected OAuth identities, security log and account deletion.
+- **Modal, inline and headless** usage, plus `<authui-show when="signed-in">` for conditional content.
+
+```html
+<script type="module" src="https://unpkg.com/@getauthui/core"></script>
+
+<authui-config endpoint="https://cloud.appwrite.io/v1" project="my-project"></authui-config>
+<authui-button>Sign in</authui-button>
+<authui-user-button></authui-user-button>
+```
+
+## Why it runs on your domain
+
+Earlier versions of Auth UI were a hosted login page on a separate domain. Browsers now block or partition third-party cookies, so a session created on one site cannot be read from another. Auth UI v2 runs inside your page instead. Its requests to Appwrite are indistinguishable from your own app's requests, so the session lands exactly where your app needs it. Read more in [How it works](/docs/how-it-works).
+
+## Where to go next
+
+<Cards>
+  <Card
+    title="Getting started"
+    href="/docs/getting-started"
+    description="Add Auth UI to a page in five minutes."
+  />
+  <Card
+    title="Configuration"
+    href="/docs/configuration"
+    description="Every option, as attributes or JavaScript."
+  />
+  <Card
+    title="Components"
+    href="/docs/components/modal"
+    description="Reference for each custom element."
+  />
+  <Card title="React" href="/docs/react" description="Hooks and wrapper components." />
+</Cards>

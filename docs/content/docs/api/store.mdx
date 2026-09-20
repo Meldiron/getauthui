@@ -1,0 +1,77 @@
+---
+title: AuthStore
+description: Every operation the components use, available for headless integrations.
+---
+
+```ts
+import { authStore } from "@getauthui/core";
+```
+
+All methods reject with the original `AppwriteException` and emit an `error` event before rethrowing. Use `describeError(err, authStore.getStrings())` for a user-facing message.
+
+## State
+
+| Method                | Returns                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `configure(config)`   | `void`. Also runs `handleRedirect()` then `refresh()`.     |
+| `getState()`          | `AuthUIState`                                              |
+| `getConfig()`         | `AuthUIConfig \| null`                                     |
+| `getClient()`         | `Client \| null`                                           |
+| `getAccount()`        | `Account \| null`, the service every method above calls    |
+| `getStrings()`        | merged `AuthUIStrings`                                     |
+| `refresh()`           | `Promise<void>`. Re-fetches the user and derives `status`. |
+| `on(event, listener)` | unsubscribe function                                       |
+
+## Sign in
+
+| Method                                     | Description                                                |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `signInWithEmailPassword(email, password)` | `createEmailPasswordSession`                               |
+| `signUp(email, password, name?)`           | `create` then `createEmailPasswordSession`                 |
+| `signInAnonymously()`                      | `createAnonymousSession`                                   |
+| `signInWithOAuth(provider)`                | `createOAuth2Token`; navigates away                        |
+| `sendMagicUrl(email)`                      | `createMagicURLToken`; returns the token with its `phrase` |
+| `sendEmailOtp(email)`                      | `createEmailToken`                                         |
+| `sendPhoneOtp(phone)`                      | `createPhoneToken`                                         |
+| `signInWithToken(userId, secret)`          | `createSession`; redeems any token                         |
+| `signOut(sessionId = "current")`           | `deleteSession`                                            |
+| `signOutEverywhere()`                      | `deleteSessions`                                           |
+
+## MFA
+
+| Method                                                                       | Description                                            |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `listMfaFactors()`                                                           | factors available to the account                       |
+| `createMfaChallenge(factor)`                                                 | `factor` is `totp`, `email`, `phone` or `recoverycode` |
+| `completeMfaChallenge(challengeId, otp, { signIn })`                         | verify; with `signIn: false` it acts as a step-up only |
+| `setMfaEnabled(enabled)`                                                     | `updateMFA`                                            |
+| `addAuthenticator()`                                                         | returns `{ secret, uri }`                              |
+| `verifyAuthenticator(otp)`                                                   | activates the authenticator                            |
+| `removeAuthenticator()`                                                      | needs a recent challenge                               |
+| `createRecoveryCodes()` / `getRecoveryCodes()` / `regenerateRecoveryCodes()` | the last two need a recent challenge                   |
+
+## Recovery and verification
+
+| Method                                                      | Description                          |
+| ----------------------------------------------------------- | ------------------------------------ |
+| `sendPasswordRecovery(email)`                               | emails a reset link to `redirectUrl` |
+| `completePasswordRecovery(userId, secret, password)`        | sets the new password                |
+| `sendEmailVerification()`                                   | emails a verification link           |
+| `sendPhoneVerification()` / `confirmPhoneVerification(otp)` | SMS verification                     |
+
+## Account
+
+| Method                                                                                                                       | Description                                      |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `updateName(name)`, `updateEmail(email, password)`, `updatePhone(phone, password)`, `updatePassword(password, oldPassword?)` | profile updates                                  |
+| `convertGuest(email, password, name?)`                                                                                       | upgrade an anonymous account                     |
+| `listSessions()`, `listIdentities()`, `deleteIdentity(id)`, `listLogs()`                                                     | lists                                            |
+| `deleteAccount()`                                                                                                            | `updateStatus`; blocks the account and signs out |
+
+## Redirects
+
+| Method                | Description                                                                   |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `redirectUrl(action)` | the URL registered with Appwrite for a flow, with the `authui` marker         |
+| `handleRedirect()`    | finish a flow present in `location.search`; returns `true` if one was handled |
+| `setPending(action)`  | set or clear the pending action shown by the UI                               |

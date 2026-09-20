@@ -1,0 +1,289 @@
+import type { Models } from "appwrite";
+
+/** Every OAuth2 provider slug Appwrite understands. */
+export type OAuthProviderName =
+  | "amazon"
+  | "apple"
+  | "appwrite"
+  | "auth0"
+  | "authentik"
+  | "autodesk"
+  | "bitbucket"
+  | "bitly"
+  | "box"
+  | "cloudflare"
+  | "dailymotion"
+  | "discord"
+  | "disqus"
+  | "dropbox"
+  | "etsy"
+  | "facebook"
+  | "figma"
+  | "fusionauth"
+  | "github"
+  | "gitlab"
+  | "google"
+  | "huggingface"
+  | "kakao"
+  | "keycloak"
+  | "kick"
+  | "linkedin"
+  | "microsoft"
+  | "notion"
+  | "oidc"
+  | "okta"
+  | "paypal"
+  | "paypalSandbox"
+  | "podio"
+  | "resend"
+  | "salesforce"
+  | "slack"
+  | "spotify"
+  | "stripe"
+  | "tiktok"
+  | "tradeshift"
+  | "tradeshiftBox"
+  | "twitch"
+  | "wordpress"
+  | "x"
+  | "yahoo"
+  | "yammer"
+  | "yandex"
+  | "zoho"
+  | "zoom";
+
+/** Screens the widget can show. */
+export type AuthUIView =
+  | "sign-in"
+  | "sign-up"
+  | "forgot-password"
+  | "reset-password"
+  | "magic-url"
+  | "email-otp"
+  | "phone"
+  | "mfa"
+  | "account";
+
+export type AuthUITheme = "light" | "dark" | "auto";
+export type AuthUIRadius = "none" | "sm" | "md" | "lg" | "xl" | "full";
+
+export interface AuthUIMethods {
+  /** Email + password sign in and sign up. Default: true. */
+  emailPassword?: boolean;
+  /** Passwordless link sent by email. Default: false. */
+  magicUrl?: boolean;
+  /** Passwordless 6-digit code sent by email. Default: false. */
+  emailOtp?: boolean;
+  /** SMS one-time code. Default: false. */
+  phone?: boolean;
+  /** "Continue as guest" anonymous session. Default: false. */
+  anonymous?: boolean;
+  /** OAuth2 providers to show, in order. Default: []. */
+  oauth?: OAuthProviderName[];
+}
+
+export interface AuthUIBranding {
+  /** Product name shown in headings. */
+  name?: string;
+  /** Logo URL rendered above the form. */
+  logo?: string;
+  /** Color scheme. "auto" follows prefers-color-scheme and an `html.dark` class. Default: "auto". */
+  theme?: AuthUITheme;
+  /** Corner radius scale. Default: "md". */
+  radius?: AuthUIRadius;
+  /** Any CSS color for primary buttons. Default: near-black / near-white. */
+  primary?: string;
+  /** Text color on primary buttons. */
+  primaryForeground?: string;
+}
+
+export interface AuthUILegal {
+  termsUrl?: string;
+  privacyUrl?: string;
+}
+
+export interface AuthUIConfig {
+  /** Appwrite API endpoint, e.g. https://cloud.appwrite.io/v1 */
+  endpoint: string;
+  /** Appwrite project ID. */
+  project: string;
+  /**
+   * Absolute URL the user returns to after OAuth, magic URL, recovery and verification emails.
+   * Must be on a hostname registered as a web platform in your Appwrite project.
+   * Default: the current page without query string or hash.
+   */
+  redirectUrl?: string;
+  /** Where to navigate after a successful sign in. If omitted the page is not changed. */
+  successUrl?: string;
+  methods?: AuthUIMethods;
+  /** Show the "Sign up" option. Default: true. */
+  signUp?: boolean;
+  /** Ask for a display name during sign up. Default: true. */
+  requireName?: boolean;
+  /** Let users enroll and manage MFA from the account screen. Default: true. */
+  mfa?: boolean;
+  /** Request a security phrase for email OTP and magic URL. Default: true. */
+  securityPhrase?: boolean;
+  /** Extra OAuth scopes per provider. */
+  oauthScopes?: Partial<Record<OAuthProviderName, string[]>>;
+  branding?: AuthUIBranding;
+  legal?: AuthUILegal;
+  /** Override any UI string. */
+  strings?: Partial<AuthUIStrings>;
+  /**
+   * Preview mode: no requests are made. Any email, password or code is accepted and a
+   * sample user with sessions, identities, MFA and logs is used, so every screen can be
+   * explored in a playground, design review or Storybook. Never enable in production.
+   */
+  preview?: boolean;
+}
+
+export type AuthUIStatus = "loading" | "signed-out" | "signed-in" | "mfa-required";
+
+/** Something the widget must finish after a redirect, e.g. password reset. */
+export type AuthUIPendingAction =
+  | { type: "reset-password"; userId: string; secret: string }
+  | { type: "verify-email"; userId: string; secret: string }
+  | { type: "oauth-failed" }
+  | { type: "notice"; message: string; tone: "success" | "error" | "info" };
+
+export interface AuthUIState {
+  status: AuthUIStatus;
+  user: Models.User<Models.Preferences> | null;
+  /** Factors available to complete MFA when status is "mfa-required". */
+  mfaFactors: Models.MfaFactors | null;
+  pending: AuthUIPendingAction | null;
+  configured: boolean;
+}
+
+export type AuthUIEventMap = {
+  change: AuthUIState;
+  "signed-in": Models.User<Models.Preferences>;
+  "signed-out": undefined;
+  error: { message: string; type: string; code: number };
+};
+
+export type AuthUIEventName = keyof AuthUIEventMap;
+
+export interface AuthUIStrings {
+  signIn: string;
+  signUp: string;
+  signOut: string;
+  continueAsGuest: string;
+  email: string;
+  password: string;
+  newPassword: string;
+  confirmPassword: string;
+  name: string;
+  phone: string;
+  code: string;
+  forgotPassword: string;
+  noAccount: string;
+  haveAccount: string;
+  or: string;
+  continueWith: string;
+  continueWithEmail: string;
+  sendEmailCode: string;
+  continueWithPhone: string;
+  sendMagicLink: string;
+  sendCode: string;
+  verifyCode: string;
+  magicLinkSent: string;
+  codeSent: string;
+  securityPhrase: string;
+  securityPhraseHint: string;
+  back: string;
+  cancel: string;
+  save: string;
+  update: string;
+  remove: string;
+  close: string;
+  resetPassword: string;
+  resetLinkSent: string;
+  passwordUpdated: string;
+  sendResetLink: string;
+  agreeTo: string;
+  terms: string;
+  privacy: string;
+  and: string;
+  welcomeBack: string;
+  createAccount: string;
+  signInTitle: string;
+  signUpTitle: string;
+  mfaTitle: string;
+  mfaDescription: string;
+  mfaUseAuthenticator: string;
+  mfaUseEmail: string;
+  mfaUsePhone: string;
+  mfaUseRecoveryCode: string;
+  recoveryCode: string;
+  account: string;
+  profile: string;
+  security: string;
+  sessions: string;
+  connections: string;
+  activity: string;
+  dangerZone: string;
+  verified: string;
+  unverified: string;
+  verifyEmail: string;
+  verificationSent: string;
+  emailVerified: string;
+  changePassword: string;
+  currentPassword: string;
+  twoFactor: string;
+  twoFactorDescription: string;
+  enable: string;
+  disable: string;
+  authenticatorApp: string;
+  authenticatorAdd: string;
+  authenticatorScan: string;
+  authenticatorManual: string;
+  authenticatorVerify: string;
+  recoveryCodes: string;
+  recoveryCodesDescription: string;
+  generateRecoveryCodes: string;
+  regenerateRecoveryCodes: string;
+  recoveryCodesWarning: string;
+  currentSession: string;
+  signOutSession: string;
+  signOutAllSessions: string;
+  signOutAllSessionsDescription: string;
+  noConnections: string;
+  disconnect: string;
+  noActivity: string;
+  deleteAccount: string;
+  deleteAccountDescription: string;
+  deleteAccountConfirm: string;
+  loading: string;
+  copied: string;
+  copy: string;
+  done: string;
+  errorGeneric: string;
+  errorInvalidCredentials: string;
+  errorUserExists: string;
+  errorUserBlocked: string;
+  errorRateLimit: string;
+  errorInvalidToken: string;
+  errorInvalidCode: string;
+  errorPasswordMismatch: string;
+  errorPasswordRecentlyUsed: string;
+  errorPasswordPersonalData: string;
+  errorPasswordWeak: string;
+  errorPasswordPwned: string;
+  errorChallengeRequired: string;
+  errorSessionExists: string;
+  errorOAuth: string;
+  errorNetwork: string;
+  errorMethodDisabled: string;
+  errorNotConfigured: string;
+  passwordHint: string;
+  signedInAs: string;
+  manageAccount: string;
+  continue: string;
+  provider: string;
+  lastActive: string;
+  guestAccount: string;
+  guestAccountDescription: string;
+  preview: string;
+}

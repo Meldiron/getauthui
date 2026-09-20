@@ -1,0 +1,79 @@
+---
+title: Vue, Svelte, Angular and plain HTML
+description: Web components work everywhere. Import once, then use the tags.
+---
+
+Auth UI ships standard custom elements, so every framework can render them. Import the package once at startup and use the tags in templates. Listen to `authui-success`, `authui-view` and the `authui:*` window events like any DOM event.
+
+## Plain HTML
+
+```html
+<script type="module" src="https://unpkg.com/@getauthui/core"></script>
+<authui-config endpoint="https://cloud.appwrite.io/v1" project="my-project"></authui-config>
+<authui-button>Sign in</authui-button>
+```
+
+The CDN bundle also exposes `AuthUI` as a global (`window.AuthUI.init`, `window.AuthUI.open`) when loaded through the IIFE build at `https://unpkg.com/@getauthui/core/dist/authui.cdn.js`.
+
+## Vue
+
+```ts
+// main.ts
+import "@getauthui/core";
+```
+
+```vue
+<template>
+  <authui-show when="signed-out"><authui-button>Sign in</authui-button></authui-show>
+  <authui-sign-in @authui-success="onSuccess"></authui-sign-in>
+</template>
+
+<script setup lang="ts">
+import { AuthUI } from "@getauthui/core";
+AuthUI.init({ endpoint: "...", project: "..." });
+const onSuccess = () => router.push("/dashboard");
+</script>
+```
+
+Tell Vue the tags are custom elements in `vite.config.ts`:
+
+```ts
+vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith("authui-") } } });
+```
+
+## Svelte
+
+```svelte
+<script lang="ts">
+  import "@getauthui/core";
+  import { AuthUI } from "@getauthui/core";
+  AuthUI.init({ endpoint: "...", project: "..." });
+</script>
+
+<authui-user-button></authui-user-button>
+<authui-sign-in on:authui-success={() => goto("/dashboard")}></authui-sign-in>
+```
+
+Svelte renders unknown tags as custom elements out of the box. Use `onMount` in SvelteKit so the import only runs in the browser.
+
+## Angular
+
+Add `CUSTOM_ELEMENTS_SCHEMA` to your module or standalone component and import the package in `main.ts`.
+
+```ts
+import "@getauthui/core";
+```
+
+```html
+<authui-button (click)="noop()">Sign in</authui-button>
+<authui-sign-in (authui-success)="onSuccess($event)"></authui-sign-in>
+```
+
+## Reading state outside components
+
+```ts
+import { AuthUI } from "@getauthui/core";
+
+const stop = AuthUI.on("change", (state) => console.log(state.status, state.user));
+stop(); // unsubscribe
+```

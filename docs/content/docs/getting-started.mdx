@@ -1,0 +1,97 @@
+---
+title: Getting started
+description: Install Auth UI, point it at your Appwrite project and open the sign-in modal.
+---
+
+## 1. Register your domain in Appwrite
+
+Auth UI talks to Appwrite from your own page, so your app's hostname must be a registered **Web platform** in the Appwrite Console. Open your project, go to **Overview** → **Integrations** → **Platforms**, and add a Web platform with your hostname, for example `myapp.com` or `localhost`.
+
+Then enable the sign-in methods you plan to use under **Auth** → **Settings**. Email/password, magic URL, email OTP, phone, anonymous and each OAuth provider are individual toggles.
+
+## 2. Install
+
+<Tabs items={["CDN", "npm"]}>
+  <Tab value="CDN">
+    Add one script tag anywhere in your HTML. The bundle includes Lit and the Appwrite SDK.
+
+    ```html
+    <script type="module" src="https://unpkg.com/@getauthui/core"></script>
+    ```
+
+    Pin a version in production: `https://unpkg.com/@getauthui/core@0.1.2`.
+
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @getauthui/core appwrite lit
+    ```
+
+    ```ts
+    import "@getauthui/core";
+    ```
+
+    `appwrite` and `lit` are peer dependencies so they are shared with the rest of your app.
+
+  </Tab>
+</Tabs>
+
+## 3. Configure
+
+Either declaratively with an element:
+
+```html
+<authui-config
+  endpoint="https://cloud.appwrite.io/v1"
+  project="my-project"
+  methods="email-password magic-url oauth:google oauth:github"
+  name="Acme"
+></authui-config>
+```
+
+Or imperatively from JavaScript:
+
+```ts
+import { AuthUI } from "@getauthui/core";
+
+AuthUI.init({
+  endpoint: "https://cloud.appwrite.io/v1",
+  project: "my-project",
+  methods: { emailPassword: true, magicUrl: true, oauth: ["google", "github"] },
+  branding: { name: "Acme" },
+});
+```
+
+Configuration is global. Every Auth UI element on the page reads from the same store.
+
+## 4. Add a trigger and the modal
+
+```html
+<authui-button>Sign in</authui-button> <authui-user-button></authui-user-button>
+```
+
+`<authui-button>` opens the modal. `<authui-user-button>` shows a sign-in button while signed out and the user's avatar with an account menu while signed in. The modal element is created automatically the first time it is needed, or you can place `<authui-modal>` yourself.
+
+## 5. React to sign in
+
+```ts
+AuthUI.on("signed-in", (user) => {
+  console.log("Hello", user.name);
+});
+```
+
+Or let Auth UI navigate for you by passing `successUrl` in the configuration.
+
+## 6. Use the session in your app
+
+Auth UI uses the Appwrite Web SDK under the hood and the session belongs to your origin, so your own `Client` instance sees it immediately:
+
+```ts
+import { Client, Databases } from "appwrite";
+
+const client = new Client().setEndpoint("https://cloud.appwrite.io/v1").setProject("my-project");
+const databases = new Databases(client);
+// Signed-in requests work here. Or reuse Auth UI's client: AuthUI.getClient()
+```
+
+That is the whole integration. Continue with [Configuration](/docs/configuration) or read [How it works](/docs/how-it-works) to understand redirects and cookies.

@@ -1,0 +1,40 @@
+---
+title: Sign-in methods
+description: What each method does, what Appwrite needs for it, and how the user experiences it.
+---
+
+## Email and password
+
+The default. The sign-in screen shows email and password fields with a "Forgot password?" link and, when `signUp` is enabled, a link to the sign-up screen. Sign up creates the account with `account.create()` and immediately signs in.
+
+Password rules come from your project: minimum length, dictionary check, personal data check, password history and the breached-password check are all enforced by Appwrite. Auth UI maps each rejection to a specific message.
+
+**Password recovery** sends an email through `account.createRecovery()` with a link back to your page. Opening the link shows the **Reset password** screen inside Auth UI.
+
+## Magic URL
+
+The user enters an email and receives a link. Opening the link on the same device signs them in. Auth UI requests a **security phrase** by default and shows it under the confirmation, so the user can check that the email they received is the one they asked for. Disable it with `securityPhrase: false`.
+
+## Email OTP
+
+The user enters an email and receives a six-digit code, then types it into Auth UI. No page navigation involved, which makes it a good fit for mobile web. The security phrase is shown here too.
+
+## Phone
+
+The user enters a phone number in E.164 format, receives an SMS code and types it in. Appwrite needs an SMS provider configured under **Messaging**. On Appwrite Cloud, phone authentication is metered.
+
+## Anonymous (guest)
+
+Creates a session without any identifier. The account screen detects guest accounts and offers a **Create your account** form that attaches an email and password to the same user with `account.updateEmail()`, so any data they created stays with them.
+
+## OAuth2
+
+Each provider you list renders a "Continue with ..." button with a brand icon for the common providers and a generic one for the rest. Clicking it redirects to the provider using Appwrite's token endpoint and returns to your `redirectUrl`, where Auth UI exchanges the token for a session.
+
+Configure the provider's client ID and secret in the Appwrite Console under **Auth** → **Settings**, and add the callback URL Appwrite shows there to the provider's own configuration.
+
+Signed-in users can connect additional providers from the **Connections** tab of the account screen and disconnect them again.
+
+## MFA
+
+Not a method on its own. When an account has MFA enabled, every method above is followed by a second-factor challenge. See [Multi-factor authentication](/docs/mfa).

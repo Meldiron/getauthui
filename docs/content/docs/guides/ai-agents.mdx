@@ -1,0 +1,36 @@
+---
+title: AI agents
+description: Give your coding agent everything it needs to add Auth UI to a project.
+---
+
+Auth UI has an HTML-first API that agents write correctly on the first try. Point your agent at the machine-readable docs:
+
+- [`/llms.txt`](/llms.txt) is a short index.
+- [`/llms-full.txt`](/llms-full.txt) is the complete documentation in one file.
+- Every docs page has a Markdown version at `/llms.mdx/docs/<slug>/content.md`.
+
+## Prompt
+
+Paste this into your agent along with your endpoint and project ID:
+
+```text
+Add authentication to this web app with Auth UI (@getauthui/core), a web component
+library for Appwrite. Docs: https://getauthui.appwrite.network/llms-full.txt
+
+1. Load it: <script type="module" src="https://unpkg.com/@getauthui/core"></script>
+   (or `npm i @getauthui/core appwrite lit` and `import "@getauthui/core"`).
+2. Configure it once with <authui-config endpoint="..." project="..." methods="email-password oauth:google">.
+3. Put <authui-button>Sign in</authui-button> inside <authui-show when="signed-out"> and
+   <authui-user-button></authui-user-button> inside <authui-show when="signed-in">.
+4. Do not build custom login forms. Do not store sessions yourself; Appwrite's SDK
+   handles the session and any `new Client()` in the app sees it.
+5. Register the app hostname as a Web platform in the Appwrite Console.
+```
+
+## Rules of thumb for agents
+
+- Use the declarative `<authui-config>` element unless the config has to be computed.
+- Everything reads global state. One configuration, any number of elements.
+- Use `<authui-show when="signed-in">` and `<authui-show when="signed-out">` for conditional UI instead of reading state in JavaScript. `unless="signed-in"` covers everyone without a complete session.
+- Never pass the Appwrite session or a JWT through URLs. Auth UI handles all redirects.
+- To react to sign in, call `AuthUI.on("signed-in", cb)` or set `successUrl`.

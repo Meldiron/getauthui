@@ -1,0 +1,24 @@
+---
+title: <authui-config>
+description: Declarative configuration element. Invisible; configures the global store from attributes.
+---
+
+```html
+<authui-config
+  endpoint="https://cloud.appwrite.io/v1"
+  project="my-project"
+  methods="email-password magic-url oauth:google"
+  name="Acme"
+  logo="/logo.svg"
+  theme="auto"
+  radius="lg"
+  primary="#fd366e"
+  success-url="/dashboard"
+  terms-url="/terms"
+  privacy-url="/privacy"
+></authui-config>
+```
+
+The element renders nothing. Changing any attribute reconfigures the store. All attributes are documented in [Configuration](/docs/configuration); the JavaScript `strings` and `oauthScopes` options have no attribute equivalent, use `AuthUI.init()` for those.
+
+`AuthUI.init()` and `<authui-config>` can be mixed: the last one to run wins.

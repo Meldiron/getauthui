@@ -1,0 +1,43 @@
+---
+title: AuthUI
+description: The top-level imperative API exported from @getauthui/core.
+---
+
+```ts
+import { AuthUI } from "@getauthui/core";
+```
+
+Every function is also exported by name: `import { init, open, on } from "@getauthui/core"`.
+
+| Member          | Signature                                 | Description                                                                                                                                                     |
+| --------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init`          | `(config: AuthUIConfig) => typeof AuthUI` | Configure the Appwrite client, handle any pending redirect in the URL and load the current user.                                                                |
+| `open`          | `(view?: AuthUIView) => void`             | Open the modal. Creates `<authui-modal>` on `<body>` if none exists.                                                                                            |
+| `close`         | `() => void`                              | Close the modal.                                                                                                                                                |
+| `signOut`       | `() => Promise<void>`                     | End the current session.                                                                                                                                        |
+| `getUser`       | `() => Models.User \| null`               | The signed-in user.                                                                                                                                             |
+| `getState`      | `() => AuthUIState`                       | A snapshot of the store.                                                                                                                                        |
+| `getClient`     | `() => Client \| null`                    | The configured Appwrite `Client`, for reuse with other services.                                                                                                |
+| `getAccount`    | `() => Account \| null`                   | The Appwrite `Account` service Auth UI signs in with. Reuse it for `getPrefs()`, `updatePrefs()`, JWTs and so on. In preview mode it is the in-memory stand-in. |
+| `previewSignIn` | `() => Promise<void>`                     | Preview mode only: sign the sample user in without a form.                                                                                                      |
+| `on`            | `(event, listener) => () => void`         | Subscribe to an [event](/docs/api/events). Returns an unsubscribe function.                                                                                     |
+| `store`         | `AuthStore`                               | The full [store](/docs/api/store).                                                                                                                              |
+
+## The Appwrite SDK
+
+The package re-exports the Appwrite Web SDK it is built on as the `appwrite` namespace, so script-tag users can reach every service without loading the SDK a second time:
+
+```ts
+import { AuthUI, appwrite } from "@getauthui/core";
+
+const { Storage, Databases, Query, ID, Permission, Role } = appwrite;
+const storage = new Storage(AuthUI.getClient()); // already signed in
+```
+
+With npm the SDK is a peer dependency, so `import { Storage } from "appwrite"` works just as well.
+
+```ts
+AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "my-project" });
+AuthUI.on("signed-in", (user) => console.log(user.email));
+document.querySelector("#login")!.addEventListener("click", () => AuthUI.open());
+```

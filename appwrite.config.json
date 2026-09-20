@@ -1,0 +1,73 @@
+{
+  "organizationId": "almostApps",
+  "projectId": "6aafa421001e80b7153a",
+  "projectName": "Auth UI G2",
+  "endpoint": "https://fra.cloud.appwrite.io/v1",
+  "settings": {
+    "services": {
+      "account": true,
+      "avatars": true,
+      "databases": true,
+      "locale": true,
+      "health": true,
+      "storage": true,
+      "teams": true,
+      "users": true,
+      "sites": true,
+      "functions": true,
+      "graphql": true,
+      "messaging": true
+    },
+    "protocols": {
+      "rest": true,
+      "graphql": true,
+      "websocket": true
+    },
+    "auth": {
+      "methods": {
+        "jwt": true,
+        "phone": true,
+        "invites": true,
+        "anonymous": true,
+        "email-otp": true,
+        "magic-url": true,
+        "email-password": true
+      },
+      "security": {
+        "duration": 31536000,
+        "limit": null,
+        "sessionsLimit": 10,
+        "passwordHistory": null,
+        "passwordDictionary": false,
+        "personalDataCheck": false,
+        "sessionAlerts": false,
+        "mockNumbers": []
+      }
+    }
+  },
+  "sites": [
+    {
+      "$id": "authui-docs",
+      "name": "Auth UI Docs",
+      "path": ".",
+      "framework": "nextjs",
+      "logging": true,
+      "timeout": 30,
+      "buildRuntime": "node-22",
+      "adapter": "static",
+      "installCommand": "npm install -g pnpm@10 && pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm build:docs",
+      "outputDirectory": "docs/out",
+      "fallbackFile": "",
+      "installationId": "",
+      "providerRepositoryId": "",
+      "providerBranch": "",
+      "providerSilentMode": false,
+      "providerRootDirectory": "",
+      "startCommand": "",
+      "buildSpecification": "s-2vcpu-4gb",
+      "runtimeSpecification": "s-0.5vcpu-512mb",
+      "deploymentRetention": 0
+    }
+  ]
+}

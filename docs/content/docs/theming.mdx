@@ -1,0 +1,82 @@
+---
+title: Theming
+description: Design tokens, dark mode, radius, custom colours and string overrides.
+---
+
+Auth UI follows the Appwrite Console design system: the shadcn "new-york" zinc palette, a 10px radius scale, system UI font and the console's focus ring. Every colour is a CSS custom property on the component host, so you can restyle it from your own stylesheet without touching the shadow DOM.
+
+## Dark mode
+
+`branding.theme` defaults to `auto`, which resolves in this order:
+
+1. `html.dark` or `html.light` class (what next-themes, shadcn and the Appwrite Console use)
+2. `data-theme="dark"` or `"light"` on `<html>`
+3. `prefers-color-scheme`
+
+Set `theme: "light"` or `"dark"` to force a scheme. Components watch for class changes, so a theme toggle in your app switches Auth UI live.
+
+## Tokens
+
+Override any token on the elements you want to change, or on `:root` to affect all of them:
+
+```css
+authui-modal,
+authui-sign-in,
+authui-account,
+authui-button,
+authui-user-button {
+  --authui-primary: #fd366e;
+  --authui-primary-foreground: #ffffff;
+  --authui-radius: 0.875rem;
+  --authui-font: "Inter", system-ui, sans-serif;
+}
+```
+
+| Token                                                                             | Purpose                                               |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `--authui-background`, `--authui-foreground`                                      | Dialog surface and default text                       |
+| `--authui-card`, `--authui-card-foreground`                                       | Panel surface                                         |
+| `--authui-popover`, `--authui-popover-foreground`                                 | User menu                                             |
+| `--authui-primary`, `--authui-primary-foreground`                                 | Primary buttons and switches                          |
+| `--authui-secondary`, `--authui-secondary-foreground`                             | Passwordless buttons                                  |
+| `--authui-muted`, `--authui-muted-foreground`                                     | Avatars, hints, descriptions                          |
+| `--authui-accent`, `--authui-accent-foreground`                                   | Hover states                                          |
+| `--authui-destructive`, `--authui-destructive-foreground`                         | Danger actions                                        |
+| `--authui-border`, `--authui-input`, `--authui-ring`                              | Borders, inputs, focus ring                           |
+| `--authui-brand`, `--authui-brand-foreground`                                     | The `brand` button variant (Appwrite pink by default) |
+| `--authui-success-*`, `--authui-warning-*`, `--authui-error-*`, `--authui-info-*` | Alert and badge tints                                 |
+| `--authui-radius`                                                                 | Base radius; `sm`, `md`, `lg`, `xl` derive from it    |
+| `--authui-font`, `--authui-font-mono`                                             | Typography                                            |
+| `--authui-shadow-lg`                                                              | Panel and dialog shadow                               |
+| `--authui-overlay`                                                                | Modal backdrop colour                                 |
+| `--authui-z`                                                                      | Stacking order of the dialog and menus                |
+
+The `primary` and `radius` branding options are shortcuts that set `--authui-primary` and `--authui-radius` for you.
+
+## Parts
+
+The main panels expose `part="panel"` and the trigger button exposes `part="button"` for `::part()` styling:
+
+```css
+authui-sign-in::part(panel) {
+  box-shadow: none;
+}
+```
+
+## Strings
+
+Every visible string can be replaced through `strings`. Placeholders in braces are substituted at render time.
+
+```ts
+AuthUI.init({
+  // ...
+  strings: {
+    signIn: "Log in",
+    signInTitle: "Log in to {name}",
+    continueAsGuest: "Browse without an account",
+    errorInvalidCredentials: "That email and password do not match.",
+  },
+});
+```
+
+The full list of keys with their defaults is exported as `defaultStrings` from `@getauthui/core`.

@@ -1,0 +1,25 @@
+---
+title: <authui-account>
+description: Self-service account management as an inline panel.
+---
+
+```html
+<authui-account></authui-account> <authui-account tab="security"></authui-account>
+```
+
+Renders the tabs described in [Account management](/docs/account-management). If nobody is signed in it renders `<authui-sign-in>` instead, so the same element can sit on an account page.
+
+## Attributes and properties
+
+| Name       | Type                                                                       | Default     | Description                                   |
+| ---------- | -------------------------------------------------------------------------- | ----------- | --------------------------------------------- |
+| `tab`      | `"profile"` / `"security"` / `"sessions"` / `"connections"` / `"activity"` | `"profile"` | Initial tab.                                  |
+| `embedded` | `boolean`                                                                  | `false`     | Removes the card chrome. The modal sets this. |
+
+## Parts
+
+`::part(panel)` targets the card.
+
+## Sizing
+
+The host is `display: block` with `max-width: 560px`.

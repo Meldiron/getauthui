@@ -1,0 +1,21 @@
+{
+  "title": "Docs",
+  "pages": [
+    "index",
+    "getting-started",
+    "---Concepts---",
+    "how-it-works",
+    "configuration",
+    "sign-in-methods",
+    "mfa",
+    "account-management",
+    "theming",
+    "---Components---",
+    "...components",
+    "---Frameworks---",
+    "react",
+    "frameworks",
+    "---API Reference---",
+    "...api"
+  ]
+}

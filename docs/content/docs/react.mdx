@@ -1,0 +1,124 @@
+---
+title: React
+description: Hooks and wrapper components from @getauthui/core/react.
+---
+
+```bash
+npm install @getauthui/core appwrite lit
+```
+
+```tsx
+import {
+  AuthUIProvider,
+  AuthUIButton,
+  AuthUIUserButton,
+  Show,
+  useAuthUI,
+} from "@getauthui/core/react";
+
+const config = {
+  endpoint: "https://cloud.appwrite.io/v1",
+  project: "my-project",
+  methods: { emailPassword: true, oauth: ["google"] },
+};
+
+export function App() {
+  return (
+    <AuthUIProvider config={config}>
+      <Header />
+    </AuthUIProvider>
+  );
+}
+
+function Header() {
+  const { status, user, open, signOut } = useAuthUI();
+  return (
+    <header>
+      <Show when="signed-out">
+        <AuthUIButton>Sign in</AuthUIButton>
+      </Show>
+      <Show when="signed-in">
+        <span>{user?.name}</span>
+        <AuthUIUserButton />
+      </Show>
+      {status === "signed-in" && <button onClick={signOut}>Sign out</button>}
+      <button onClick={() => open("account")}>Account</button>
+    </header>
+  );
+}
+```
+
+## `useAuthUI()`
+
+Returns the current state plus helpers, and re-renders on every change.
+
+| Field         | Type                                                            | Description                                         |
+| ------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| `status`      | `"loading"` / `"signed-out"` / `"signed-in"` / `"mfa-required"` | Current state.                                      |
+| `user`        | `Models.User \| null`                                           | The signed-in user.                                 |
+| `mfaFactors`  | `Models.MfaFactors \| null`                                     | Available factors while `status` is `mfa-required`. |
+| `pending`     | pending action or `null`                                        | A redirect flow waiting to be finished.             |
+| `configured`  | `boolean`                                                       | Whether `init` ran.                                 |
+| `open(view?)` | function                                                        | Open the modal.                                     |
+| `close()`     | function                                                        | Close the modal.                                    |
+| `signOut()`   | function                                                        | End the current session.                            |
+| `store`       | `AuthStore`                                                     | Full imperative API.                                |
+
+## Components
+
+| Component          | Wraps                  | Props                                 |
+| ------------------ | ---------------------- | ------------------------------------- |
+| `AuthUIProvider`   | configures the store   | `config`                              |
+| `AuthUIModal`      | `<authui-modal>`       | `view`, `open`, `closeOnSuccess`      |
+| `AuthUIButton`     | `<authui-button>`      | `view`, `variant`, `size`, `children` |
+| `AuthUIUserButton` | `<authui-user-button>` | `src`, `children`                     |
+| `AuthUISignIn`     | `<authui-sign-in>`     | `view`, `onSuccess`                   |
+| `AuthUIAccount`    | `<authui-account>`     | `tab`                                 |
+| `Show`             | `<authui-show>`        | `when`, `unless`, `children`          |
+
+## Typing custom elements in JSX
+
+If you prefer to use the elements directly in TSX, add a declaration:
+
+```ts
+import type { AuthUIView } from "@getauthui/core";
+
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "authui-button": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView; variant?: string },
+        HTMLElement
+      >;
+      "authui-modal": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView },
+        HTMLElement
+      >;
+      "authui-sign-in": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView },
+        HTMLElement
+      >;
+      "authui-account": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { tab?: string },
+        HTMLElement
+      >;
+      "authui-user-button": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { src?: string },
+        HTMLElement
+      >;
+      "authui-show": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { when?: string; unless?: string },
+        HTMLElement
+      >;
+      "authui-config": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { endpoint: string; project: string },
+        HTMLElement
+      >;
+    }
+  }
+}
+```
+
+## Next.js
+
+The components touch `window`, so import the package from a client component or inside `useEffect`. The wrappers in `@getauthui/core/react` are safe to import in client components.

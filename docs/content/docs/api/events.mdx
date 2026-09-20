@@ -1,0 +1,39 @@
+---
+title: Events
+description: Store events, window events and component events.
+---
+
+## Store events
+
+Subscribe with `AuthUI.on(name, listener)`. Each is also dispatched on `window` as a `CustomEvent` named `authui:<name>` with the same `detail`.
+
+| Name         | Detail                    | When                                                            |
+| ------------ | ------------------------- | --------------------------------------------------------------- |
+| `change`     | `AuthUIState`             | Any state change: status, user, factors, pending action.        |
+| `signed-in`  | `Models.User`             | Status became `signed-in`.                                      |
+| `signed-out` | `undefined`               | The user signed out or the session ended.                       |
+| `error`      | `{ message, type, code }` | Any store operation failed. Emitted before the promise rejects. |
+
+```ts
+window.addEventListener("authui:change", (e) => console.log((e as CustomEvent).detail.status));
+```
+
+## Window commands
+
+Dispatch these to control the modal without a reference to it. `AuthUI.open()` and `AuthUI.close()` do exactly this.
+
+| Name           | Detail                  |
+| -------------- | ----------------------- |
+| `authui:open`  | `{ view?: AuthUIView }` |
+| `authui:close` | none                    |
+
+## Component events
+
+All bubble and are composed.
+
+| Element            | Event              | Detail                |
+| ------------------ | ------------------ | --------------------- |
+| `<authui-sign-in>` | `authui-success`   | `{ method }`          |
+| `<authui-sign-in>` | `authui-view`      | `{ view }`            |
+| `<authui-sign-in>` | `authui-open`      | `{ view: "account" }` |
+| `<authui-modal>`   | `authui-signed-in` | `Models.User`         |

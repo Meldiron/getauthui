@@ -1,0 +1,17 @@
+{
+  "title": "Guides",
+  "description": "Step by step tutorials",
+  "root": true,
+  "pages": [
+    "index",
+    "nullboard",
+    "2048",
+    "silverbullet",
+    "openhabittracker",
+    "---More---",
+    "preview-mode",
+    "ai-agents",
+    "migrating-from-v1",
+    "security"
+  ]
+}

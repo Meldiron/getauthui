@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/*
+ * Appwrite Console v4 design tokens (shadcn new-york, zinc base) mapped onto Fumadocs.
+ * Light values are the console's :root, dark values are its .dark block.
+ */
+:root {
+  --color-fd-background: oklch(1 0 0);
+  --color-fd-foreground: oklch(0.141 0.005 285.823);
+  --color-fd-card: oklch(1 0 0);
+  --color-fd-card-foreground: oklch(0.141 0.005 285.823);
+  --color-fd-popover: oklch(1 0 0);
+  --color-fd-popover-foreground: oklch(0.141 0.005 285.823);
+  --color-fd-primary: oklch(0.21 0.006 285.885);
+  --color-fd-primary-foreground: oklch(0.985 0 0);
+  --color-fd-secondary: oklch(0.967 0.001 286.375);
+  --color-fd-secondary-foreground: oklch(0.21 0.006 285.885);
+  --color-fd-muted: oklch(0.967 0.001 286.375);
+  --color-fd-muted-foreground: oklch(0.552 0.016 285.938);
+  --color-fd-accent: oklch(0.967 0.001 286.375);
+  --color-fd-accent-foreground: oklch(0.21 0.006 285.885);
+  --color-fd-border: oklch(0.93 0.0035 286.32);
+  --color-fd-ring: oklch(0.898 0.004 286.286);
+
+  --brand-cta: #fd366e;
+  --brand-cta-foreground: #ffffff;
+  --radius: 0.625rem;
+
+  --code-plain: #000000;
+  --code-module-keyword: #7b6aee;
+  --code-function: #4a8fe8;
+  --code-keyword: #e85d8a;
+  --code-comment: #6e6e71;
+  --code-property: #4a8fe8;
+  --code-string: #2db88a;
+
+  --font-display:
+    "Aeonik Pro", var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.dark {
+  --color-fd-background: #19191c;
+  --color-fd-foreground: oklch(0.985 0 0);
+  --color-fd-card: #1d1d21;
+  --color-fd-card-foreground: oklch(0.985 0 0);
+  --color-fd-popover: #1d1d21;
+  --color-fd-popover-foreground: oklch(0.985 0 0);
+  --color-fd-primary: oklch(0.985 0 0);
+  --color-fd-primary-foreground: oklch(0.21 0.006 285.885);
+  --color-fd-secondary: #2d2d31;
+  --color-fd-secondary-foreground: oklch(0.985 0 0);
+  --color-fd-muted: #2d2d31;
+  --color-fd-muted-foreground: oklch(0.705 0.015 286.067);
+  --color-fd-accent: #2d2d31;
+  --color-fd-accent-foreground: oklch(0.985 0 0);
+  --color-fd-border: oklch(0.252 0.005 286.32);
+  --color-fd-ring: oklch(0.448 0.015 285.786);
+
+  --code-plain: #9cdcfe;
+  --code-module-keyword: #9685fe;
+  --code-function: #67a3fe;
+  --code-keyword: #fe86a8;
+  --code-escape: #67a3fe;
+  --code-comment: #6e6e71;
+  --code-property: #67a3fe;
+  --code-string: #4ad4ab;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-brand: var(--brand-cta);
+  --color-brand-foreground: var(--brand-cta-foreground);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  /* Console marketing: dotted grid background */
+  .bg-dots {
+    background-image: radial-gradient(circle, var(--color-fd-border) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  /* Console marketing: brand gradient headline */
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      145deg,
+      color-mix(in oklch, var(--brand-cta) 45%, var(--color-fd-background)) 0%,
+      color-mix(in oklch, var(--brand-cta) 72%, var(--color-fd-foreground)) 18%,
+      var(--color-fd-foreground) 46%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .text-gradient-brand {
+    background-image: linear-gradient(
+      145deg,
+      color-mix(in oklch, var(--brand-cta) 55%, var(--color-fd-foreground)) 0%,
+      color-mix(in oklch, var(--brand-cta) 88%, var(--color-fd-foreground)) 28%,
+      var(--color-fd-foreground) 62%
+    );
+  }
+
+  .hero-glow {
+    background: radial-gradient(
+      ellipse 60% 45% at 50% 0%,
+      color-mix(in oklch, var(--brand-cta) 14%, transparent),
+      transparent
+    );
+  }
+
+  .link-neutral {
+    cursor: pointer;
+    font-weight: 500;
+    color: color-mix(in oklch, var(--color-fd-foreground) 85%, transparent);
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: color-mix(in oklch, var(--color-fd-muted-foreground) 38%, transparent);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    transition:
+      text-decoration-color 150ms,
+      color 150ms;
+  }
+  .link-neutral:hover {
+    color: var(--color-fd-foreground);
+    text-decoration-color: color-mix(in oklch, var(--color-fd-muted-foreground) 58%, transparent);
+  }
+}

@@ -1,0 +1,57 @@
+---
+title: <authui-show>
+description: Render children only while the authentication status matches.
+---
+
+```html
+<authui-show when="signed-out">
+  <authui-button>Sign in</authui-button>
+</authui-show>
+
+<authui-show when="signed-in">
+  <a href="/dashboard">Dashboard</a>
+  <authui-user-button></authui-user-button>
+</authui-show>
+```
+
+## Attributes
+
+| Name     | Type        | Description                                     |
+| -------- | ----------- | ----------------------------------------------- |
+| `when`   | status list | Show children while the status is one of these. |
+| `unless` | status list | Hide children while the status is one of these. |
+
+Both accept a single value or a comma separated list. Valid values:
+
+| Value          | Meaning                                                |
+| -------------- | ------------------------------------------------------ |
+| `signed-in`    | A user is signed in and, if MFA is on, fully verified. |
+| `signed-out`   | No session.                                            |
+| `mfa-required` | A session exists but a second factor is still needed.  |
+| `loading`      | The initial `account.get()` has not resolved yet.      |
+
+## Examples
+
+```html
+<!-- Anyone without a complete session, including users mid-MFA -->
+<authui-show unless="signed-in">…</authui-show>
+
+<!-- Same thing, spelled out -->
+<authui-show when="signed-out, mfa-required">…</authui-show>
+
+<!-- A skeleton while the first request is in flight -->
+<authui-show when="loading">Loading…</authui-show>
+```
+
+`when` and `unless` can be combined; children render only when both agree.
+
+## Behaviour
+
+- Children stay hidden until the initial status is known, so protected content never flashes. Only `when="loading"` renders during that window.
+- `signed-out` is exact. A user who signed in with a password but still has an MFA challenge pending is `mfa-required`, not `signed-out`. Use `unless="signed-in"` when you mean "anyone who is not fully in".
+- The element renders with `display: contents`, so it does not affect layout.
+- Hiding is a convenience for UI, not a security boundary. Data access is enforced by Appwrite permissions.
+
+## Property
+
+`visible` returns the current boolean result, handy in tests or when reading the element from script.

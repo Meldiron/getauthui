@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auth UI example</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #f4f4f5;
+        color: #18181b;
+      }
+      html.dark body {
+        background: #19191c;
+        color: #fafafa;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 40px 24px;
+        display: grid;
+        gap: 32px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+        align-items: start;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button.plain {
+        font: inherit;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      code {
+        font-size: 13px;
+      }
+      pre {
+        background: rgba(127, 127, 127, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 12px;
+      }
+    </style>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <!-- Declarative configuration: change endpoint/project to your own Appwrite project -->
+    <authui-config
+      endpoint="https://cloud.appwrite.io/v1"
+      project="authui-demo"
+      methods="email-password magic-url email-otp phone anonymous oauth:google oauth:github oauth:apple"
+      name="Acme"
+      terms-url="https://example.com/terms"
+      privacy-url="https://example.com/privacy"
+    ></authui-config>
+
+    <header>
+      <strong>Acme</strong>
+      <div class="toolbar">
+        <button class="plain" id="theme">Toggle theme</button>
+        <authui-show unless="signed-in">
+          <authui-button>Sign in</authui-button>
+          <authui-button view="sign-up" variant="outline">Sign up</authui-button>
+        </authui-show>
+        <authui-show when="signed-in">
+          <authui-user-button></authui-user-button>
+        </authui-show>
+      </div>
+    </header>
+
+    <main>
+      <authui-show when="signed-in">
+        <p>You are signed in. This paragraph is wrapped in <code>&lt;authui-show when="signed-in"&gt;</code>.</p>
+      </authui-show>
+      <authui-show when="signed-out">
+        <p>You are signed out. This paragraph is wrapped in <code>&lt;authui-show when="signed-out"&gt;</code>.</p>
+      </authui-show>
+      <authui-show when="mfa-required">
+        <p>Finish the second factor to continue. Wrapped in <code>&lt;authui-show when="mfa-required"&gt;</code>.</p>
+      </authui-show>
+
+      <section class="grid">
+        <div>
+          <h3>Inline sign-in</h3>
+          <authui-sign-in></authui-sign-in>
+        </div>
+        <div>
+          <h3>Inline account</h3>
+          <authui-account></authui-account>
+        </div>
+      </section>
+
+      <section>
+        <h3>Events</h3>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <authui-modal></authui-modal>
+  </body>
+</html>

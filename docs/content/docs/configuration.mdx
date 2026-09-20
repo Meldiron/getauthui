@@ -1,0 +1,74 @@
+---
+title: Configuration
+description: Every option Auth UI accepts, as JavaScript or as attributes on <authui-config>.
+---
+
+Call `AuthUI.init(config)` or place an `<authui-config>` element. Both write to the same global store, and calling either again replaces the configuration.
+
+## Options
+
+| Option                       | Attribute            | Type                                        | Default        | Description                                                                                                      |
+| ---------------------------- | -------------------- | ------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `endpoint`                   | `endpoint`           | `string`                                    | required       | Appwrite API endpoint, e.g. `https://cloud.appwrite.io/v1`.                                                      |
+| `project`                    | `project`            | `string`                                    | required       | Appwrite project ID.                                                                                             |
+| `redirectUrl`                | `redirect-url`       | `string`                                    | current page   | Absolute URL that email links and OAuth return to. Must be on a registered platform.                             |
+| `successUrl`                 | `success-url`        | `string`                                    | none           | Navigate here after a successful sign in. Without it the page stays put and the modal closes.                    |
+| `methods`                    | `methods`            | object / list                               | email-password | Which sign-in methods to show. See below.                                                                        |
+| `signUp`                     | `sign-up`            | `boolean`                                   | `true`         | Show the sign-up link and screen.                                                                                |
+| `requireName`                | `require-name`       | `boolean`                                   | `true`         | Ask for a display name during sign up.                                                                           |
+| `mfa`                        | `mfa`                | `boolean`                                   | `true`         | Let users enroll and manage MFA from the account screen.                                                         |
+| `securityPhrase`             | `security-phrase`    | `boolean`                                   | `true`         | Request a security phrase for magic URL and email OTP and show it in the UI.                                     |
+| `oauthScopes`                | none                 | object                                      | none           | Extra scopes per provider, e.g. `{ google: ["profile"] }`.                                                       |
+| `branding.name`              | `name`               | `string`                                    | none           | Product name used in headings.                                                                                   |
+| `branding.logo`              | `logo`               | `string`                                    | none           | Logo URL rendered above the form.                                                                                |
+| `branding.theme`             | `theme`              | `light` / `dark` / `auto`                   | `auto`         | Colour scheme. `auto` follows an `html.dark` class, then `prefers-color-scheme`.                                 |
+| `branding.radius`            | `radius`             | `none` / `sm` / `md` / `lg` / `xl` / `full` | `md`           | Corner radius scale.                                                                                             |
+| `branding.primary`           | `primary`            | CSS colour                                  | zinc           | Primary button colour.                                                                                           |
+| `branding.primaryForeground` | `primary-foreground` | CSS colour                                  | white          | Text colour on primary buttons.                                                                                  |
+| `legal.termsUrl`             | `terms-url`          | `string`                                    | none           | Adds a Terms of Service link under the form.                                                                     |
+| `legal.privacyUrl`           | `privacy-url`        | `string`                                    | none           | Adds a Privacy Policy link under the form.                                                                       |
+| `strings`                    | none                 | object                                      | English        | Override any UI string. See [Theming](/docs/theming#strings).                                                    |
+| `preview`                    | `preview`            | `boolean`                                   | `false`        | Preview mode: no requests, any credentials accepted, sample data. See [Preview mode](/docs/guides/preview-mode). |
+
+## Methods
+
+In JavaScript, `methods` is an object:
+
+```ts
+methods: {
+  emailPassword: true,
+  magicUrl: true,
+  emailOtp: false,
+  phone: false,
+  anonymous: true,
+  oauth: ["google", "github", "apple"],
+}
+```
+
+As an attribute it is a space separated list. OAuth providers are prefixed with `oauth:`:
+
+```html
+<authui-config
+  methods="email-password magic-url anonymous oauth:google oauth:github"
+></authui-config>
+```
+
+Valid tokens: `email-password`, `magic-url`, `email-otp`, `phone`, `anonymous` (alias `guest`), and `oauth:<provider>` for any provider slug Appwrite accepts, for example `google`, `github`, `apple`, `microsoft`, `discord`, `facebook`, `x`, `linkedin`, `slack`, `gitlab`, `bitbucket`, `twitch`, `spotify`, `notion`, `dropbox`, `figma`, `oidc`, `okta`, `auth0`.
+
+Every method you enable here must also be enabled in the Appwrite Console. If it is not, Appwrite responds with `user_auth_method_unsupported` and Auth UI shows "This sign-in method is disabled for this project."
+
+## Full example
+
+```ts
+AuthUI.init({
+  endpoint: "https://cloud.appwrite.io/v1",
+  project: "acme",
+  redirectUrl: "https://acme.com/auth",
+  successUrl: "/dashboard",
+  methods: { emailPassword: true, emailOtp: true, anonymous: true, oauth: ["google", "github"] },
+  signUp: true,
+  branding: { name: "Acme", logo: "/logo.svg", theme: "auto", radius: "lg", primary: "#fd366e" },
+  legal: { termsUrl: "/terms", privacyUrl: "/privacy" },
+  strings: { signIn: "Log in", continueAsGuest: "Try without an account" },
+});
+```

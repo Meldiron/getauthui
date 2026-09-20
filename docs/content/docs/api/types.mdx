@@ -1,0 +1,77 @@
+---
+title: Types
+description: TypeScript types exported from @getauthui/core.
+---
+
+```ts
+import type {
+  AuthUIConfig,
+  AuthUIState,
+  AuthUIView,
+  AuthUIStatus,
+  AuthUIStrings,
+  OAuthProviderName,
+} from "@getauthui/core";
+```
+
+## `AuthUIConfig`
+
+See [Configuration](/docs/configuration).
+
+## `AuthUIState`
+
+```ts
+interface AuthUIState {
+  status: "loading" | "signed-out" | "signed-in" | "mfa-required";
+  user: Models.User<Models.Preferences> | null;
+  mfaFactors: Models.MfaFactors | null;
+  pending: AuthUIPendingAction | null;
+  configured: boolean;
+}
+```
+
+## `AuthUIPendingAction`
+
+```ts
+type AuthUIPendingAction =
+  | { type: "reset-password"; userId: string; secret: string }
+  | { type: "verify-email"; userId: string; secret: string }
+  | { type: "oauth-failed" }
+  | { type: "notice"; message: string; tone: "success" | "error" | "info" };
+```
+
+## `AuthUIView`
+
+`"sign-in" | "sign-up" | "forgot-password" | "reset-password" | "magic-url" | "email-otp" | "phone" | "mfa" | "account"`
+
+## `OAuthProviderName`
+
+Every provider slug Appwrite accepts, including `google`, `github`, `apple`, `microsoft`, `discord`, `facebook`, `x`, `linkedin`, `slack`, `gitlab`, `bitbucket`, `twitch`, `spotify`, `notion`, `dropbox`, `figma`, `oidc`, `okta`, `auth0`, `amazon`, `paypal`, `zoom`, and the rest of the list in Appwrite's `OAuthProvider` enum.
+
+## `AuthUIStrings`
+
+All UI strings. The defaults are exported as `defaultStrings`. Values may contain `{placeholders}`:
+
+| Key                              | Placeholders |
+| -------------------------------- | ------------ |
+| `signInTitle`, `signUpTitle`     | `{name}`     |
+| `continueWith`                   | `{provider}` |
+| `magicLinkSent`, `resetLinkSent` | `{email}`    |
+| `codeSent`                       | `{target}`   |
+
+## Helpers
+
+```ts
+import {
+  describeError,
+  toAuthUIError,
+  ErrorTypes,
+  providerLabel,
+  defaultStrings,
+} from "@getauthui/core";
+```
+
+- `describeError(err, strings, context?)` maps an Appwrite error to a friendly string. Pass `"code"` as `context` when the user typed a one-time code.
+- `toAuthUIError(err)` normalises anything thrown into `{ message, type, code }`.
+- `ErrorTypes` lists the Appwrite error `type` strings the UI reacts to.
+- `providerLabel(slug)` returns the display name of an OAuth provider.

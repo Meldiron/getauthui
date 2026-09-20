@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://getauthui.appwrite.network/sitemap.xml

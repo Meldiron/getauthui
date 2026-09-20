@@ -1,0 +1,36 @@
+---
+title: Migrating from Auth UI v1
+description: Moving from the hosted login page to the embedded component library.
+---
+
+Auth UI v1 was a hosted page at `<your-name>.authui.site` that you linked to. Version 2 runs inside your own page. The move takes a few minutes.
+
+## Why the change
+
+Browsers block or partition third-party cookies. A session created on `authui.site` could not be read from your app on another domain, so sign in silently failed in Safari, Firefox, Brave and Chrome with tracking protection on. Running on your origin removes the cross-site hop entirely. Read [How it works](/docs/how-it-works) for the details.
+
+## Mapping v1 settings
+
+| v1 page setting                                     | v2 equivalent                                                                             |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Provider endpoint and project                       | `endpoint`, `project`                                                                     |
+| Success URL                                         | `successUrl`                                                                              |
+| Failure URL                                         | not needed; errors render inline                                                          |
+| Domain (`name.authui.site`)                         | not needed; your app's own domain is the platform                                         |
+| Allow guest, magic URL, email OTP, phone            | `methods.anonymous`, `methods.magicUrl`, `methods.emailOtp`, `methods.phone`              |
+| Allow Google, GitHub, Twitter, Facebook             | `methods.oauth: ["google", "github", "x", "facebook"]`                                    |
+| Allow sign up                                       | `signUp`                                                                                  |
+| Name, logo, brand colour, border radius, dark theme | `branding.name`, `branding.logo`, `branding.primary`, `branding.radius`, `branding.theme` |
+| Privacy policy, terms of service                    | `legal.privacyUrl`, `legal.termsUrl`                                                      |
+
+## Steps
+
+1. In the Appwrite Console, add your app's hostname as a Web platform. You can remove the `*.authui.site` platform afterwards.
+2. Add the script tag or install the package.
+3. Replace the link to `https://name.authui.site/` with `<authui-button>Sign in</authui-button>`.
+4. If you used the v1 URL as a sign-out link, use `<authui-user-button>` or `AuthUI.signOut()` instead.
+5. Delete the v1 page from your Auth UI dashboard.
+
+## What you gain
+
+MFA, account management, sessions, connected accounts, every OAuth provider, theming tokens, React wrappers, and a login flow that works in every browser.

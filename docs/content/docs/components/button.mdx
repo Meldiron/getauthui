@@ -1,0 +1,26 @@
+---
+title: <authui-button>
+description: A button that opens the modal on a chosen screen.
+---
+
+```html
+<authui-button>Sign in</authui-button>
+<authui-button view="sign-up" variant="outline">Create account</authui-button>
+<authui-button view="account" variant="ghost" size="sm">Account</authui-button>
+```
+
+## Attributes
+
+| Name      | Type                                                                         | Default     | Description                                                                   |
+| --------- | ---------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
+| `view`    | screen name                                                                  | `"sign-in"` | Which screen the modal opens on.                                              |
+| `variant` | `"primary"` / `"brand"` / `"outline"` / `"secondary"` / `"ghost"` / `"link"` | `"primary"` | Visual style, matching the console button variants. `brand` is Appwrite pink. |
+| `size`    | `"sm"` / `"md"` / `"lg"`                                                     | `"md"`      | Height 32, 36 or 40 px.                                                       |
+
+## Slots
+
+The default slot is the label. Without content it falls back to "Sign in", "Sign up" or "Manage account" depending on `view`.
+
+## Parts
+
+`::part(button)` targets the inner `<button>`.

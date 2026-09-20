@@ -1,0 +1,40 @@
+---
+title: <authui-modal>
+description: Dialog that hosts the sign-in and account screens.
+---
+
+```html
+<authui-modal></authui-modal>
+```
+
+You rarely need to add it yourself: `AuthUI.open()`, `<authui-button>` and `<authui-user-button>` create one on `<body>` when the page has none. Place it manually when you want it inside a specific stacking context or want to bind properties.
+
+## Attributes and properties
+
+| Name               | Type                                                                                                      | Default     | Description                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| `open`             | `boolean`                                                                                                 | `false`     | Reflects the dialog state. Set it to open or close programmatically.                          |
+| `view`             | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"magic-url"` / `"email-otp"` / `"phone"` / `"account"` | `"sign-in"` | Screen to show.                                                                               |
+| `close-on-success` | `boolean`                                                                                                 | `true`      | Close after a successful sign in. Ignored when `successUrl` is set, since the page navigates. |
+
+## Methods
+
+- `show(view?)` opens the dialog. Without a view it opens the account screen for signed-in users and the sign-in screen otherwise.
+- `hide()` closes it.
+
+## Events
+
+| Event              | Detail        | When                                       |
+| ------------------ | ------------- | ------------------------------------------ |
+| `authui-signed-in` | `Models.User` | A sign-in flow inside the modal completed. |
+
+## Behaviour
+
+- Uses a native `<dialog>` with `showModal()`, so focus is trapped and Escape closes it.
+- Clicking the backdrop closes it.
+- Opens automatically when the page URL carries a password-reset link or a failed OAuth return, and when an email verification link was confirmed, so users always see the result.
+- Switches to the account screen when a signed-in user asks for "Manage account" from the inline sign-in panel.
+
+## Global events
+
+The modal listens on `window` for `authui:open` (detail `{ view }`) and `authui:close`. `AuthUI.open()` and `AuthUI.close()` dispatch these, so any framework can drive the modal without a reference to the element.

@@ -1,0 +1,39 @@
+---
+title: Multi-factor authentication
+description: Challenges during sign in, authenticator enrollment, recovery codes and step-up verification.
+---
+
+## During sign in
+
+After any primary sign in, Auth UI calls `account.get()`. If Appwrite answers `user_more_factors_required`, Auth UI lists the factors the account can use and shows a chooser:
+
+- **Authenticator app** (TOTP)
+- **Email code**, available when the account's email is verified
+- **SMS code**, available when the account's phone is verified
+- **Recovery code**
+
+Choosing a factor creates a challenge with `createMFAChallenge()`. For email and SMS this sends the code. The user enters the code and Auth UI completes the challenge with `updateMFAChallenge()`. Cancelling ends the partial session so the user can start over.
+
+The same detection runs on every page load, so a user who refreshes in the middle of a challenge lands back on the chooser.
+
+## Enrolling
+
+The **Security** tab of the account screen has a **Two-factor authentication** card:
+
+1. **Add authenticator** calls `createMFAAuthenticator("totp")`. Auth UI renders the returned `otpauth://` URI as a QR code using your own Appwrite endpoint's Avatars service, and prints the secret for manual entry.
+2. The user scans it and types the six-digit code. `updateMFAAuthenticator()` verifies it.
+3. Flip the **Two-factor authentication** switch to enforce MFA on the account with `updateMFA(true)`.
+
+Appwrite only requires a second factor when the account both has MFA enabled and has at least one usable factor, so switching it on before adding an authenticator is harmless.
+
+## Recovery codes
+
+**Generate recovery codes** creates a set of one-time codes and shows them with a copy button. Each code signs in once. **Regenerate** replaces the whole set.
+
+## Step-up verification
+
+Reading or regenerating recovery codes and removing an authenticator are protected: Appwrite requires a factor verified within the last 30 minutes and otherwise answers `user_challenge_required`. Auth UI catches that, shows an inline challenge card, and retries the original action once the challenge succeeds.
+
+## Disabling MFA in the UI
+
+Set `mfa: false` in the configuration to hide the MFA and recovery code cards. Challenges during sign in still appear, because they are enforced by the server for accounts that already have MFA on.

@@ -1,0 +1,47 @@
+---
+title: How it works
+description: Why Auth UI runs on your origin, how sessions are stored, and how email links and OAuth return to your page.
+---
+
+## Sessions live on your origin
+
+Every request Auth UI makes goes from your page to your Appwrite endpoint using the official Web SDK. From the browser's point of view those requests are identical to the ones your own code makes. Whatever session mechanism Appwrite uses for your app, Auth UI uses too:
+
+- With a **custom API domain** on the same site as your app, Appwrite sets a first-party cookie.
+- On the **default Cloud endpoint**, the SDK stores the session in `localStorage` under `cookieFallback` and sends it as a header. This is Appwrite's standard behaviour for browser apps and is what makes sign in work without a custom domain.
+
+Because nothing is shared across sites, third-party cookie blocking in Safari, Firefox, Brave and Chrome has no effect on Auth UI.
+
+## Redirect flows
+
+Some methods leave the page and come back:
+
+| Flow               | Where the user goes     | How they return                                                 |
+| ------------------ | ----------------------- | --------------------------------------------------------------- |
+| OAuth2             | Provider consent screen | Appwrite redirects to your page with `userId` and `secret`      |
+| Magic URL          | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
+| Password recovery  | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
+| Email verification | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
+
+Appwrite appends the same parameters to every flow, so Auth UI adds one of its own, `authui=<flow>`, to the URL it registers with Appwrite. On load it reads that marker, finishes the right flow, and removes all auth parameters from the address bar with `history.replaceState`:
+
+- `authui=oauth` and `authui=magic-url` exchange the token for a session with `account.createSession()`.
+- `authui=recovery` opens the modal on the **Reset password** screen.
+- `authui=verify-email` confirms the address and shows a success notice.
+- `authui=oauth-failed` shows an error notice.
+
+OAuth uses Appwrite's **token** endpoint (`createOAuth2Token`) rather than the older session redirect, because the token flow is the one that works when the API host is not same-site with your app.
+
+## The redirect URL
+
+By default the return URL is the current page without query string or hash. Set `redirectUrl` when you want every flow to land on a dedicated page, for example `https://myapp.com/auth`. The hostname must be a registered Web platform in your Appwrite project, otherwise Appwrite rejects the request.
+
+## MFA
+
+Signing in with a password when the account has MFA enabled succeeds, but every subsequent call fails with `user_more_factors_required` until a second factor is verified. Auth UI detects that state after every sign in and page load, lists the factors available to the account, and shows the challenge screen. Cancelling signs the partial session out.
+
+Some account actions, such as reading recovery codes or removing an authenticator, require a factor verified within the last 30 minutes. When Appwrite answers `user_challenge_required`, Auth UI shows an inline step-up challenge and retries the action afterwards.
+
+## Compatibility
+
+Auth UI calls both the current and the pre-1.8 names of methods that Appwrite renamed (`createMFAAuthenticator` and `createMfaAuthenticator`, `createEmailVerification` and `createVerification`, and so on), so it works with any `appwrite` package from version 14 onwards and any Appwrite server from 1.5 onwards. Features the server does not expose, such as the security log on self-hosted Appwrite 2.x, are hidden automatically.

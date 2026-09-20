@@ -1,0 +1,39 @@
+---
+title: <authui-sign-in>
+description: The full sign-in experience as an inline panel.
+---
+
+```html
+<authui-sign-in></authui-sign-in> <authui-sign-in view="sign-up"></authui-sign-in>
+```
+
+Use it on a dedicated login page or anywhere you would rather not use a modal. It renders the same screens the modal does: OAuth buttons, email and password, sign up, forgot and reset password, magic URL, email OTP, phone, guest, and the MFA challenge. While a user is signed in it shows who is signed in with **Continue**, **Manage account** and **Sign out** actions.
+
+## Attributes and properties
+
+| Name       | Type                                                                                        | Default     | Description                                                       |
+| ---------- | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------- |
+| `view`     | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"magic-url"` / `"email-otp"` / `"phone"` | `"sign-in"` | Initial screen.                                                   |
+| `embedded` | `boolean`                                                                                   | `false`     | Removes the card border, shadow and padding. The modal sets this. |
+
+## Methods
+
+- `go(view)` switches screens.
+
+## Events
+
+| Event            | Detail                | When                                                                                                                             |
+| ---------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `authui-success` | `{ method }`          | A sign-in flow completed. `method` is one of `email-password`, `sign-up`, `anonymous`, `magic-url`, `email-otp`, `phone`, `mfa`. |
+| `authui-view`    | `{ view }`            | The visible screen changed.                                                                                                      |
+| `authui-open`    | `{ view: "account" }` | The signed-in panel asked to open account management.                                                                            |
+
+All events bubble and are composed, so they can be caught on ancestors.
+
+## Parts
+
+`::part(panel)` targets the card.
+
+## Sizing
+
+The host is `display: block` with `max-width: 420px`. Override `max-width` on the element to change it.

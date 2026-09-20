@@ -1,0 +1,35 @@
+---
+title: Account management
+description: The self-service account screen and what each tab does.
+---
+
+Open it with `AuthUI.open("account")`, from the `<authui-user-button>` menu, or embed it directly with `<authui-account>`.
+
+## Profile
+
+- **Name**: update the display name.
+- **Email**: change the address (requires the current password) and send a verification email. A badge shows whether the address is verified.
+- **Phone**: change the number (requires the current password), send an SMS code and verify it.
+- **Delete account**: calls `account.updateStatus()`, which blocks the account and ends the session. Appwrite keeps the record so an administrator can restore it. Client-side deletion is not offered by Appwrite; use a server function if you need it.
+
+Guest accounts see a **Create your account** form instead, which attaches an email and password to the existing user.
+
+## Security
+
+- **Change password**, with the current password when the account has one. OAuth-only accounts can set a first password.
+- **Two-factor authentication** switch, authenticator enrollment and removal.
+- **Recovery codes** generation, display and regeneration.
+
+Changing the password ends other sessions when the project's session-invalidation policy is on. Auth UI refreshes its state afterwards.
+
+## Sessions
+
+Lists every active session with client, operating system, country and IP, and marks the current device. Each row has a sign-out action. **Sign out everywhere** ends all sessions, including the current one.
+
+## Connections
+
+Lists connected OAuth identities with the provider's email or user ID, offers to disconnect each, and shows buttons for any configured provider that is not yet connected. Connecting goes through the same OAuth redirect as sign in.
+
+## Activity
+
+The account security log from `account.listLogs()`, when the server exposes it. Appwrite Cloud does. Self-hosted Appwrite 2.x removed the endpoint, and in that case the tab hides itself after the first failed request.

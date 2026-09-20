@@ -1,0 +1,23 @@
+---
+title: <authui-user-button>
+description: Avatar with an account menu while signed in, a sign-in button otherwise.
+---
+
+```html
+<authui-user-button></authui-user-button>
+<authui-user-button src="https://example.com/avatar.png">Log in</authui-user-button>
+```
+
+## Attributes
+
+| Name  | Type     | Description                                                                          |
+| ----- | -------- | ------------------------------------------------------------------------------------ |
+| `src` | `string` | Avatar image URL. Falls back to the first letter of the user's name, email or phone. |
+
+## Slots
+
+The default slot is the label of the sign-in button shown while signed out.
+
+## Menu
+
+Clicking the avatar opens a menu with the user's name and email, **Manage account** (opens the modal on the account screen) and **Sign out**. The menu closes on outside click and Escape.
