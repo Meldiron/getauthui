@@ -5,8 +5,11 @@ export const signInStyles = css`
     display: block;
     width: 100%;
     max-width: 420px;
+    min-width: 0;
   }
   .panel {
+    min-width: 0;
+    overflow: hidden;
     background: var(--authui-card);
     color: var(--authui-card-foreground);
     border: 1px solid var(--authui-border);

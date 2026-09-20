@@ -20,6 +20,8 @@ export const base = css`
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-align: start;
+    min-width: 0;
+    max-width: 100%;
   }
 
   [hidden] {
