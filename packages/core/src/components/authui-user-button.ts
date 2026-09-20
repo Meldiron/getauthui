@@ -128,7 +128,10 @@ export class AuthUIUserButton extends AuthUIElement {
 
   private onKeydown = (e: KeyboardEvent) => {
     if (!this.menuOpen) {
-      if ((e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") && e.target === this.renderRoot?.querySelector(".trigger")) {
+      if (
+        (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") &&
+        e.target === this.renderRoot?.querySelector(".trigger")
+      ) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
           this.menuOpen = true;
@@ -137,7 +140,9 @@ export class AuthUIUserButton extends AuthUIElement {
       }
       return;
     }
-    const items = [...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? [])] as HTMLElement[];
+    const items = [
+      ...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? []),
+    ] as HTMLElement[];
     const current = items.findIndex((el) => el === this.shadowRoot?.activeElement);
     if (e.key === "Escape") {
       e.preventDefault();
@@ -150,7 +155,9 @@ export class AuthUIUserButton extends AuthUIElement {
       this.focusMenuItem(current < 0 ? 0 : (current + 1) % items.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      this.focusMenuItem(current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length);
+      this.focusMenuItem(
+        current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length
+      );
     } else if (e.key === "Home") {
       e.preventDefault();
       this.focusMenuItem(0);
@@ -161,9 +168,11 @@ export class AuthUIUserButton extends AuthUIElement {
   };
 
   private focusMenuItem(index: number): void {
-    const items = [...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? [])] as HTMLElement[];
+    const items = [
+      ...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? []),
+    ] as HTMLElement[];
     items[index]?.focus();
-  };
+  }
 
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("menuOpen") && this.menuOpen) {

@@ -120,4 +120,3 @@ export function describeError(
   if (/^\s*<(!doctype|html)/i.test(e.message)) return s.errorGeneric;
   return e.message || s.errorGeneric;
 }
-

@@ -359,42 +359,44 @@ export class AuthUISignIn extends AuthUIElement {
     if (this.auth.status === "signed-in") {
       title = this.t("signedInAs");
     } else {
-    switch (this.step) {
-      case "sign-in":
-        title = name ? this.t("signInTitle", { name }) : this.t("welcomeBack");
-        break;
-      case "sign-up":
-        title = name ? this.t("signUpTitle", { name }) : this.t("createAccount");
-        break;
-      case "forgot-password":
-      case "reset-password":
-        title = this.t("resetPassword");
-        break;
-      case "magic-url":
-      case "email-otp":
-        title = this.t("continueWithEmail");
-        break;
-      case "phone":
-        title = this.t("continueWithPhone");
-        break;
-      case "mfa":
-        title = this.t("mfaTitle");
-        description = this.t("mfaDescription");
-        break;
-    }
+      switch (this.step) {
+        case "sign-in":
+          title = name ? this.t("signInTitle", { name }) : this.t("welcomeBack");
+          break;
+        case "sign-up":
+          title = name ? this.t("signUpTitle", { name }) : this.t("createAccount");
+          break;
+        case "forgot-password":
+        case "reset-password":
+          title = this.t("resetPassword");
+          break;
+        case "magic-url":
+        case "email-otp":
+          title = this.t("continueWithEmail");
+          break;
+        case "phone":
+          title = this.t("continueWithPhone");
+          break;
+        case "mfa":
+          title = this.t("mfaTitle");
+          description = this.t("mfaDescription");
+          break;
+      }
     }
     return html`
       <div class="header">
-        ${logo
-          ? html`<img
-              class="logo"
-              src=${logo}
-              alt=""
-              @error=${(e: Event) => {
-                (e.target as HTMLImageElement).hidden = true;
-              }}
-            />`
-          : nothing}
+        ${
+          logo
+            ? html`<img
+                class="logo"
+                src=${logo}
+                alt=""
+                @error=${(e: Event) => {
+                  (e.target as HTMLImageElement).hidden = true;
+                }}
+              />`
+            : nothing
+        }
         ${authStore.isPreview ? html`<span class="badge badge-info preview">${this.t("preview")}</span>` : nothing}
         <h2 class="title" id="authui-title">${title}</h2>
         ${description ? html`<p class="description">${description}</p>` : nothing}
@@ -821,8 +823,7 @@ export class AuthUISignIn extends AuthUIElement {
         <form class="form" @submit=${this.onMagicUrl} novalidate>
           ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendMagicLink"))}
         </form>
-        ${this.backLink()}
-        ${this.legal()}
+        ${this.backLink()} ${this.legal()}
       </div>
     `;
   }
@@ -892,8 +893,7 @@ export class AuthUISignIn extends AuthUIElement {
         <form class="form" @submit=${this.onEmailOtp} novalidate>
           ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>
-        ${this.backLink()}
-        ${this.legal()}
+        ${this.backLink()} ${this.legal()}
       </div>
     `;
   }
@@ -918,8 +918,7 @@ export class AuthUISignIn extends AuthUIElement {
           </div>
           ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>
-        ${this.backLink()}
-        ${this.legal()}
+        ${this.backLink()} ${this.legal()}
       </div>
     `;
   }

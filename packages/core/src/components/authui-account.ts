@@ -215,7 +215,8 @@ export class AuthUIAccount extends AuthUIElement {
     const i = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
     let next = i;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % tabs.length;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+      next = (i - 1 + tabs.length) % tabs.length;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = tabs.length - 1;
     else return;
@@ -402,11 +403,15 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onSendVerification = () => {
     if (Date.now() < this.verifyEmailCooldownUntil) return;
-    void this.run("verify", async () => {
-      await authStore.sendEmailVerification();
-      this.verifyEmailCooldownUntil = Date.now() + 45000;
-      window.setTimeout(() => this.requestUpdate(), 45000);
-    }, this.t("verificationSent"));
+    void this.run(
+      "verify",
+      async () => {
+        await authStore.sendEmailVerification();
+        this.verifyEmailCooldownUntil = Date.now() + 45000;
+        window.setTimeout(() => this.requestUpdate(), 45000);
+      },
+      this.t("verificationSent")
+    );
   };
 
   private onSendPhoneVerification = () => {
@@ -902,14 +907,16 @@ export class AuthUIAccount extends AuthUIElement {
                   ?disabled=${!!this.busy || Date.now() < this.verifyEmailCooldownUntil}
                 >
                   ${this.spinner("verify")}
-                  ${Date.now() < this.verifyEmailCooldownUntil
-                    ? this.t("verificationResendIn", {
-                        seconds: Math.max(
-                          1,
-                          Math.ceil((this.verifyEmailCooldownUntil - Date.now()) / 1000)
-                        ),
-                      })
-                    : this.t("verifyEmail")}
+                  ${
+                    Date.now() < this.verifyEmailCooldownUntil
+                      ? this.t("verificationResendIn", {
+                          seconds: Math.max(
+                            1,
+                            Math.ceil((this.verifyEmailCooldownUntil - Date.now()) / 1000)
+                          ),
+                        })
+                      : this.t("verifyEmail")
+                  }
                 </button>`
               : nothing
           }
@@ -1170,14 +1177,13 @@ export class AuthUIAccount extends AuthUIElement {
           ></button>
         </div>
         ${
-          u.mfa &&
-          !(this.factors?.totp || u.emailVerification || u.phoneVerification)
+          u.mfa && !(this.factors?.totp || u.emailVerification || u.phoneVerification)
             ? html`<div class="alert alert-warning" role="status">
                 ${icons.alert}
                 <div class="alert-body">
                   ${this.t("mfaNoFactorWarning")}
                   ${
-                    !(this.factors?.totp)
+                    !this.factors?.totp
                       ? html`<div class="links">
                           <button
                             type="button"
@@ -1247,7 +1253,9 @@ export class AuthUIAccount extends AuthUIElement {
                 <img class="qr" src=${qrUrl} alt=${this.t("qrCodeAlt")} />
                 <p class="hint center">${this.t("authenticatorManual")}</p>
                 <div class="inline">
-                  <span class="code">${this.authenticator.secret.match(/.{1,4}/g)?.join(" ") ?? this.authenticator.secret}</span>
+                  <span class="code"
+                    >${this.authenticator.secret.match(/.{1,4}/g)?.join(" ") ?? this.authenticator.secret}</span
+                  >
                   <button
                     class="btn btn-ghost btn-sm"
                     type="button"
@@ -1568,9 +1576,11 @@ export class AuthUIAccount extends AuthUIElement {
                                   @click=${() => this.onDeleteIdentity(i.$id)}
                                   ?disabled=${!!this.busy}
                                 >
-                                  ${this.busy === `identity-${i.$id}`
-                                    ? html`<span class="spinner"></span>`
-                                    : nothing}
+                                  ${
+                                    this.busy === `identity-${i.$id}`
+                                      ? html`<span class="spinner"></span>`
+                                      : nothing
+                                  }
                                   ${this.t("disconnect")}
                                 </button>
                                 <button
@@ -1585,9 +1595,11 @@ export class AuthUIAccount extends AuthUIElement {
                                 @click=${() => this.onDeleteIdentity(i.$id)}
                                 ?disabled=${!!this.busy}
                               >
-                                ${this.busy === `identity-${i.$id}`
-                                  ? html`<span class="spinner"></span>`
-                                  : nothing}
+                                ${
+                                  this.busy === `identity-${i.$id}`
+                                    ? html`<span class="spinner"></span>`
+                                    : nothing
+                                }
                                 ${this.t("disconnect")}
                               </button>`
                         }

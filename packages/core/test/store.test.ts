@@ -59,7 +59,9 @@ describe("AuthStore", () => {
   it("purges a blocked session and surfaces the blocked error after sign-in", async () => {
     authStore.configure(config);
     account.state.blocked = true;
-    await expect(authStore.signInWithEmailPassword("a@b.co", "correct-horse")).rejects.toMatchObject({
+    await expect(
+      authStore.signInWithEmailPassword("a@b.co", "correct-horse")
+    ).rejects.toMatchObject({
       type: "user_blocked",
     });
     expect(authStore.getState().status).toBe("signed-out");

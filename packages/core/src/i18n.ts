@@ -77,7 +77,8 @@ export const defaultStrings: AuthUIStrings = {
   twoFactor: "Two-factor authentication",
   mfaBadge: "MFA",
   twoFactorDescription: "Require a second factor when signing in to this account.",
-  mfaNoFactorWarning: "Turn on an authenticator, or verify your email or phone, before enabling two-factor authentication. Without a factor, this setting does not protect the account.",
+  mfaNoFactorWarning:
+    "Turn on an authenticator, or verify your email or phone, before enabling two-factor authentication. Without a factor, this setting does not protect the account.",
   enable: "Enable",
   disable: "Disable",
   authenticatorApp: "Authenticator app",

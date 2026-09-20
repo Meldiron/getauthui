@@ -20,7 +20,9 @@ describe("errors", () => {
 
   it("maps invalid credentials to current-password copy when changing password", () => {
     const err = { type: "user_invalid_credentials", message: "x", code: 401 };
-    expect(describeError(err, defaultStrings, "password")).toBe(defaultStrings.errorCurrentPassword);
+    expect(describeError(err, defaultStrings, "password")).toBe(
+      defaultStrings.errorCurrentPassword
+    );
     expect(describeError(err, defaultStrings)).toBe(defaultStrings.errorInvalidCredentials);
   });
 
@@ -52,19 +54,31 @@ describe("errors", () => {
   it("maps general_argument_invalid to per-field copy", () => {
     expect(
       describeError(
-        { type: "general_argument_invalid", message: "Invalid `email` param: Value must be a valid email address", code: 400 },
+        {
+          type: "general_argument_invalid",
+          message: "Invalid `email` param: Value must be a valid email address",
+          code: 400,
+        },
         defaultStrings
       )
     ).toBe(defaultStrings.errorInvalidEmail);
     expect(
       describeError(
-        { type: "general_argument_invalid", message: "Invalid `password` param: Password must be between 8 and 256 characters long.", code: 400 },
+        {
+          type: "general_argument_invalid",
+          message: "Invalid `password` param: Password must be between 8 and 256 characters long.",
+          code: 400,
+        },
         defaultStrings
       )
     ).toBe(defaultStrings.errorInvalidPassword);
     expect(
       describeError(
-        { type: "general_argument_invalid", message: "Invalid `phone` param: Phone number must start with a '+'", code: 400 },
+        {
+          type: "general_argument_invalid",
+          message: "Invalid `phone` param: Phone number must start with a '+'",
+          code: 400,
+        },
         defaultStrings
       )
     ).toBe(defaultStrings.errorInvalidPhone);
@@ -72,12 +86,12 @@ describe("errors", () => {
 
   it("strips HTML error bodies so they never reach the UI", () => {
     const html = "<!DOCTYPE html><html><body>not found</body></html>";
-    expect(toAuthUIError({ message: html, type: "general_route_not_found", code: 404 }).message).toBe(
-      ""
-    );
-    expect(describeError({ message: html, type: "general_route_not_found", code: 404 }, defaultStrings)).toBe(
-      defaultStrings.errorGeneric
-    );
+    expect(
+      toAuthUIError({ message: html, type: "general_route_not_found", code: 404 }).message
+    ).toBe("");
+    expect(
+      describeError({ message: html, type: "general_route_not_found", code: 404 }, defaultStrings)
+    ).toBe(defaultStrings.errorGeneric);
   });
 
   it("formats placeholders", () => {

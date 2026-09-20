@@ -167,12 +167,13 @@ export class AuthUIModal extends AuthUIElement {
     const root = this.dialog;
     if (!root) return;
     const host = root.querySelector("authui-sign-in, authui-account") as
-      | (HTMLElement & { shadowRoot?: ShadowRoot })
-      | null;
+      (HTMLElement & { shadowRoot?: ShadowRoot }) | null;
     const sr = host?.shadowRoot;
     const target =
       (sr?.querySelector(".alert[role=alert], .alert[role=status]") as HTMLElement | null) ??
-      (sr?.querySelector("input:not([type=hidden]), button.choice, [role=tab]") as HTMLElement | null);
+      (sr?.querySelector(
+        "input:not([type=hidden]), button.choice, [role=tab]"
+      ) as HTMLElement | null);
     target?.focus?.();
   }
 
