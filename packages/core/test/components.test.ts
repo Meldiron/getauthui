@@ -177,6 +177,35 @@ describe("<authui-sign-in>", () => {
     expect(shadowText(el)).toContain("Sign out");
   });
 
+  it("resets the sign-in panel after sign-out from a passwordless step", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    // Drive the component onto the phone code-entry step with a pending token.
+    (el as any).go("phone");
+    (el as any).token = { userId: "u1", kind: "phone", target: "+15555550100" };
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toMatch(/sent a code|Verify code|Code/i);
+
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    await tick();
+    await (el as any).updateComplete;
+    // Signed in should leave the phone step.
+    expect(shadowText(el)).toContain("Signed in as");
+
+    await authStore.signOut();
+    await tick();
+    await (el as any).updateComplete;
+    const text = shadowText(el);
+    expect(text).not.toMatch(/We sent a code/i);
+    expect(text).toContain("Sign in");
+    expect(el.shadowRoot!.querySelector("input[type=email]")).not.toBeNull();
+  });
+
   it("shows the not-configured hint when init was never called", async () => {
     const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
     expect(shadowText(el)).toContain("Auth UI is not configured");

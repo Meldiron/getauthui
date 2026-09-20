@@ -73,8 +73,24 @@ export class AuthUISignIn extends AuthUIElement {
     if (status === "mfa-required" && this.step !== "mfa") {
       this.go("mfa");
     }
-    if ((status === "signed-in" || status === "signed-out") && this.step === "mfa") {
-      this.go("sign-in");
+    if (status === "signed-in" || status === "signed-out") {
+      const stuck =
+        this.step === "mfa" ||
+        this.step === "phone" ||
+        this.step === "email-otp" ||
+        this.step === "magic-url" ||
+        this.step === "forgot-password" ||
+        this.step === "reset-password" ||
+        this.token !== null ||
+        this.challenge !== null;
+      if (stuck || status === "signed-out") {
+        this.token = null;
+        this.challenge = null;
+        this.code = "";
+        this.password = "";
+        this.notice = null;
+        this.go(this.view === "sign-up" ? "sign-up" : "sign-in");
+      }
     }
     if (pending?.type === "reset-password" && this.step !== "reset-password") {
       this.recovery = { userId: pending.userId, secret: pending.secret };
@@ -225,6 +241,7 @@ export class AuthUISignIn extends AuthUIElement {
     void this.run(async () => {
       await authStore.signInWithToken(token.userId, this.code);
       this.code = "";
+      this.token = null;
       this.fire("authui-success", { method: token.kind });
     }, "code");
   };

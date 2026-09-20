@@ -25,7 +25,7 @@ Cause: `renderStep()` (`components/authui-sign-in.ts:470`) short-circuits to `re
 Fix: call `this.go("sign-in")` after a successful challenge, and in `syncFromStore()` (`:71`) leave the `mfa`
 step whenever `status` becomes `signed-in` or `signed-out`.
 
-### 2. Sign-in panel does not reset after sign-out or after a token sign-in
+### 2. DONE (2026-09-20) Sign-in panel does not reset after sign-out or after a token sign-in
 Observed: sign in by SMS, then sign out (any of: panel button, user menu, "Sign out everywhere", account
 deletion). The panel shows the stale "We sent a code to +1555… / Verify code" screen, or the MFA chooser,
 instead of the sign-in form. A user who signs out cannot sign back in without reloading.
