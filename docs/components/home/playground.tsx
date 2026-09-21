@@ -89,7 +89,7 @@ function toHtml(s: Settings): string {
     .join(" ");
   const attrs = [
     `endpoint="${s.endpoint}"`,
-    `project="${s.project || "my-project"}"`,
+    `project="${s.project || "YOUR_PROJECT_ID"}"`,
     `methods="${methods}"`,
     s.name ? `name="${s.name}"` : "",
     !s.signUp ? `sign-up="false"` : "",
@@ -195,7 +195,7 @@ export function Playground() {
             <span className={label}>Project ID</span>
             <input
               className={field}
-              placeholder="my-project"
+              placeholder="YOUR_PROJECT_ID"
               value={settings.project}
               onChange={(e) => set("project", e.target.value)}
             />

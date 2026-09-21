@@ -12,7 +12,7 @@ import type {
 /**
  * Declarative configuration. Drop it anywhere in the page:
  *
- * <authui-config endpoint="https://cloud.appwrite.io/v1" project="my-project"
+ * <authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"
  *   methods="email-password magic-url anonymous oauth:google oauth:github"></authui-config>
  */
 @customElement("authui-config")

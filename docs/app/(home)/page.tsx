@@ -23,7 +23,7 @@ const heroSnippet = `${criticalCssTag}
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
-  project="my-project"
+  project="YOUR_PROJECT_ID"
   methods="email-password magic-url oauth:google oauth:github"
 ></authui-config>
 
@@ -106,13 +106,13 @@ const steps = [
         {"\n  "}
         {T.attr("endpoint")}={T.str('"https://cloud.appwrite.io/v1"')}
         {"\n  "}
-        {T.attr("project")}={T.str('"my-project"')}
+        {T.attr("project")}={T.str('"YOUR_PROJECT_ID"')}
         {"\n"}
         {T.tag(">")}
         {T.tag("</authui-config>")}
       </>
     ),
-    raw: `<authui-config endpoint="https://cloud.appwrite.io/v1" project="my-project"></authui-config>`,
+    raw: `<authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>`,
   },
   {
     n: "02",
@@ -198,7 +198,7 @@ export default function HomePage() {
             </div>
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-[13px] text-fd-muted-foreground font-mono">
               {[
-                ["~75 KB", "gzipped, batteries included"],
+                ["~90 KB", "gzipped ESM, batteries included"],
                 ["0", "servers"],
                 ["48", "OAuth providers"],
                 ["MIT", "license"],
@@ -231,7 +231,7 @@ export default function HomePage() {
             {"\n  "}
             {T.attr("endpoint")}={T.str('"https://cloud.appwrite.io/v1"')}
             {"\n  "}
-            {T.attr("project")}={T.str('"my-project"')}
+            {T.attr("project")}={T.str('"YOUR_PROJECT_ID"')}
             {"\n  "}
             {T.attr("methods")}={T.str('"email-password magic-url oauth:google oauth:github"')}
             {"\n"}

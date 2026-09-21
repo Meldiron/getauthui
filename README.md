@@ -15,11 +15,11 @@
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.3"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
-  project="my-project"
+  project="YOUR_PROJECT_ID"
   methods="email-password magic-url oauth:google oauth:github"
 ></authui-config>
 
@@ -49,7 +49,7 @@ v2 runs inside your page. Its requests to Appwrite are indistinguishable from yo
 - **Account management**: profile, email and phone verification, password change, active sessions, connected identities, security log, account deletion
 - **Modal, inline or headless** usage, `<authui-show when="signed-in">` conditionals, React wrappers
 - **Themeable**: Appwrite Console design system, dark mode that follows your page, CSS custom properties for everything, string overrides
-- **Framework agnostic**: standard web components built with Lit, ~75 KB gzipped on the CDN including Lit and the full Appwrite SDK
+- **Framework agnostic**: standard web components built with Lit, ~90 KB gzipped ESM on the CDN (~78 KB IIFE), including Lit and the full Appwrite SDK
 
 ## Install
 
@@ -65,7 +65,7 @@ CDN:
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.3"></script>
 ```
 
 The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
@@ -81,7 +81,7 @@ import { AuthUI } from "@getauthui/core";
 
 AuthUI.init({
   endpoint: "https://cloud.appwrite.io/v1",
-  project: "my-project",
+  project: "YOUR_PROJECT_ID",
   methods: { emailPassword: true, magicUrl: true, anonymous: true, oauth: ["google", "github"] },
   branding: { name: "Acme", theme: "auto" },
 });

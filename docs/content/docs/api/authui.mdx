@@ -37,7 +37,7 @@ const storage = new Storage(AuthUI.getClient()); // already signed in
 With npm the SDK is a peer dependency, so `import { Storage } from "appwrite"` works just as well.
 
 ```ts
-AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "my-project" });
+AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "YOUR_PROJECT_ID" });
 AuthUI.on("signed-in", (user) => console.log(user.email));
 document.querySelector("#login")!.addEventListener("click", () => AuthUI.open());
 ```
