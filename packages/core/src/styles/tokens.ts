@@ -34,7 +34,7 @@ export const tokens = css`
     --authui-success-bg: rgba(16, 185, 129, 0.1);
     --authui-warning-foreground: #b45309;
     --authui-warning-bg: rgba(245, 158, 11, 0.1);
-    --authui-error-foreground: #dc2626;
+    --authui-error-foreground: #b91c1c;
     --authui-error-bg: rgba(239, 68, 68, 0.1);
     --authui-info-foreground: #475569;
     --authui-info-bg: rgba(100, 116, 139, 0.1);

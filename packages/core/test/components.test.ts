@@ -138,6 +138,39 @@ describe("<authui-sign-in>", () => {
     expect(shadowText(el)).toContain("Invalid email or password.");
   });
 
+  it("keeps Forgot password outside the password label accessible name", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const label = root.querySelector('label[for="authui-password"]')!;
+    expect(label.textContent?.trim()).toBe("Password");
+    expect(label.querySelector("button")).toBeNull();
+    const forgot = [...root.querySelectorAll("button")].find((b) =>
+      /Forgot password/i.test(b.textContent ?? "")
+    );
+    expect(forgot).toBeTruthy();
+    expect(forgot!.closest("label")).toBeNull();
+    expect(forgot!.closest(".field-header")).not.toBeNull();
+  });
+
+  it("makes the show/hide password toggle keyboard-focusable", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const toggle = el.shadowRoot!.querySelector<HTMLButtonElement>(
+      ".input-wrap button.btn-icon"
+    )!;
+    expect(toggle.getAttribute("tabindex")).not.toBe("-1");
+    expect(toggle.getAttribute("aria-label")).toMatch(/Show password|Hide password/);
+  });
+
   it("switches to the MFA screen when more factors are required", async () => {
     account.state.mfaPending = true;
     authStore.configure(config);

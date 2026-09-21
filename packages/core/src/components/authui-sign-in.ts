@@ -450,8 +450,8 @@ export class AuthUISignIn extends AuthUIElement {
     const strength = opts.meter ? scorePassword(value) : null;
     return html`
       <div class="field">
-        <label class="label" for=${opts.id}>
-          ${opts.label}
+        <div class="field-header">
+          <label class="label" for=${opts.id}>${opts.label}</label>
           ${
             opts.forgot
               ? html`<button
@@ -463,7 +463,7 @@ export class AuthUISignIn extends AuthUIElement {
                 </button>`
               : nothing
           }
-        </label>
+        </div>
         <div class="input-wrap">
           <input
             class="input"
@@ -480,7 +480,6 @@ export class AuthUISignIn extends AuthUIElement {
             class="btn btn-ghost btn-icon"
             @click=${() => (this.showPassword = !this.showPassword)}
             aria-label=${this.showPassword ? this.t("hidePassword") : this.t("showPassword")}
-            tabindex="-1"
           >
             ${this.showPassword ? icons.eyeOff : icons.eye}
           </button>

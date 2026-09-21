@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { base } from "../src/styles/base.js";
+import { tokens } from "../src/styles/tokens.js";
 
 describe("shared layout styles", () => {
   it("keeps tabs from shrinking and starts them at the leading edge", () => {
@@ -19,5 +20,27 @@ describe("shared layout styles", () => {
     expect(cssText).toMatch(
       /\.providers\.two\s*>\s*:last-child:nth-child\(odd\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s
     );
+  });
+
+  it("keeps error alert body on the full error foreground for contrast", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(
+      /\.alert-error\s+\.alert-body\s*\{[^}]*color:\s*var\(--authui-error-foreground\)/s
+    );
+    expect(cssText).not.toMatch(
+      /\.alert-error\s+\.alert-body\s*\{[^}]*color-mix\([^)]*transparent/s
+    );
+  });
+
+  it("lays out the password label and forgot link as siblings", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.field-header\s*\{[^}]*justify-content:\s*space-between/s);
+  });
+});
+
+describe("design tokens", () => {
+  it("uses a dark enough light-theme error foreground for AA on the error bg", () => {
+    const cssText = String(tokens);
+    expect(cssText).toMatch(/--authui-error-foreground:\s*#b91c1c/);
   });
 });

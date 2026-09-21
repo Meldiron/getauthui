@@ -199,11 +199,13 @@ export const base = css`
     flex-direction: column;
     gap: 6px;
   }
-  .label {
+  .field-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+  }
+  .label {
     font-size: 14px;
     line-height: 1;
     font-weight: 500;
@@ -367,7 +369,7 @@ export const base = css`
     background: var(--authui-error-bg);
   }
   .alert-error .alert-body {
-    color: color-mix(in oklab, var(--authui-error-foreground) 90%, transparent);
+    color: var(--authui-error-foreground);
   }
   .alert-success {
     color: var(--authui-success-foreground);
