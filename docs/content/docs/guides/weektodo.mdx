@@ -1,0 +1,330 @@
+---
+title: Back up WeekToDo to Appwrite
+description: Add Appwrite sign in to the WeekToDo Vue planner and keep a private .wtdb backup in Appwrite Storage, using the same export format the app already ships.
+---
+
+[WeekToDo](https://weektodo.me/) is a free, open source weekly planner ([GitHub](https://github.com/manuelernestog/weektodo), [web app](https://app.weektodo.me/)). It is Vue 3 with an optional Electron shell. Config lives in `localStorage`, tasks and recurring events live in IndexedDB (`weekToDo`), and the app is deliberately local first. "Sync across devices" is still on the [roadmap](https://github.com/manuelernestog/weektodo#roadmap), and users have asked for Appwrite specifically ([issue #245](https://github.com/manuelernestog/weektodo/issues/245)).
+
+In this guide you add Auth UI for an optional cloud account, then put **Back up** and **Restore** next to the existing Export/Import buttons in **Settings → Data**. Backups reuse WeekToDo's own `.wtdb` JSON shape and land as a private file in Appwrite Storage. The planner keeps working offline with no account. Auth UI is only for the people who want a spare copy in the cloud.
+
+Backups grow past the 64 KB that user preferences allow, which is why this guide uses Storage (same reason as the [OpenHabitTracker guide](/docs/guides/openhabittracker)). Preferences remain fine for tiny values, as in the [2048 guide](/docs/guides/2048).
+
+<Steps>
+<Step>
+
+## Clone and run the web app
+
+You need a recent Node.js and [Yarn](https://yarnpkg.com/).
+
+```bash
+git clone https://github.com/manuelernestog/weektodo.git
+cd weektodo
+yarn install
+yarn serve
+```
+
+Open the URL Vue CLI prints (usually http://localhost:8080). You get the full planner in the browser. Prefer this web build for Auth UI. Electron notes are at the end.
+
+</Step>
+<Step>
+
+## Create an Appwrite project and a bucket
+
+1. [Create a project](https://appwrite.io/docs/quick-starts/web#step-1) on Appwrite Cloud or your own instance and add a Web platform with hostname `localhost`.
+2. Under **Storage**, [create a bucket](https://appwrite.io/docs/products/storage/buckets) with the ID `backups`.
+3. In the bucket's **Settings**, enable **File security** and add a permission that lets the **Users** role **create** files. Each backup will carry its own read, update and delete permissions for the user who owns it.
+
+Note the project ID and API endpoint from the Console, for example `https://fra.cloud.appwrite.io/v1`.
+
+</Step>
+<Step>
+
+## Install Auth UI
+
+WeekToDo already has a Yarn build, so install the package and its peers:
+
+```bash
+yarn add @getauthui/core@0.1.8 appwrite lit
+```
+
+</Step>
+<Step>
+
+## Load critical CSS and configure Auth UI
+
+Put the FOUC guard in `public/index.html` inside `<head>` so sign-in slots stay hidden until the custom elements upgrade:
+
+```html title="public/index.html"
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
+```
+
+Then initialize Auth UI once in `src/main.js`, before you mount the app:
+
+```js title="src/main.js"
+import { createApp } from "vue";
+import App from "./App.vue";
+import { store } from "./store/store";
+import { AuthUI } from "@getauthui/core";
+import "@getauthui/core";
+
+AuthUI.init({
+  endpoint: "https://fra.cloud.appwrite.io/v1",
+  project: "YOUR_PROJECT_ID",
+  methods: { emailPassword: true },
+  branding: { name: "WeekToDo" },
+});
+
+// ... existing i18n, bootstrap, Sentry setup ...
+
+const app = createApp(App);
+app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith("authui-");
+app.use(store);
+app.use(i18n);
+app.mount("#app");
+```
+
+`import "@getauthui/core"` registers the custom elements. `isCustomElement` tells Vue 3 to leave `authui-*` tags alone so Lit owns them. `AuthUI.init` configures the shared store. Replace the endpoint and project ID with yours.
+
+</Step>
+<Step>
+
+## Snapshot helpers that match Export/Import
+
+WeekToDo already builds a full backup in `src/helpers/exportTool.js`: `localStorage` keys plus every row from the IndexedDB stores `todo_lists`, `repeating_events` and `repeating_events_by_date`. Create `src/helpers/appwriteBackup.js` that returns the same object as a Promise, then uploads or restores it through Auth UI's client.
+
+```js title="src/helpers/appwriteBackup.js"
+import { AuthUI, appwrite } from "@getauthui/core";
+import storageRepository from "../repositories/storageRepository";
+import dbRepository from "../repositories/dbRepository";
+
+const { Storage, Permission, Role } = appwrite;
+const BUCKET = "backups";
+
+function readStore(db, table) {
+  return new Promise((resolve, reject) => {
+    const out = {};
+    const request = dbRepository.selectAll(db, table);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        out[cursor.key] = cursor.value;
+        cursor.continue();
+      } else {
+        resolve(out);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function snapshot() {
+  return new Promise((resolve, reject) => {
+    const data = storageRepository.as_json();
+    const dbReq = dbRepository.open();
+    dbReq.onerror = () => reject(dbReq.error);
+    dbReq.onsuccess = async (event) => {
+      try {
+        const db = event.target.result;
+        data.todoLists = await readStore(db, "todo_lists");
+        data.repeating_events = await readStore(db, "repeating_events");
+        data.repeating_events_by_date = await readStore(db, "repeating_events_by_date");
+        data.savedAt = Date.now();
+        resolve(data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+  });
+}
+
+export async function uploadBackup() {
+  const storage = new Storage(AuthUI.getClient());
+  const userId = AuthUI.getUser().$id;
+  const json = JSON.stringify(await snapshot());
+  const file = new File([json], "WeekToDoBackup.wtdb", { type: "application/json" });
+  const permissions = [
+    Permission.read(Role.user(userId)),
+    Permission.update(Role.user(userId)),
+    Permission.delete(Role.user(userId)),
+  ];
+
+  try {
+    await storage.deleteFile(BUCKET, userId);
+  } catch {
+    /* first backup */
+  }
+  await storage.createFile(BUCKET, userId, file, permissions);
+}
+
+export async function downloadBackup() {
+  const storage = new Storage(AuthUI.getClient());
+  const userId = AuthUI.getUser().$id;
+  const url = new URL(storage.getFileDownload(BUCKET, userId));
+  return AuthUI.getClient().call("get", url); // JSON file, client parses it
+}
+```
+
+`appwrite` is the Appwrite Web SDK re-exported by Auth UI, so the page loads it once. `AuthUI.getClient()` is the signed-in client. See [`createFile`](https://appwrite.io/docs/references/cloud/client-web/storage#createFile) and [permissions](https://appwrite.io/docs/advanced/platform/permissions).
+
+</Step>
+<Step>
+
+## Add Back up and Restore to Settings → Data
+
+Open `src/views/configModal.vue`. In the `#config-data` pane, after the Export / Import / Clear rows, add a cloud section that only appears once Auth UI knows the session:
+
+```html title="src/views/configModal.vue"
+<div class="horizontal-divider my-3"></div>
+
+<authui-show when="signed-out">
+  <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
+    <label class="form-check-label" for="sign-in-sync-btn">Sign in to back up</label>
+    <button id="sign-in-sync-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
+      @click="openSignIn">
+      <i class="icons bi-person mx-2"></i>
+      Sign in
+    </button>
+  </div>
+</authui-show>
+
+<authui-show when="signed-in">
+  <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
+    <label class="form-check-label" for="backup-data-btn">Back up to Appwrite</label>
+    <button id="backup-data-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
+      :disabled="busy" @click="backUp">
+      <i class="icons bi-cloud-arrow-up mx-2"></i>
+      Back up
+    </button>
+  </div>
+  <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
+    <label class="form-check-label" for="restore-data-btn">Restore from Appwrite</label>
+    <button id="restore-data-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
+      :disabled="busy" @click="restore">
+      <i class="icons bi-cloud-arrow-down mx-2"></i>
+      Restore
+    </button>
+  </div>
+  <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
+    <label class="form-check-label" for="account-btn">Account</label>
+    <button id="account-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
+      @click="openAccount">
+      <i class="icons bi-gear mx-2"></i>
+      Account
+    </button>
+  </div>
+  <p v-if="status" class="px-1 small text-muted mb-0">{{ status }}</p>
+</authui-show>
+```
+
+[`<authui-show>`](/docs/components/show) renders its children only for the matching state, so the Data tab shows either Sign in or the backup actions.
+
+In the same file's `<script>`, import the helper and add the methods. Reuse WeekToDo's existing import path by writing a temporary `.wtdb` through the same IndexedDB/localStorage writers `exportTool` already uses. The smallest reliable approach is to download the JSON, then feed WeekToDo's import pipeline by writing the raw stores the same way `exportTool`'s private `importData` does. Expose a thin wrapper on `exportTool` first:
+
+```js title="src/helpers/exportTool.js"
+// Add next to the existing default export methods:
+importBackup(data) {
+  importData(data);
+  migrations.migrate();
+},
+```
+
+`importData` and `migrations` are already in that module's scope. Then in `configModal.vue`:
+
+```js title="src/views/configModal.vue"
+import { AuthUI } from "@getauthui/core";
+import { uploadBackup, downloadBackup } from "../helpers/appwriteBackup";
+import exportTool from "../helpers/exportTool";
+
+// inside data():
+busy: false,
+status: "",
+
+// inside methods:
+openSignIn() {
+  AuthUI.open("sign-in");
+},
+openAccount() {
+  AuthUI.open("account");
+},
+async backUp() {
+  this.busy = true;
+  this.status = "";
+  try {
+    await uploadBackup();
+    this.status = `Backed up ${new Date().toLocaleTimeString()}`;
+  } catch (err) {
+    this.status = err.message || "Backup failed";
+  }
+  this.busy = false;
+},
+async restore() {
+  this.busy = true;
+  this.status = "";
+  try {
+    const data = await downloadBackup();
+    let configModal = Modal.getInstance(document.getElementById("configModal"));
+    configModal.hide();
+    let importingModal = new Modal(document.getElementById("importingModal"), {
+      backdrop: "static",
+    });
+    importingModal.show();
+    exportTool.importBackup(data);
+  } catch (err) {
+    this.status = err.message || "Restore failed";
+    this.busy = false;
+  }
+},
+```
+
+Import replaces local data the same way a `.wtdb` file import does, then reloads the page. That matches WeekToDo's own Import button.
+
+</Step>
+<Step>
+
+## Optional: account button in the sidebar
+
+If you want a persistent trigger outside Settings, drop a user button at the bottom of `src/components/layout/sideBar.vue`, above the gear icon:
+
+```html title="src/components/layout/sideBar.vue"
+<authui-user-button style="margin: 0.5rem auto"></authui-user-button>
+```
+
+[`<authui-user-button>`](/docs/components/user-button) shows Sign in while signed out and the avatar menu while signed in. No extra wiring.
+
+</Step>
+<Step>
+
+## Try it
+
+1. Run `yarn serve`, open Settings (gear) → **Data**, click **Sign in**, and create an account.
+2. Add a task, click **Back up**. In the Console under **Storage → backups** you should see one file named after your user ID, with permissions for that user only.
+3. Open a private window (or another browser), sign in, click **Restore**. The page reloads with your lists and recurring tasks.
+
+</Step>
+</Steps>
+
+## Where to go from here
+
+- **Back up on a timer.** Call `uploadBackup()` from a debounced watcher on Vuex mutations, or after `exportTool` would have written locally, instead of only on click.
+- **Remember the last backup time.** Store `savedAt` from the snapshot in `localStorage`, or read the file's `$updatedAt` with `storage.getFile()` and show it under the buttons.
+- **More sign-in methods.** `methods: { emailPassword: true, magicUrl: true, oauth: ["github"] }` adds passwordless and GitHub with no other UI changes. See [Sign-in methods](/docs/sign-in-methods).
+- **Match dark theme.** WeekToDo toggles a `dark-theme` class on `#app-container`. Pass `branding: { theme: "dark" }` when that class is present, or leave `auto`.
+
+## Caveats
+
+- **Local first by design.** Without signing in, nothing leaves the device. Auth UI does not change WeekToDo's default privacy model.
+- **Not live sync.** Two devices editing at once means the later **Back up** wins. Restore replaces local data. For continuous sync you would need conflict-aware replication (for example Appwrite Databases + an offline store), which is a larger change than this guide.
+- **Web vs Electron.** `yarn serve` and a self-hosted web build talk to Appwrite like any SPA: register each hostname as a Web platform. Packaged Electron loads `app://./index.html`, which Appwrite Web platforms do not accept as a hostname. Electron development (`yarn electron:serve`) uses the webpack dev server on `localhost`, so that path works with the same platform you already added. Shipping Auth UI inside a packaged desktop build needs a custom protocol strategy or a hosted web shell; treat that as a follow-up.
+- **OAuth redirects.** If you enable OAuth, add every success and failure URL Appwrite will redirect to (for local work, `http://localhost:8080`). Auth UI cleans `userId` and `secret` from the address bar after the exchange.
+- **CORS and CSP.** The Appwrite endpoint must allow your origin. If you set a Content Security Policy, allow `connect-src` to your Appwrite host and keep the critical CSS above (or see [Security notes](/docs/guides/security)).
+- **Offline.** The planner works offline. Sign in, back up and restore need a network connection because the Auth UI bundle and Appwrite API are remote.
+
+This guide follows the happy path. Restore uses WeekToDo's existing import, which clears local stores and reloads. Keep a manual Export first if you want a file you can undo with.
