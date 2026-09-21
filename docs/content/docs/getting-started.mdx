@@ -17,10 +17,12 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
 
     ```html
     <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style>
-    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.6"></script>
+    <script src="https://unpkg.com/@getauthui/core@0.1.6/dist/authui.cdn.js"></script>
     ```
 
-    The `<style>` hides `<authui-show>` children and undefined buttons until the module runs. Pin a version in production: `https://unpkg.com/@getauthui/core@0.1.6`.
+    The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg ESM entry (`type="module"`) only defines the elements; it does not set a global. Pin a version in production.
+
+    With a bundler, prefer `import { AuthUI } from "@getauthui/core"` instead of the CDN script.
 
   </Tab>
   <Tab value="npm">
@@ -76,10 +78,14 @@ Configuration is global. Every Auth UI element on the page reads from the same s
 ## 5. React to sign in
 
 ```ts
+import { AuthUI } from "@getauthui/core";
+
 AuthUI.on("signed-in", (user) => {
   console.log("Hello", user.name);
 });
 ```
+
+With the IIFE CDN script above, `AuthUI` is already on `window`, so you can omit the import.
 
 Or let Auth UI navigate for you by passing `successUrl` in the configuration.
 

@@ -49,7 +49,7 @@ const features = [
   {
     icon: <UserCog size={18} />,
     title: "Account management",
-    desc: "Profile, verification, password change, active sessions, connected identities, security log, deletion.",
+    desc: "Profile, verification, password change, active sessions, connected identities, security log when exposed, deletion.",
   },
   {
     icon: <Lock size={18} />,
@@ -136,6 +136,19 @@ const steps = [
     desc: "Your users pick a method and sign in. The session belongs to your page, so the Appwrite SDK in your own code sees it right away.",
     code: (
       <>
+        {T.kw("import")}
+        {" "}
+        {T.pl("{")}
+        {" "}
+        {T.fn("AuthUI")}
+        {" "}
+        {T.pl("}")}
+        {" "}
+        {T.kw("from")}
+        {" "}
+        {T.str('"@getauthui/core"')}
+        {T.pl(";")}
+        {"\n\n"}
         {T.fn("AuthUI")}
         {T.pl(".")}
         {T.fn("on")}
@@ -148,7 +161,7 @@ const steps = [
         {T.pl("});")}
       </>
     ),
-    raw: `AuthUI.on("signed-in", (user) => {\n  // user.email, user.name, ...\n});`,
+    raw: `import { AuthUI } from "@getauthui/core";\n\nAuthUI.on("signed-in", (user) => {\n  // user.email, user.name, ...\n});`,
   },
 ];
 

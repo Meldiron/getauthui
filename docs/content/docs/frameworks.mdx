@@ -22,7 +22,13 @@ Auth UI ships standard custom elements, so every framework can render them. Impo
 <authui-button>Sign in</authui-button>
 ```
 
-The CDN bundle also exposes `AuthUI` as a global (`window.AuthUI.init`, `window.AuthUI.open`) when loaded through the IIFE build at `https://unpkg.com/@getauthui/core/dist/authui.cdn.js`.
+The default unpkg ESM entry (`type="module"`) registers the custom elements only. It does not set `window.AuthUI`. For classic scripts that call `AuthUI.init` / `AuthUI.on` / `AuthUI.open`, load the IIFE build instead:
+
+```html
+<script src="https://unpkg.com/@getauthui/core@0.1.6/dist/authui.cdn.js"></script>
+```
+
+In Vue, Svelte, Angular and other bundlers, use `import { AuthUI } from "@getauthui/core"` as shown below.
 
 ## Vue
 

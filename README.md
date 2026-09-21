@@ -46,7 +46,7 @@ v2 runs inside your page. Its requests to Appwrite are indistinguishable from yo
 - **OAuth2** for every provider Appwrite supports, with brand icons for the common ones
 - **Guest sessions** with an upgrade path to a real account
 - **MFA**: challenges during sign in, authenticator app enrollment with QR code, recovery codes, step-up verification for protected actions
-- **Account management**: profile, email and phone verification, password change, active sessions, connected identities, security log, account deletion
+- **Account management**: profile, email and phone verification, password change, active sessions, connected identities, security log when the server exposes it, account deletion
 - **Modal, inline or headless** usage, `<authui-show when="signed-in">` conditionals, React wrappers
 - **Themeable**: Appwrite Console design system, dark mode that follows your page, CSS custom properties for everything, string overrides
 - **Framework agnostic**: standard web components built with Lit, ~90 KB gzipped ESM on the CDN (~78 KB IIFE), including Lit and the full Appwrite SDK
@@ -69,6 +69,12 @@ CDN:
 ```
 
 The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
+
+The default CDN URL is an ESM module: it defines the elements but does **not** set `window.AuthUI`. For `AuthUI.init` / `AuthUI.on` from a classic script, use the IIFE build:
+
+```html
+<script src="https://unpkg.com/@getauthui/core@0.1.6/dist/authui.cdn.js"></script>
+```
 
 npm:
 
