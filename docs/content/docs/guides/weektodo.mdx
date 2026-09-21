@@ -19,11 +19,11 @@ You need a recent Node.js and [Yarn](https://yarnpkg.com/).
 ```bash
 git clone https://github.com/manuelernestog/weektodo.git
 cd weektodo
-yarn install
-yarn serve
+yarn install --ignore-engines
+NODE_OPTIONS=--openssl-legacy-provider yarn serve
 ```
 
-Open the URL Vue CLI prints (usually http://localhost:8080). You get the full planner in the browser. Prefer this web build for Auth UI. Electron notes are at the end.
+WeekToDo pins Webpack 4 and an older `@achrinza/node-ipc` engine range. On Node 18+ use `--ignore-engines`, and on Node 17+ set `NODE_OPTIONS=--openssl-legacy-provider` so Webpack's hash still works. Open the URL Vue CLI prints (usually http://localhost:8080). Prefer this web build for Auth UI. Electron notes are at the end.
 
 </Step>
 <Step>
@@ -44,8 +44,38 @@ Note the project ID and API endpoint from the Console, for example `https://fra.
 WeekToDo already has a Yarn build, so install the package and its peers:
 
 ```bash
-yarn add @getauthui/core@0.1.8 appwrite lit
+yarn add @getauthui/core@0.1.8 appwrite lit --ignore-engines
 ```
+
+Auth UI, Lit and the Appwrite Web SDK ship modern syntax (`??`, and so on). Vue CLI 4 does not transpile `node_modules` by default, so teach Webpack about those packages and tell `vue-loader` that `authui-*` tags are custom elements (WeekToDo uses the runtime-only Vue build, so `app.config.compilerOptions.isCustomElement` in `main.js` is ignored):
+
+```js title="vue.config.js"
+module.exports = {
+  transpileDependencies: [
+    "@getauthui/core",
+    "lit",
+    "@lit",
+    "@lit/reactive-element",
+    "lit-element",
+    "lit-html",
+    "appwrite",
+  ],
+  chainWebpack: (config) => {
+    config.module
+      .rule("vue")
+      .use("vue-loader")
+      .tap((options) => {
+        options.compilerOptions = options.compilerOptions || {};
+        options.compilerOptions.isCustomElement = (tag) =>
+          tag.startsWith("authui-");
+        return options;
+      });
+  },
+  // ... keep the existing pluginOptions.electronBuilder block ...
+};
+```
+
+Merge those keys into the existing `module.exports` rather than replacing the Electron options.
 
 </Step>
 <Step>
@@ -85,13 +115,12 @@ AuthUI.init({
 // ... existing i18n, bootstrap, Sentry setup ...
 
 const app = createApp(App);
-app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith("authui-");
 app.use(store);
 app.use(i18n);
 app.mount("#app");
 ```
 
-`import "@getauthui/core"` registers the custom elements. `isCustomElement` tells Vue 3 to leave `authui-*` tags alone so Lit owns them. `AuthUI.init` configures the shared store. Replace the endpoint and project ID with yours.
+`import "@getauthui/core"` registers the custom elements. `AuthUI.init` configures the shared store. Custom-element handling lives in `vue.config.js` from the previous step (runtime-only Vue ignores `app.config.compilerOptions`). Replace the endpoint and project ID with yours.
 
 </Step>
 <Step>
@@ -167,8 +196,12 @@ export async function uploadBackup() {
 export async function downloadBackup() {
   const storage = new Storage(AuthUI.getClient());
   const userId = AuthUI.getUser().$id;
-  const url = new URL(storage.getFileDownload(BUCKET, userId));
-  return AuthUI.getClient().call("get", url); // JSON file, client parses it
+  // Prefer the SDK download URL + fetch so we always get the raw .wtdb JSON body.
+  // Client.call defaults to JSON parsing too, but fetch matches WeekToDo's file import path.
+  const url = storage.getFileDownload(BUCKET, userId);
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error(`Restore failed (${res.status})`);
+  return res.json();
 }
 ```
 
@@ -322,6 +355,8 @@ If you want a persistent trigger outside Settings, drop a user button at the bot
 
 - **Local first by design.** Without signing in, nothing leaves the device. Auth UI does not change WeekToDo's default privacy model.
 - **Not live sync.** Two devices editing at once means the later **Back up** wins. Restore replaces local data. For continuous sync you would need conflict-aware replication (for example Appwrite Databases + an offline store), which is a larger change than this guide.
+- **Node 18+ and Webpack 4.** Use `yarn install --ignore-engines` and `NODE_OPTIONS=--openssl-legacy-provider yarn serve` as in the first step. Without them, install fails on the `node-ipc` engine range and `yarn serve` dies with `error:0308010C:digital envelope routines::unsupported`.
+- **Vue CLI custom elements.** Configure `isCustomElement` on `vue-loader` in `vue.config.js`. Setting `app.config.compilerOptions.isCustomElement` in `main.js` does nothing with WeekToDo's runtime-only Vue build and leaves "Failed to resolve component: authui-*" warnings.
 - **Web vs Electron.** `yarn serve` and a self-hosted web build talk to Appwrite like any SPA: register each hostname as a Web platform. Packaged Electron loads `app://./index.html`, which Appwrite Web platforms do not accept as a hostname. Electron development (`yarn electron:serve`) uses the webpack dev server on `localhost`, so that path works with the same platform you already added. Shipping Auth UI inside a packaged desktop build needs a custom protocol strategy or a hosted web shell; treat that as a follow-up.
 - **OAuth redirects.** If you enable OAuth, add every success and failure URL Appwrite will redirect to (for local work, `http://localhost:8080`). Auth UI cleans `userId` and `secret` from the address bar after the exchange.
 - **CORS and CSP.** The Appwrite endpoint must allow your origin. If you set a Content Security Policy, allow `connect-src` to your Appwrite host and keep the critical CSS above (or see [Security notes](/docs/guides/security)).
