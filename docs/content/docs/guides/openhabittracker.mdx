@@ -50,7 +50,7 @@ Add one script tag at the end of `OpenHabitTracker.Blazor.Wasm/wwwroot/index.htm
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.7"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.8"></script>
 ```
 
 </Step>
@@ -61,7 +61,7 @@ Add one script tag at the end of `OpenHabitTracker.Blazor.Wasm/wwwroot/index.htm
 Blazor talks to JavaScript through modules. Create `OpenHabitTracker.Blazor.Wasm/wwwroot/appwrite.js` with five functions. `init` configures Auth UI and reports sign-in changes back to C#. The upload keeps one file per user, named after the user ID, with permissions for that user only. The download goes through Auth UI's client, so the request is authenticated the same way as everything else, and because the file is JSON the client hands back the parsed object.
 
 ```js title="wwwroot/appwrite.js"
-import { AuthUI, appwrite } from "https://unpkg.com/@getauthui/core@0.1.7";
+import { AuthUI, appwrite } from "https://unpkg.com/@getauthui/core@0.1.8";
 
 const { Storage, Permission, Role } = appwrite;
 const BUCKET = "backups";
