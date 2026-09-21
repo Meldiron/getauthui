@@ -7,6 +7,12 @@ description: Add Appwrite sign in to the WeekToDo Vue planner and keep a private
 
 In this guide you add Auth UI for an optional cloud account, then put **Back up** and **Restore** next to the existing Export/Import buttons in **Settings → Data**. Backups reuse WeekToDo's own `.wtdb` JSON shape and land as a private file in Appwrite Storage. The planner keeps working offline with no account. Auth UI is only for the people who want a spare copy in the cloud.
 
+![WeekToDo calendar with Auth UI Sign in to WeekToDo modal open over Settings Data](/guides/weektodo/signin.png)
+
+![WeekToDo Settings Data tab after a successful Appwrite backup](/guides/weektodo/backup.png)
+
+![Auth UI account screen opened from WeekToDo](/guides/weektodo/account.png)
+
 Backups grow past the 64 KB that user preferences allow, which is why this guide uses Storage (same reason as the [OpenHabitTracker guide](/docs/guides/openhabittracker)). Preferences remain fine for tiny values, as in the [2048 guide](/docs/guides/2048).
 
 <Steps>
@@ -372,6 +378,8 @@ Center the signed-in avatar in the rail (no bulky margin). `authui-show` uses `d
 <Step>
 
 ## Try it
+
+![Signed-in WeekToDo sidebar with the Auth UI user avatar](/guides/weektodo/sidebar.png)
 
 1. Run `yarn serve`, open Settings (gear) → **Data**, click **Sign in**, and create an account.
 2. Add a task, click **Back up**. In the Console under **Storage → backups** you should see one file named after your user ID, with permissions for that user only.

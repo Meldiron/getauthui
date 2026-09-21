@@ -5,6 +5,10 @@ description: Add Appwrite sign in to a self-hosted SilverBullet notebook with a 
 
 [SilverBullet](https://silverbullet.md) is a self-hosted, markdown-based notebook. You run one server and open it from every device you own. It scripts itself with **Space Lua**, code blocks that run in the browser with full access to the page, which is exactly what Auth UI needs. In this guide you load Auth UI from a Lua block, add an account button to the top bar, and make SilverBullet remember the page you were on so any other device opens it after sign in. No fork, no rebuild, no server code.
 
+![Auth UI Sign in to SilverBullet modal from the notebook top bar](/guides/silverbullet/signin.png)
+
+![SilverBullet Ideas page after Appwrite sign in](/guides/silverbullet/signed-in.png)
+
 <Steps>
 <Step>
 
@@ -114,6 +118,8 @@ end)
 <Step>
 
 ## Try it
+
+![Auth UI account screen opened from SilverBullet](/guides/silverbullet/account.png)
 
 1. Reload SilverBullet, sign in, and open any page, for example `Ideas`.
 2. Open http://localhost:3000 in a private window, sign in to SilverBullet with `admin`, then click the user icon and sign in with your Appwrite account. The editor navigates to `Ideas`.

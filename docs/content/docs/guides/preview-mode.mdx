@@ -5,6 +5,8 @@ description: Explore every screen without a backend. Any email, password or code
 
 Set `preview: true` and Auth UI swaps the Appwrite SDK for an in-memory stand-in. No request leaves the page.
 
+![Auth UI sign-in modal in preview mode with the Preview badge](/guides/preview-mode/signin-preview.png)
+
 ```html
 <authui-config endpoint="https://cloud.appwrite.io/v1" project="demo" preview></authui-config>
 ```
@@ -23,6 +25,8 @@ AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "demo", preview
 - **Redirect parameters are ignored**, so a preview page never tries to redeem tokens from the URL.
 
 Use it for design reviews, Storybook stories, marketing pages and playgrounds. It is what the [playground](/playground) and the landing page demo run on.
+
+![Auth UI account screen in preview mode after previewSignIn](/guides/preview-mode/account-preview.png)
 
 ## Driving it from code
 

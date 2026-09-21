@@ -7,6 +7,10 @@ description: Add sign in to the classic 2048 game and store the best score in Ap
 
 What you end up with: a "Sign in" button under the board, a best score that uploads whenever it improves, and the higher of the two scores winning when you sign in on another device.
 
+![Auth UI Sign in to 2048 modal over the classic game board](/guides/2048/signin.png)
+
+![2048 after sign in with the Account button under the board](/guides/2048/signed-in.png)
+
 <Steps>
 <Step>
 
@@ -143,6 +147,8 @@ The game reads `bestScore` from `localStorage` on the next move, so writing it t
 <Step>
 
 ## Try it
+
+![Auth UI account screen opened from 2048](/guides/2048/account.png)
 
 1. Play a few moves, then sign up. Your best score is uploaded. In the Console it is visible under **Auth → Users → your user → Prefs**.
 2. Open `index.html` in a private window and sign in. The best score appears before you make a move.

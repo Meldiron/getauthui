@@ -7,6 +7,10 @@ description: Add sign in to the Nullboard kanban board and keep every board in A
 
 What you end up with: a "Sign in to sync..." entry in Nullboard's menu, boards that upload after every change, and boards that appear on any device where you sign in.
 
+![Auth UI Sign in to Nullboard modal over the kanban board](/guides/nullboard/signin.png)
+
+![Nullboard with an active board after signing in through Auth UI](/guides/nullboard/signed-in.png)
+
 <Steps>
 <Step>
 
@@ -178,6 +182,8 @@ The `revision--` trick is the same one Nullboard's own import uses: `saveBoard()
 <Step>
 
 ## Try it
+
+![Auth UI account screen opened from Nullboard](/guides/nullboard/account.png)
 
 1. Open `nullboard.html`, sign up, and add a note to the demo board. A second later the boards are in your preferences. You can see them in the Console under **Auth → Users → your user → Prefs**.
 2. Open the same file in a private window, or on another machine. Sign in. The page reloads with your boards.

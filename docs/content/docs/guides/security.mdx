@@ -3,6 +3,8 @@ title: Security notes
 description: What Auth UI does and does not do with credentials and sessions.
 ---
 
+![Auth UI sign-in modal talking to your Appwrite endpoint from the page origin](/guides/security/signin.png)
+
 - **No credentials leave your origin except to Appwrite.** Passwords, codes and tokens go straight from the browser to your configured endpoint through the official SDK. Auth UI has no backend and phones home to nothing.
 - **Sessions are managed by the Appwrite SDK.** Auth UI never reads, stores or forwards the session secret. Whether it is a cookie or the SDK's `localStorage` fallback depends on your Appwrite setup, exactly as it would without Auth UI.
 - **Redirect URLs are cleaned.** After finishing an OAuth, magic URL, recovery or verification flow, Auth UI removes `userId`, `secret` and related parameters from the address bar before rendering.

@@ -7,6 +7,10 @@ description: Add Appwrite sign in to the OpenHabitTracker Blazor PWA and keep a 
 
 Backups grow past the 64 KB that user preferences allow as soon as a habit has a year of history, which is why this guide uses Storage. Preferences remain the right place for small values, as in the [2048 guide](/docs/guides/2048).
 
+![Auth UI Sign in to OpenHabitTracker modal over the habit tracker nav](/guides/openhabittracker/signin.png)
+
+![OpenHabitTracker nav with Auth UI after a successful Appwrite backup](/guides/openhabittracker/backup.png)
+
 <Steps>
 <Step>
 
@@ -243,6 +247,8 @@ Nothing here is new to the app. `ImportExportService` is the same service behind
 <Step>
 
 ## Try it
+
+![OpenHabitTracker signed-in nav with Back up, Restore and Account](/guides/openhabittracker/signed-in.png)
 
 1. Run the app, click **Sign in** in the nav bar, and sign up. The buttons change to **Back up**, **Restore** and **Account**.
 2. Click **Back up**. The file appears in the Console under **Storage → backups**, with permissions for your user only.

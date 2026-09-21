@@ -5,6 +5,10 @@ description: Moving from the hosted login page to the embedded component library
 
 Auth UI v1 was a hosted page at `<your-name>.authui.site` that you linked to. Version 2 runs inside your own page. The move takes a few minutes.
 
+![Embedded Auth UI Sign in button on your own origin](/guides/migrating-from-v1/embedded-button.png)
+
+![Auth UI sign-in modal running inside the app instead of a hosted authui.site page](/guides/migrating-from-v1/embedded-modal.png)
+
 ## Why the change
 
 Browsers block or partition third-party cookies. A session created on `authui.site` could not be read from your app on another domain, so sign in silently failed in Safari, Firefox, Brave and Chrome with tracking protection on. Running on your origin removes the cross-site hop entirely. Read [How it works](/docs/how-it-works) for the details.
