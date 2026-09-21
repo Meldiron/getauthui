@@ -1,0 +1,79 @@
+---
+title: Common mistakes
+description: Fixes for the setup mistakes that waste the most time with Auth UI and Appwrite.
+---
+
+A short cookbook of the failures newcomers hit most often. Pair it with [Configuration](/docs/configuration) and the [Misconfiguration](/docs/components/config#misconfiguration) notes on `<authui-config>`.
+
+## Endpoint without `/v1`
+
+Appwrite's HTTP API lives under `/v1`. If you pass `https://cloud.appwrite.io` (or your self-hosted host) without that suffix, the SDK receives an HTML 404 page and Auth UI surfaces a messy alert.
+
+```ts
+// Wrong
+AuthUI.init({ endpoint: "https://cloud.appwrite.io", project: "…" });
+
+// Right
+AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "…" });
+```
+
+Regional Cloud endpoints look like `https://fra.cloud.appwrite.io/v1`. Auth UI warns in the console when the endpoint does not end with `/v1`.
+
+## Hostname not registered as a Web platform
+
+Auth UI runs on your origin. Appwrite rejects requests from hosts that are not listed under **Overview → Integrations → Platforms**. Add a Web platform for `localhost` (and your production hostname) before testing, or the first `account.get()` fails with `general_unknown_origin`.
+
+## Methods enabled in the UI but not in the Console
+
+`methods` on `<authui-config>` / `AuthUI.init()` only controls which buttons Auth UI shows. Each method must also be enabled under **Auth → Settings** in the Appwrite Console (and each OAuth provider must be configured with client IDs). Otherwise the UI looks ready and the request fails at runtime.
+
+## ESM CDN vs IIFE / no `window.AuthUI`
+
+| Script                                                           | What you get                                                     |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `https://unpkg.com/@getauthui/core@0.1.8` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
+| `…/dist/authui.cdn.js` (IIFE, classic script)                    | Custom elements plus `window.AuthUI` for `init` / `on` / `open`. |
+
+```html
+<!-- ESM: elements only. Configure with <authui-config>. -->
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.8"></script>
+<authui-config endpoint="…" project="…"></authui-config>
+
+<!-- IIFE: use window.AuthUI from a classic script. -->
+<script src="https://unpkg.com/@getauthui/core@0.1.8/dist/authui.cdn.js"></script>
+<script>
+  AuthUI.init({ endpoint: "…", project: "…" });
+</script>
+```
+
+With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version on the CDN in production.
+
+## Protected content flashes (FOUC)
+
+The in-module FOUC guard cannot run until the script loads. Put this critical CSS in `<head>` before the Auth UI script so `<authui-show>` children stay hidden:
+
+```html
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
+```
+
+See [`<authui-show>`](/docs/components/show). In React, use the `Show` wrapper from `@getauthui/core/react` so children are not mounted while hidden.
+
+## Building custom login forms
+
+Auth UI already covers email/password, magic URL, email OTP, phone, anonymous, OAuth and MFA. Do not rebuild those forms yourself. Use `<authui-button>`, `<authui-sign-in>` or `AuthUI.open()`, and let the Appwrite SDK own the session. Never pass session secrets or JWTs through URLs.
+
+For apps that only need the session (no Auth UI chrome), call `AuthUI.init()` / `AuthUI.on("signed-in", …)` and still skip hand-rolled credential forms.
+
+## Related
+
+- [Getting started](/docs/getting-started)
+- [AI agents](/docs/guides/ai-agents)
+- [Security notes](/docs/guides/security)

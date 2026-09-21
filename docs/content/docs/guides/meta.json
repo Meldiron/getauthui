@@ -1,7 +1,6 @@
 {
   "title": "Guides",
   "description": "Step by step tutorials",
-  "root": true,
   "pages": [
     "index",
     "nullboard",

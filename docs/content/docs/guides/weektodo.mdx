@@ -72,8 +72,7 @@ module.exports = {
       .use("vue-loader")
       .tap((options) => {
         options.compilerOptions = options.compilerOptions || {};
-        options.compilerOptions.isCustomElement = (tag) =>
-          tag.startsWith("authui-");
+        options.compilerOptions.isCustomElement = (tag) => tag.startsWith("authui-");
         return options;
       });
   },
@@ -226,8 +225,13 @@ Open `src/views/configModal.vue`. In the `#config-data` pane, after the Export /
 <authui-show when="signed-out">
   <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
     <label class="form-check-label" for="sign-in-sync-btn">Sign in to back up</label>
-    <button id="sign-in-sync-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
-      @click="openSignIn">
+    <button
+      id="sign-in-sync-btn"
+      type="button"
+      class="btn py-1 px-2 border"
+      style="width: 140px;"
+      @click="openSignIn"
+    >
       <i class="icons bi-person mx-2"></i>
       Sign in
     </button>
@@ -237,24 +241,41 @@ Open `src/views/configModal.vue`. In the `#config-data` pane, after the Export /
 <authui-show when="signed-in">
   <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
     <label class="form-check-label" for="backup-data-btn">Back up to Appwrite</label>
-    <button id="backup-data-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
-      :disabled="busy" @click="backUp">
+    <button
+      id="backup-data-btn"
+      type="button"
+      class="btn py-1 px-2 border"
+      style="width: 140px;"
+      :disabled="busy"
+      @click="backUp"
+    >
       <i class="icons bi-cloud-arrow-up mx-2"></i>
       Back up
     </button>
   </div>
   <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
     <label class="form-check-label" for="restore-data-btn">Restore from Appwrite</label>
-    <button id="restore-data-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
-      :disabled="busy" @click="restore">
+    <button
+      id="restore-data-btn"
+      type="button"
+      class="btn py-1 px-2 border"
+      style="width: 140px;"
+      :disabled="busy"
+      @click="restore"
+    >
       <i class="icons bi-cloud-arrow-down mx-2"></i>
       Restore
     </button>
   </div>
   <div class="form-check form-switch d-flex px-1 mb-3 justify-content-between align-items-center">
     <label class="form-check-label" for="account-btn">Account</label>
-    <button id="account-btn" type="button" class="btn py-1 px-2 border" style="width: 140px;"
-      @click="openAccount">
+    <button
+      id="account-btn"
+      type="button"
+      class="btn py-1 px-2 border"
+      style="width: 140px;"
+      @click="openAccount"
+    >
       <i class="icons bi-gear mx-2"></i>
       Account
     </button>
@@ -400,7 +421,7 @@ Center the signed-in avatar in the rail (no bulky margin). `authui-show` uses `d
 - **Local first by design.** Without signing in, nothing leaves the device. Auth UI does not change WeekToDo's default privacy model.
 - **Not live sync.** Two devices editing at once means the later **Back up** wins. Restore replaces local data. For continuous sync you would need conflict-aware replication (for example Appwrite Databases + an offline store), which is a larger change than this guide.
 - **Node 18+ and Webpack 4.** Use `yarn install --ignore-engines` and `NODE_OPTIONS=--openssl-legacy-provider yarn serve` as in the first step. Without them, install fails on the `node-ipc` engine range and `yarn serve` dies with `error:0308010C:digital envelope routines::unsupported`.
-- **Vue CLI custom elements.** Configure `isCustomElement` on `vue-loader` in `vue.config.js`. Setting `app.config.compilerOptions.isCustomElement` in `main.js` does nothing with WeekToDo's runtime-only Vue build and leaves "Failed to resolve component: authui-*" warnings.
+- **Vue CLI custom elements.** Configure `isCustomElement` on `vue-loader` in `vue.config.js`. Setting `app.config.compilerOptions.isCustomElement` in `main.js` does nothing with WeekToDo's runtime-only Vue build and leaves "Failed to resolve component: authui-\*" warnings.
 - **Web vs Electron.** `yarn serve` and a self-hosted web build talk to Appwrite like any SPA: register each hostname as a Web platform. Packaged Electron loads `app://./index.html`, which Appwrite Web platforms do not accept as a hostname. Electron development (`yarn electron:serve`) uses the webpack dev server on `localhost`, so that path works with the same platform you already added. Shipping Auth UI inside a packaged desktop build needs a custom protocol strategy or a hosted web shell; treat that as a follow-up.
 - **OAuth redirects.** If you enable OAuth, add every success and failure URL Appwrite will redirect to (for local work, `http://localhost:8080`). Auth UI cleans `userId` and `secret` from the address bar after the exchange.
 - **CORS and CSP.** The Appwrite endpoint must allow your origin. If you set a Content Security Policy, allow `connect-src` to your Appwrite host and keep the critical CSS above (or see [Security notes](/docs/guides/security)).

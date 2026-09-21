@@ -41,3 +41,10 @@ library for Appwrite. Docs: https://getauthui.appwrite.network/llms-full.txt
 - For CDN installs, include the critical CSS in `<head>` so protected content does not paint before the module runs. See [`<authui-show>`](/docs/components/show).
 - Never pass the Appwrite session or a JWT through URLs. Auth UI handles all redirects.
 - To react to sign in, call `AuthUI.on("signed-in", cb)` or set `successUrl`.
+- Watch for the traps in [Common mistakes](/docs/common-mistakes) (missing `/v1`, unregistered platform, ESM vs IIFE).
+
+## Agent skill
+
+This repo ships an Auth UI creator skill at [`skills/authui-creator/SKILL.md`](https://github.com/Meldiron/getauthui/blob/main/skills/authui-creator/SKILL.md). Point coding agents that support Agent Skills at that file (or paste its contents) so they load copy-paste patterns and the "Tips for AI-Generated Code" checklist.
+
+Also skim [Common mistakes](/docs/common-mistakes) before inventing setup code.

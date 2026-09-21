@@ -66,15 +66,29 @@ Returns the current state plus helpers, and re-renders on every change.
 
 ## Components
 
-| Component          | Wraps                  | Props                                 |
-| ------------------ | ---------------------- | ------------------------------------- |
-| `AuthUIProvider`   | configures the store   | `config`                              |
-| `AuthUIModal`      | `<authui-modal>`       | `view`, `open`, `closeOnSuccess`      |
-| `AuthUIButton`     | `<authui-button>`      | `view`, `variant`, `size`, `children` |
-| `AuthUIUserButton` | `<authui-user-button>` | `src`, `children`                     |
-| `AuthUISignIn`     | `<authui-sign-in>`     | `view`, `onSuccess`                   |
-| `AuthUIAccount`    | `<authui-account>`     | `tab`                                 |
-| `Show`             | `<authui-show>`        | `when`, `unless`, `children`          |
+| Component          | Wraps                              | Props                                 |
+| ------------------ | ---------------------------------- | ------------------------------------- |
+| `AuthUIProvider`   | configures the store synchronously | `config`                              |
+| `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`      |
+| `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children` |
+| `AuthUIUserButton` | `<authui-user-button>`             | `src`, `children`                     |
+| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                   |
+| `AuthUIAccount`    | `<authui-account>`                 | `tab`                                 |
+| `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`          |
+
+## `Show` vs `<authui-show>`
+
+The React `Show` wrapper returns `null` when the status does not match, so children are not mounted and their effects do not run. That is what you want when a child calls `store.getClient()` on mount.
+
+The Lit `<authui-show>` element only skips its slot. Children stay in the DOM (hidden). Prefer the React `Show` in React apps; keep `<authui-show>` for plain HTML.
+
+## `AuthUIProvider` configuration timing
+
+`AuthUIProvider` calls `configure()` during render, so the first paint already sees `configured: true` and a non-null `getClient()` when `endpoint` and `project` are set. Changing any field on `config` (methods, branding, preview, strings, and so on) reconfigures the store. Passing a new object every render with the same values is fine; the provider fingerprints the config with `JSON.stringify`.
+
+## `closeOnSuccess={false}`
+
+Pass `closeOnSuccess={false}` to `AuthUIModal` to keep the modal open after sign in. In HTML use `close-on-success="false"` on `<authui-modal>` (the string `"false"` is required; a bare boolean attribute would stay on).
 
 ## Typing custom elements in JSX
 

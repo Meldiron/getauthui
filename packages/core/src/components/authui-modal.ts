@@ -112,8 +112,26 @@ export class AuthUIModal extends AuthUIElement {
   @property({ type: Boolean, reflect: true }) open = false;
   /** Which screen to show. */
   @property({ type: String }) view: AuthUIView = "sign-in";
-  /** Close automatically after a successful sign in. Default: true. */
-  @property({ type: Boolean, attribute: "close-on-success" }) closeOnSuccess = true;
+  /**
+   * Close automatically after a successful sign in. Default: true.
+   * Accepts the string `"false"` / `"0"` / `"off"` / `"no"` so HTML can turn it
+   * off (Lit's Boolean converter treats any present attribute as true).
+   */
+  @property({
+    attribute: "close-on-success",
+    reflect: true,
+    converter: {
+      fromAttribute(value: string | null): boolean {
+        if (value === null) return true;
+        const v = value.trim().toLowerCase();
+        return !(v === "false" || v === "0" || v === "off" || v === "no");
+      },
+      toAttribute(value: boolean): string | null {
+        return value ? null : "false";
+      },
+    },
+  })
+  closeOnSuccess = true;
 
   @state() private handledPending: unknown = null;
   @state() private scrollCue = false;

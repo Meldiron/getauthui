@@ -30,3 +30,5 @@ Auth UI checks the connection on startup:
 - **Endpoint must end with `/v1`.** Without it Appwrite returns an HTML 404 page. Auth UI warns in the console and shows a developer-facing banner instead of a working-looking form.
 - **Wrong project ID or unregistered hostname.** The first `account.get()` returns `project_not_found` or `general_unknown_origin`. Auth UI emits an `error` event, logs a console warning, and shows the same banner on `<authui-sign-in>`.
 - **Missing `endpoint` or `project` on `<authui-config>`.** The element no longer leaves the UI stuck on a loading spinner. It reports the gap and `<authui-sign-in>` shows how to finish the setup.
+
+See also [Common mistakes](/docs/common-mistakes) for endpoint, platform, CDN and FOUC pitfalls.

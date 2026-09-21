@@ -2,12 +2,14 @@ import {
   Fragment,
   createElement,
   useEffect,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { authStore } from "../store.js";
 import { openModal, closeModal } from "../modal-controller.js";
+import { matchesAuthStatus } from "../components/authui-show.js";
 import type { AuthUIConfig, AuthUIState, AuthUIView } from "../types.js";
 
 // Register the custom elements when this module loads.
@@ -32,7 +34,19 @@ export function useAuthUI() {
   };
 }
 
-/** Configures Auth UI once and renders children. Put it near the root of your app. */
+/** Stable fingerprint so any relevant config change reconfigures the store. */
+function configFingerprint(config: AuthUIConfig): string {
+  return JSON.stringify(config);
+}
+
+/**
+ * Configures Auth UI and renders children. Put it near the root of your app.
+ *
+ * Configuration runs during render (not in an effect) so the first paint already
+ * sees `configured: true` and a non-null `getClient()` when `endpoint` and
+ * `project` are present. Changing any config field reconfigures the store.
+ * `configure()` is idempotent, so React Strict Mode double-invoke is safe.
+ */
 export function AuthUIProvider({
   config,
   children,
@@ -40,21 +54,35 @@ export function AuthUIProvider({
   config: AuthUIConfig;
   children?: ReactNode;
 }): ReactElement {
-  useEffect(() => {
+  const fingerprint = configFingerprint(config);
+  const lastFingerprint = useRef<string | null>(null);
+  if (lastFingerprint.current !== fingerprint) {
+    lastFingerprint.current = fingerprint;
     authStore.configure(config);
-  }, [config.endpoint, config.project]);
+  }
   return createElement(Fragment, null, children);
 }
+
+type AuthUIModalElement = HTMLElement & { closeOnSuccess: boolean; open: boolean };
 
 export function AuthUIModal(props: {
   view?: AuthUIView;
   open?: boolean;
   closeOnSuccess?: boolean;
 }): ReactElement {
+  const [el, setEl] = useState<AuthUIModalElement | null>(null);
+  useEffect(() => {
+    if (!el || props.closeOnSuccess === undefined) return;
+    el.closeOnSuccess = props.closeOnSuccess;
+  }, [el, props.closeOnSuccess]);
   return createElement("authui-modal", {
+    ref: setEl,
     view: props.view,
     open: props.open || undefined,
-    "close-on-success": props.closeOnSuccess === false ? undefined : "",
+    // Lit boolean attrs treat presence as true; write the string "false" so HTML
+    // and React can turn the default off. Also set the JS property above.
+    "close-on-success":
+      props.closeOnSuccess === false ? "false" : props.closeOnSuccess === true ? "" : undefined,
   });
 }
 
@@ -106,11 +134,16 @@ export function AuthUIUserButton(props: { src?: string; children?: ReactNode }):
  * Renders children only while the auth status matches.
  * `when` and `unless` accept a status or a comma separated list:
  * `signed-in`, `signed-out`, `mfa-required`, `loading`.
+ *
+ * Unlike the Lit `<authui-show>` element (which only skips its slot), this
+ * React wrapper returns `null` so children are not mounted while hidden.
  */
 export function Show(props: {
   when?: string;
   unless?: string;
   children?: ReactNode;
-}): ReactElement {
-  return createElement("authui-show", { when: props.when, unless: props.unless }, props.children);
+}): ReactElement | null {
+  const { status } = useAuthUI();
+  if (!matchesAuthStatus(status, props.when, props.unless)) return null;
+  return createElement(Fragment, null, props.children);
 }

@@ -405,6 +405,25 @@ describe("<authui-show>", () => {
 });
 
 describe("<authui-modal> and <authui-button>", () => {
+  it('honours close-on-success="false" from HTML', async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const modal = await mount<
+      HTMLElement & { open: boolean; closeOnSuccess: boolean; show: (v?: string) => void }
+    >(`<authui-modal close-on-success="false"></authui-modal>`);
+    expect(modal.closeOnSuccess).toBe(false);
+    modal.show("sign-in");
+    await modal.updateComplete;
+    expect(modal.open).toBe(true);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    modal
+      .shadowRoot!.querySelector("authui-sign-in")!
+      .dispatchEvent(new CustomEvent("authui-success", { bubbles: true, composed: true }));
+    await modal.updateComplete;
+    expect(modal.open).toBe(true);
+  });
+
   it("opens the modal on button click and closes on sign in", async () => {
     authStore.configure(config);
     await tick();

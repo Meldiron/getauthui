@@ -47,12 +47,29 @@ installFoucGuard();
 const STATUSES: AuthUIStatus[] = ["loading", "signed-out", "signed-in", "mfa-required"];
 
 /** Parse a comma or space separated status list, ignoring unknown values. */
-function parseList(value: string | null | undefined): AuthUIStatus[] {
+export function parseAuthStatusList(value: string | null | undefined): AuthUIStatus[] {
   if (!value) return [];
   return value
     .split(/[\s,]+/)
     .map((s) => s.trim())
     .filter((s): s is AuthUIStatus => (STATUSES as string[]).includes(s));
+}
+
+/**
+ * Whether `status` satisfies `when` / `unless` the same way `<authui-show>` does.
+ * Used by the React `Show` wrapper so children are not mounted while hidden.
+ */
+export function matchesAuthStatus(
+  status: AuthUIStatus,
+  when?: string | null,
+  unless?: string | null
+): boolean {
+  const whenList = parseAuthStatusList(when);
+  const unlessList = parseAuthStatusList(unless);
+  if (status === "loading" && !whenList.includes("loading")) return false;
+  if (whenList.length > 0 && !whenList.includes(status)) return false;
+  if (unlessList.includes(status)) return false;
+  return true;
 }
 
 /**
@@ -91,16 +108,11 @@ export class AuthUIShow extends LitElement {
 
   /** Whether the current status satisfies `when` and `unless`. */
   get visible(): boolean {
-    const when = parseList(this.when);
-    const unless = parseList(this.unless);
-    if (this.status === "loading" && !when.includes("loading")) return false;
-    if (when.length > 0 && !when.includes(this.status)) return false;
-    if (unless.includes(this.status)) return false;
-    return true;
+    return matchesAuthStatus(this.status, this.when, this.unless);
   }
 
   protected updated(): void {
-    if (this.status !== "loading" || parseList(this.when).includes("loading")) {
+    if (this.status !== "loading" || parseAuthStatusList(this.when).includes("loading")) {
       this.setAttribute("ready", "");
       this.style.display = "contents";
     }
