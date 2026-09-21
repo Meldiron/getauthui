@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "../src/active-team.js";
 
 describe("active-team storage", () => {
