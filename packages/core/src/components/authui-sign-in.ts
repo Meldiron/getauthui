@@ -10,7 +10,12 @@ import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
 import { scorePassword } from "../password-strength.js";
-import { getLastMethod, rememberLastMethod } from "../last-method.js";
+import {
+  getLastMethod,
+  rememberLastMethod,
+  rememberPendingOAuth,
+  stashPendingOAuth,
+} from "../last-method.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -107,8 +112,9 @@ export class AuthUISignIn extends AuthUIElement {
       this.go("reset-password");
     }
     if (pending?.type === "oauth-failed") {
+      // Legacy pending shape: treat like a sticky error notice (store now emits notice).
       this.notice = { tone: "error", message: this.t("errorOAuth") };
-      authStore.setPending(null);
+      // Do not clear pending here; clearing triggered a signed-out sync that wiped the notice.
     }
     if (pending?.type === "notice" && !this.notice) {
       this.notice = {
@@ -131,7 +137,7 @@ export class AuthUISignIn extends AuthUIElement {
     this.step = step;
     this.error = "";
     this.notice = null;
-    if (this.auth.pending?.type === "notice") authStore.setPending(null);
+    // Do not clear pending notices here — redirect notices stay until dismissNotice().
     this.busy = false;
     this.showPassword = false;
     this.password = "";
@@ -195,9 +201,12 @@ export class AuthUISignIn extends AuthUIElement {
 
   private onOAuth = (provider: OAuthProviderName) => {
     void this.run(async () => {
-      rememberLastMethod(`oauth:${provider}`);
+      // Stash the provider; only persist Last used after a successful session
+      // (preview completes in place; real OAuth remembers on redirect return).
+      stashPendingOAuth(provider);
       await authStore.signInWithOAuth(provider);
       if (authStore.isPreview) {
+        rememberPendingOAuth();
         this.fire("authui-success", { method: "oauth" });
         return;
       }
@@ -230,8 +239,9 @@ export class AuthUISignIn extends AuthUIElement {
       this.passwordConfirm = "";
       this.recovery = null;
       if (this.auth.pending?.type === "reset-password") authStore.setPending(null);
-      this.notice = { tone: "success", message: this.t("passwordUpdated") };
       this.go("sign-in");
+      // go() clears notice; re-set after so the success message survives on sign-in.
+      this.notice = { tone: "success", message: this.t("passwordUpdated") };
     });
   };
 

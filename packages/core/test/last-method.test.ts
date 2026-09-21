@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearLastMethod, getLastMethod, rememberLastMethod } from "../src/last-method.js";
+import {
+  clearLastMethod,
+  clearPendingOAuth,
+  getLastMethod,
+  rememberLastMethod,
+  rememberPendingOAuth,
+  stashPendingOAuth,
+} from "../src/last-method.js";
 
 describe("last-method", () => {
   beforeEach(() => {
     clearLastMethod();
+    clearPendingOAuth();
   });
 
   it("round-trips a method key", () => {
@@ -25,5 +33,20 @@ describe("last-method", () => {
   it("stores oauth provider keys", () => {
     rememberLastMethod("oauth:github");
     expect(getLastMethod()).toBe("oauth:github");
+  });
+
+  it("does not remember OAuth until rememberPendingOAuth runs", () => {
+    stashPendingOAuth("github");
+    expect(getLastMethod()).toBeNull();
+    rememberPendingOAuth();
+    expect(getLastMethod()).toBe("oauth:github");
+  });
+
+  it("clearPendingOAuth drops the stash without remembering", () => {
+    rememberLastMethod("email-password");
+    stashPendingOAuth("google");
+    clearPendingOAuth();
+    rememberPendingOAuth();
+    expect(getLastMethod()).toBe("email-password");
   });
 });

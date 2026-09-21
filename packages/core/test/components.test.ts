@@ -523,3 +523,76 @@ describe("UX audit follow-ups", () => {
     expect(text).not.toMatch(/Send code ·|Send code\s*·/);
   });
 });
+
+describe("auth notice and last-method bugs", () => {
+  it("keeps passwordUpdated notice after reset navigates to sign-in", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    (el as any).recovery = { userId: "u9", secret: "s9" };
+    (el as any).go("reset-password");
+    await (el as any).updateComplete;
+
+    const root = el.shadowRoot!;
+    const pw = root.querySelectorAll<HTMLInputElement>("input[type=password]");
+    expect(pw.length).toBeGreaterThanOrEqual(2);
+    pw[0].value = "new-password-1";
+    pw[0].dispatchEvent(new Event("input"));
+    pw[1].value = "new-password-1";
+    pw[1].dispatchEvent(new Event("input"));
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("sign-in");
+    expect(shadowText(el)).toContain("Your password was updated");
+  });
+
+  it("keeps oauth-failed redirect notice visible after signed-out sync", async () => {
+    window.history.replaceState(null, "", "/app?authui=oauth-failed&error=denied");
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "error" });
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toMatch(
+      /provider failed|Sign in with the provider failed|failed\. Please try again/i
+    );
+    // Force another signed-out sync (the path that used to wipe the notice).
+    await authStore.refresh();
+    await tick();
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toMatch(
+      /provider failed|Sign in with the provider failed|failed\. Please try again/i
+    );
+    expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "error" });
+  });
+
+  it("does not pin Last used on OAuth click before a successful session", async () => {
+    const { clearLastMethod, getLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    account.createOAuth2Token.mockImplementation(() => undefined);
+    const github = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").toLowerCase().includes("github")
+    )!;
+    github.click();
+    await tick();
+    await tick();
+    expect(getLastMethod()).toBeNull();
+    expect(account.createOAuth2Token).toHaveBeenCalled();
+  });
+});

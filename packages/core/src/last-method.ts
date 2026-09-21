@@ -37,3 +37,37 @@ export function clearLastMethod(): void {
     /* ignore */
   }
 }
+
+const PENDING_OAUTH_KEY = "authui:pending-oauth";
+
+/** Remember which OAuth provider the user clicked, until the session succeeds or fails. */
+export function stashPendingOAuth(provider: string): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(PENDING_OAUTH_KEY, provider);
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+/** Persist a previously stashed OAuth provider as the last method, then clear the stash. */
+export function rememberPendingOAuth(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const provider = sessionStorage.getItem(PENDING_OAUTH_KEY);
+    sessionStorage.removeItem(PENDING_OAUTH_KEY);
+    if (provider) rememberLastMethod(`oauth:${provider}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Drop a stashed OAuth provider without remembering it (cancel / failure). */
+export function clearPendingOAuth(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(PENDING_OAUTH_KEY);
+  } catch {
+    /* ignore */
+  }
+}

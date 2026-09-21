@@ -21,6 +21,7 @@ import { defaultStrings } from "./i18n.js";
 import { PreviewAccount } from "./preview.js";
 import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
+import { clearPendingOAuth, rememberPendingOAuth } from "./last-method.js";
 import type {
   AuthUIConfig,
   AuthUIEventMap,
@@ -780,11 +781,24 @@ export class AuthStore {
       switch (action) {
         case "oauth":
         case "magic-url":
-          if (userId && secret) await this.acct().createSession(userId, secret);
-          else incomplete();
+          if (userId && secret) {
+            await this.acct().createSession(userId, secret);
+            if (action === "oauth") rememberPendingOAuth();
+          } else {
+            if (action === "oauth") clearPendingOAuth();
+            incomplete();
+          }
           break;
         case "oauth-failed":
-          this.setState({ pending: { type: "oauth-failed" } });
+          clearPendingOAuth();
+          // Sticky notice pending (same survival path as magic-url / verify-email errors).
+          this.setState({
+            pending: {
+              type: "notice",
+              tone: "error",
+              message: this.getStrings().errorOAuth,
+            },
+          });
           break;
         case "recovery":
           if (userId && secret)

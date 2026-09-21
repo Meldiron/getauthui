@@ -202,7 +202,7 @@ describe("AuthStore", () => {
     authStore.configure(config);
     await tick();
     await tick();
-    expect(authStore.getState().pending).toEqual({ type: "oauth-failed" });
+    expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "error" });
   });
 
   it("signs out and emits signed-out", async () => {
