@@ -254,6 +254,19 @@ export class AuthUIAccount extends AuthUIElement {
         }
       });
     }
+    // Vibes confirm chrome: Cancel is the safe default focus target.
+    const confirmOpened =
+      (changed.has("confirmDelete") && this.confirmDelete) ||
+      (changed.has("confirmSignOutAll") && this.confirmSignOutAll) ||
+      (changed.has("confirmDisconnectId") && this.confirmDisconnectId !== null);
+    if (confirmOpened) {
+      requestAnimationFrame(() => {
+        const cancel = this.renderRoot.querySelector(
+          ".card-footer [autofocus], .row-actions [autofocus], .inline [autofocus], .card-footer .btn-outline, .row-actions .btn-outline, .inline .btn-outline"
+        ) as HTMLButtonElement | null;
+        cancel?.focus({ preventScroll: true });
+      });
+    }
   }
 
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -779,7 +792,7 @@ export class AuthUIAccount extends AuthUIElement {
   private card(
     title: string,
     description: string | undefined,
-    body: TemplateResult,
+    body: TemplateResult | typeof nothing,
     footer?: TemplateResult,
     danger = false
   ): TemplateResult {
@@ -788,9 +801,45 @@ export class AuthUIAccount extends AuthUIElement {
         <h3 class="card-title">${title}</h3>
         ${description ? html`<p class="card-description">${description}</p>` : nothing}
       </div>
-      <div class="card-body">${body}</div>
+      ${body !== nothing ? html`<div class="card-body">${body}</div>` : nothing}
       ${footer ? html`<div class="card-footer">${footer}</div>` : nothing}
     </section>`;
+  }
+
+  /** Vibes-style confirm footer: Cancel first (autofocus), destructive only on confirm. */
+  private confirmFooter(
+    onCancel: () => void,
+    onConfirm: () => void,
+    confirmLabel: string,
+    busyKey?: string
+  ): TemplateResult {
+    return html`
+      <button
+        type="button"
+        class="btn btn-outline btn-sm"
+        autofocus
+        ?disabled=${!!this.busy}
+        @click=${onCancel}
+      >
+        ${this.t("cancel")}
+      </button>
+      <button
+        type="button"
+        class="btn btn-destructive btn-sm"
+        ?disabled=${!!this.busy}
+        @click=${onConfirm}
+      >
+        ${busyKey ? this.spinner(busyKey) : nothing} ${confirmLabel}
+      </button>
+    `;
+  }
+
+  private emptyState(icon: TemplateResult, title: string, description: string): TemplateResult {
+    return html`<div class="empty empty-well">
+      <div class="empty-icon" aria-hidden="true">${icon}</div>
+      <p class="empty-title">${title}</p>
+      <p class="empty-desc">${description}</p>
+    </div>`;
   }
 
   private verifiedBadge(ok: boolean): TemplateResult {
@@ -1094,29 +1143,22 @@ export class AuthUIAccount extends AuthUIElement {
     return this.card(
       this.t("deleteAccount"),
       this.t("deleteAccountDescription"),
-      html`${this.error("delete")}
-      ${
-        this.confirmDelete
-          ? html`<div class="inline">
-              <button
-                class="btn btn-outline btn-sm warn"
-                @click=${this.onDeleteAccount}
-                ?disabled=${!!this.busy}
-              >
-                ${this.spinner("delete")} ${this.t("deleteAccountConfirm")}
-              </button>
-              <button class="btn btn-ghost btn-sm" @click=${() => (this.confirmDelete = false)}>
-                ${this.t("cancel")}
-              </button>
-            </div>`
-          : html`<button
-              class="btn btn-outline btn-sm warn"
-              @click=${() => (this.confirmDelete = true)}
-            >
+      this.confirmDelete
+        ? this.error("delete")
+        : html`${this.error("delete")}
+            <button class="btn btn-outline btn-sm warn" @click=${() => (this.confirmDelete = true)}>
               ${icons.userX} ${this.t("deleteAccount")}
-            </button>`
-      }`,
-      undefined,
+            </button>`,
+      this.confirmDelete
+        ? this.confirmFooter(
+            () => {
+              this.confirmDelete = false;
+            },
+            () => void this.onDeleteAccount(),
+            this.t("deleteAccountConfirm"),
+            "delete"
+          )
+        : undefined,
       true
     );
   }
@@ -1549,7 +1591,11 @@ export class AuthUIAccount extends AuthUIElement {
           list === null
             ? html`<div class="empty"><span class="spinner"></span></div>`
             : list.length === 0
-              ? html`<div class="empty">${this.t("noSessions")}</div>`
+              ? this.emptyState(
+                  icons.monitor,
+                  this.t("noSessions"),
+                  this.t("noSessionsDescription")
+                )
               : list.map(
                   (s) =>
                     html`<div class="row">
@@ -1584,33 +1630,26 @@ export class AuthUIAccount extends AuthUIElement {
       ${this.card(
         this.t("signOutAllSessions"),
         this.t("signOutAllSessionsDescription"),
-        html`${this.error("sessions-all")}
-        ${
-          this.confirmSignOutAll
-            ? html`<div class="inline">
-                <button
-                  class="btn btn-outline btn-sm warn"
-                  @click=${this.onSignOutAll}
-                  ?disabled=${!!this.busy}
-                >
-                  ${this.spinner("sessions-all")} ${icons.logOut} ${this.t("signOutAllSessions")}
-                </button>
-                <button
-                  class="btn btn-ghost btn-sm"
-                  @click=${() => (this.confirmSignOutAll = false)}
-                >
-                  ${this.t("cancel")}
-                </button>
-              </div>`
-            : html`<button
+        this.confirmSignOutAll
+          ? this.error("sessions-all")
+          : html`${this.error("sessions-all")}
+              <button
                 class="btn btn-outline btn-sm warn"
                 @click=${this.onSignOutAll}
                 ?disabled=${!!this.busy}
               >
                 ${this.spinner("sessions-all")} ${icons.logOut} ${this.t("signOutAllSessions")}
-              </button>`
-        }`,
-        undefined,
+              </button>`,
+        this.confirmSignOutAll
+          ? this.confirmFooter(
+              () => {
+                this.confirmSignOutAll = false;
+              },
+              () => void this.onSignOutAll(),
+              this.t("signOutAllSessions"),
+              "sessions-all"
+            )
+          : undefined,
         true
       )}
     </div>`;
@@ -1630,7 +1669,11 @@ export class AuthUIAccount extends AuthUIElement {
           list === null
             ? html`<div class="empty"><span class="spinner"></span></div>`
             : list.length === 0
-              ? html`<div class="empty">${this.t("noConnections")}</div>`
+              ? this.emptyState(
+                  icons.link,
+                  this.t("noConnections"),
+                  this.t("noConnectionsDescription")
+                )
               : list.map(
                   (i) =>
                     html`<div class="row">
@@ -1646,7 +1689,17 @@ export class AuthUIAccount extends AuthUIElement {
                           this.confirmDisconnectId === i.$id
                             ? html`<div class="inline">
                                 <button
-                                  class="btn btn-outline btn-sm warn"
+                                  type="button"
+                                  class="btn btn-outline btn-sm"
+                                  autofocus
+                                  ?disabled=${!!this.busy}
+                                  @click=${() => (this.confirmDisconnectId = null)}
+                                >
+                                  ${this.t("cancel")}
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-destructive btn-sm"
                                   @click=${() => this.onDeleteIdentity(i.$id)}
                                   ?disabled=${!!this.busy}
                                 >
@@ -1656,12 +1709,6 @@ export class AuthUIAccount extends AuthUIElement {
                                       : nothing
                                   }
                                   ${this.t("disconnect")}
-                                </button>
-                                <button
-                                  class="btn btn-ghost btn-sm"
-                                  @click=${() => (this.confirmDisconnectId = null)}
-                                >
-                                  ${this.t("cancel")}
                                 </button>
                               </div>`
                             : html`<button
@@ -1713,7 +1760,11 @@ export class AuthUIAccount extends AuthUIElement {
           list === null
             ? html`<div class="empty"><span class="spinner"></span></div>`
             : list.length === 0
-              ? html`<div class="empty">${this.t("noActivity")}</div>`
+              ? this.emptyState(
+                  icons.activity,
+                  this.t("noActivity"),
+                  this.t("noActivityDescription")
+                )
               : list.map(
                   (l) =>
                     html`<div class="row">

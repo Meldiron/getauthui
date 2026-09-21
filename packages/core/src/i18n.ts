@@ -103,10 +103,13 @@ export const defaultStrings: AuthUIStrings = {
   signOutAllSessions: "Sign out everywhere",
   signOutAllSessionsDescription: "End every session, including this one.",
   noConnections: "No connected accounts.",
+  noConnectionsDescription: "Link an OAuth provider to sign in faster next time.",
   disconnect: "Disconnect",
   connectProvider: "Connect {provider}",
   noActivity: "No recent activity.",
+  noActivityDescription: "Security events for this account will appear here.",
   noSessions: "No active sessions.",
+  noSessionsDescription: "Active sessions will show up here once you sign in on a device.",
   deleteAccount: "Delete account",
   deleteAccountDescription:
     "Deleting disables your account and signs you out everywhere. An administrator can restore it.",

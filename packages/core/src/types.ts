@@ -272,10 +272,13 @@ export interface AuthUIStrings {
   signOutAllSessions: string;
   signOutAllSessionsDescription: string;
   noConnections: string;
+  noConnectionsDescription: string;
   disconnect: string;
   connectProvider: string;
   noActivity: string;
+  noActivityDescription: string;
   noSessions: string;
+  noSessionsDescription: string;
   deleteAccount: string;
   deleteAccountDescription: string;
   deleteAccountConfirm: string;
