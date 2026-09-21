@@ -39,6 +39,22 @@ Note the project ID and the API endpoint shown in the Console, for example `http
 
 Nullboard's hamburger menu at the top right is a list of links inside `<div class='config ...'>`. Add two entries right after "Add new board...":
 
+Put critical CSS in `<head>` so the menu entries stay hidden until Auth UI loads:
+
+```html title="nullboard.html"
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
+```
+
+Then add the menu entries:
+
 ```html title="nullboard.html"
 <a href="#" class="add-board">Add new board...</a>
 

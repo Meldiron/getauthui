@@ -37,7 +37,23 @@ Note the project ID and the API endpoint from the Console.
 
 ## Add the sign-in button
 
-Below the "New Game" row in `index.html` there is room for one more row. Reuse the game's own `restart-button` style so it fits in:
+Below the "New Game" row in `index.html` there is room for one more row. Reuse the game's own `restart-button` style so it fits in.
+
+Put this in `<head>` so the buttons stay hidden until Auth UI loads (see [`<authui-show>`](/docs/components/show)):
+
+```html title="index.html"
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
+```
+
+Below the "New Game" row:
 
 ```html title="index.html"
 <div class="above-game">

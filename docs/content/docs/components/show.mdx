@@ -47,7 +47,24 @@ Both accept a single value or a comma separated list. Valid values:
 
 ## Behaviour
 
-- Children stay hidden until the initial status is known, so protected content never flashes. Only `when="loading"` renders during that window.
+- Children stay hidden until the initial status is known. Only `when="loading"` renders during that window.
+- The in-module FOUC guard uses a constructable stylesheet (`document.adoptedStyleSheets`) so it still works under CSP `style-src 'self'`. It cannot run until the script loads.
+- **CDN users:** put this critical CSS in your page `<head>` so protected content stays hidden before the module executes:
+
+```html
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
+```
+
+Prefer the `[ready]` attribute selector (not `:defined`) so the same rule works in React, where custom elements can be defined before Auth UI sets `ready`.
+
 - `signed-out` is exact. A user who signed in with a password but still has an MFA challenge pending is `mfa-required`, not `signed-out`. Use `unless="signed-in"` when you mean "anyone who is not fully in".
 - The element renders with `display: contents`, so it does not affect layout.
 - Hiding is a convenience for UI, not a security boundary. Data access is enforced by Appwrite permissions.

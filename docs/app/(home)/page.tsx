@@ -14,11 +14,12 @@ import {
 import { CodeBlock } from "@/components/home/code-block";
 import { T } from "@/components/home/code-tokens";
 import { LiveDemo } from "@/components/home/live-demo";
-import { cdnUrl, gitConfig } from "@/lib/shared";
+import { cdnUrl, criticalCssTag, gitConfig } from "@/lib/shared";
 
 const Underscore = () => <span className="text-brand">_</span>;
 
-const heroSnippet = `<script type="module" src="${cdnUrl}"></script>
+const heroSnippet = `${criticalCssTag}
+<script type="module" src="${cdnUrl}"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -213,6 +214,14 @@ export default function HomePage() {
           </div>
 
           <CodeBlock code={heroSnippet} title="index.html">
+            {T.tag("<style>")}
+            {T.pl("authui-show:not([ready]){display:none}")}
+            {"\n  "}
+            {T.pl(
+              "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}"
+            )}
+            {T.tag("</style>")}
+            {"\n"}
             {T.tag("<script")} {T.attr("type")}={T.str('"module"')} {T.attr("src")}=
             {T.str(`"${cdnUrl}"`)}
             {T.tag(">")}
@@ -506,14 +515,14 @@ export default function HomePage() {
           </div>
           <CodeBlock
             title="prompt.txt"
-            code={`Add authentication with Auth UI (@getauthui/core) for Appwrite.\nDocs: https://getauthui.appwrite.network/llms-full.txt\n\n1. <script type="module" src="${cdnUrl}"></script>\n2. <authui-config endpoint="..." project="..." methods="email-password oauth:google">\n3. <authui-button> inside <authui-show when="signed-out">, <authui-user-button> inside <authui-show when="signed-in">\n4. Do not build custom login forms or store sessions yourself.`}
+            code={`Add authentication with Auth UI (@getauthui/core) for Appwrite.\nDocs: https://getauthui.appwrite.network/llms-full.txt\n\n1. Put <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style> in <head>, then <script type="module" src="${cdnUrl}"></script>\n2. <authui-config endpoint="..." project="..." methods="email-password oauth:google">\n3. <authui-button> inside <authui-show when="signed-out">, <authui-user-button> inside <authui-show when="signed-in">\n4. Do not build custom login forms or store sessions yourself.`}
           >
             {T.pl("Add authentication with Auth UI (@getauthui/core) for Appwrite.")}
             {"\n"}
             {T.cm("Docs: https://getauthui.appwrite.network/llms-full.txt")}
             {"\n\n"}
-            {T.kw("1.")} {T.tag("<script")} {T.attr("type")}={T.str('"module"')} {T.attr("src")}=
-            {T.str(`"${cdnUrl}"`)}
+            {T.kw("1.")} {T.pl("Put critical CSS in <head>, then")} {T.tag("<script")}{" "}
+            {T.attr("type")}={T.str('"module"')} {T.attr("src")}={T.str(`"${cdnUrl}"`)}
             {T.tag(">")}
             {T.tag("</script>")}
             {"\n"}

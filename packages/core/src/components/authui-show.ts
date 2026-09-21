@@ -3,13 +3,46 @@ import { customElement, property, state } from "lit/decorators.js";
 import { authStore } from "../store.js";
 import type { AuthUIStatus } from "../types.js";
 
-// Hide children until the auth state is known, so protected content never flashes.
-if (typeof document !== "undefined" && !document.getElementById("authui-fouc")) {
-  const style = document.createElement("style");
-  style.id = "authui-fouc";
-  style.textContent = "authui-show:not([ready]){display:none}";
-  document.head.appendChild(style);
+/**
+ * In-module FOUC guard. Prefer constructable stylesheets so strict CSP
+ * `style-src 'self'` does not block the rule. Fall back to a <style> tag
+ * for older browsers (Safari < 16.4). Pages that load the CDN as a deferred
+ * module should still put CRITICAL_FOUC_CSS in <head> so content stays
+ * hidden before this file executes.
+ */
+export const FOUC_CSS = "authui-show:not([ready]){display:none}";
+
+/** Extra critical CSS for the page <head>, covering undefined custom elements. */
+export const CRITICAL_FOUC_CSS =
+  "authui-show:not([ready]){display:none}" +
+  "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}";
+
+let foucInstalled = false;
+
+function installFoucGuard(): void {
+  if (typeof document === "undefined" || foucInstalled) return;
+  foucInstalled = true;
+
+  try {
+    if (typeof CSSStyleSheet !== "undefined" && "adoptedStyleSheets" in Document.prototype) {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(FOUC_CSS);
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      return;
+    }
+  } catch {
+    /* fall through to <style> tag */
+  }
+
+  if (!document.getElementById("authui-fouc")) {
+    const style = document.createElement("style");
+    style.id = "authui-fouc";
+    style.textContent = FOUC_CSS;
+    document.head.appendChild(style);
+  }
 }
+
+installFoucGuard();
 
 const STATUSES: AuthUIStatus[] = ["loading", "signed-out", "signed-in", "mfa-required"];
 

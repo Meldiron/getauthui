@@ -31,6 +31,7 @@ vi.mock("appwrite", async () => {
 
 import "../src/index.js";
 import { authStore } from "../src/store.js";
+import { FOUC_CSS, CRITICAL_FOUC_CSS } from "../src/components/authui-show.js";
 
 let account: AccountMock;
 
@@ -351,6 +352,24 @@ describe("<authui-show>", () => {
     expect(hidden.shadowRoot!.querySelector("slot")).toBeNull();
     expect(loading.hasAttribute("ready")).toBe(true);
     expect(loading.shadowRoot!.querySelector("slot")).not.toBeNull();
+  });
+
+  it("installs a FOUC guard via adoptedStyleSheets or a style tag", () => {
+    const sheets = document.adoptedStyleSheets ?? [];
+    const inSheets = [...sheets].some((s) => {
+      try {
+        return [...s.cssRules].some((r) =>
+          (r as CSSStyleRule).selectorText?.includes("authui-show")
+        );
+      } catch {
+        return false;
+      }
+    });
+    const tag = document.getElementById("authui-fouc");
+    expect(inSheets || !!tag).toBe(true);
+    if (tag) expect(tag.textContent).toContain("authui-show:not([ready])");
+    expect(FOUC_CSS).toContain("authui-show:not([ready])");
+    expect(CRITICAL_FOUC_CSS).toContain("authui-button:not(:defined)");
   });
 });
 

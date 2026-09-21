@@ -1,7 +1,7 @@
 // Components (side effect: registers the custom elements)
 export { AuthUIElement } from "./components/element.js";
 export { AuthUIConfigElement } from "./components/authui-config.js";
-export { AuthUIShow } from "./components/authui-show.js";
+export { AuthUIShow, CRITICAL_FOUC_CSS, FOUC_CSS } from "./components/authui-show.js";
 export { AuthUISignIn } from "./components/authui-sign-in.js";
 export { AuthUIAccount } from "./components/authui-account.js";
 export { AuthUIModal } from "./components/authui-modal.js";

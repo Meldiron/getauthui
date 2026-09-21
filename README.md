@@ -6,6 +6,15 @@
 **Drop-in authentication for Appwrite. One script tag, every sign-in method, MFA, sessions and account management, running on your own domain.**
 
 ```html
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
 <script type="module" src="https://unpkg.com/@getauthui/core"></script>
 
 <authui-config
@@ -47,8 +56,19 @@ v2 runs inside your page. Its requests to Appwrite are indistinguishable from yo
 CDN:
 
 ```html
+<style>
+  authui-show:not([ready]) {
+    display: none;
+  }
+  authui-button:not(:defined),
+  authui-user-button:not(:defined) {
+    visibility: hidden;
+  }
+</style>
 <script type="module" src="https://unpkg.com/@getauthui/core"></script>
 ```
+
+The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
 
 npm:
 
