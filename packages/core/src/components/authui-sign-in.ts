@@ -45,6 +45,8 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private error = "";
   @state() private notice: { tone: "success" | "info" | "error"; message: string } | null = null;
   @state() private showPassword = false;
+  /** Expanded OAuth provider in the accordion row (3+ providers). */
+  @state() private expandedOAuth: OAuthProviderName | null = null;
   @state() private token: PendingToken | null = null;
   private focusOnStep = false;
   @state() private resendCooldownUntil = 0;
@@ -652,29 +654,82 @@ export class AuthUISignIn extends AuthUIElement {
     const providers = [...(this.config?.methods?.oauth ?? [])];
     if (providers.length === 0) return nothing;
     const last = getLastMethod();
-    providers.sort((a, b) => {
-      const aLast = last === `oauth:${a}` ? 0 : 1;
-      const bLast = last === `oauth:${b}` ? 0 : 1;
-      return aLast - bLast;
-    });
-    const compact = providers.length > 2;
+    const lastOAuth = providers.find((p) => last === `oauth:${p}`) ?? null;
+
+    // 1–2 providers: full labels, no accordion (density is fine).
+    if (providers.length <= 2) {
+      const ordered = [...providers].sort((a, b) => {
+        const aLast = last === `oauth:${a}` ? 0 : 1;
+        const bLast = last === `oauth:${b}` ? 0 : 1;
+        return aLast - bLast;
+      });
+      return html`
+        <div class="providers">
+          ${ordered.map((p) => {
+            const isLast = last === `oauth:${p}`;
+            const label = this.t("continueWith", { provider: providerLabel(p) });
+            return html`<button
+              type="button"
+              class="btn btn-outline ${isLast ? "last-used" : ""}"
+              @click=${() => this.onOAuth(p)}
+              ?disabled=${this.busy}
+              aria-label=${isLast ? `${label}. ${this.t("lastUsed")}` : label}
+            >
+              ${providerIcon(p)}
+              <span>${label}</span>
+              ${isLast ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>` : nothing}
+            </button>`;
+          })}
+        </div>
+      `;
+    }
+
+    // 3+: Vibes-style accordion. Expand last-used (or first) by default.
+    const expanded =
+      this.expandedOAuth && providers.includes(this.expandedOAuth)
+        ? this.expandedOAuth
+        : (lastOAuth ?? providers[0]!);
     return html`
-      <div class="providers ${compact ? "two" : ""}">
+      <div
+        class="providers accordion"
+        @mouseleave=${() => {
+          this.expandedOAuth = lastOAuth ?? providers[0]!;
+        }}
+      >
         ${providers.map((p) => {
           const isLast = last === `oauth:${p}`;
-          return html`<button
-            type="button"
-            class="btn btn-outline ${isLast ? "last-used" : ""}"
-            @click=${() => this.onOAuth(p)}
-            ?disabled=${this.busy}
-            aria-label=${this.t("continueWith", { provider: providerLabel(p) })}
+          const isExpanded = expanded === p;
+          const label = this.t("continueWith", { provider: providerLabel(p) });
+          return html`<div
+            class="provider-slot ${isExpanded ? "is-expanded" : ""}"
+            @mouseenter=${() => {
+              this.expandedOAuth = p;
+            }}
           >
-            ${providerIcon(p)}
-            <span
-              >${compact ? providerLabel(p) : this.t("continueWith", { provider: providerLabel(p) })}</span
+            <button
+              type="button"
+              class="btn btn-outline"
+              @click=${() => this.onOAuth(p)}
+              @focus=${() => {
+                this.expandedOAuth = p;
+              }}
+              ?disabled=${this.busy}
+              aria-label=${isLast ? `${label}. ${this.t("lastUsed")}` : label}
             >
-            ${isLast ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>` : nothing}
-          </button>`;
+              ${providerIcon(p)}
+              <span class="provider-label"
+                ><span><span class="provider-label-text">${label}</span></span></span
+              >
+              ${
+                isLast
+                  ? html`<span class="oauth-last-used" data-last-used=${p} aria-hidden="true">
+                      <span class="oauth-last-used-dot"></span>
+                      <span class="oauth-last-used-pill">${this.t("lastUsed")}</span>
+                    </span>`
+                  : nothing
+              }
+            </button>
+          </div>`;
         })}
       </div>
     `;

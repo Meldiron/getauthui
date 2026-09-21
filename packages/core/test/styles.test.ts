@@ -36,6 +36,30 @@ describe("shared layout styles", () => {
     const cssText = String(base);
     expect(cssText).toMatch(/\.field-header\s*\{[^}]*justify-content:\s*space-between/s);
   });
+
+  it("lays out 3+ OAuth providers as an accordion row", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.providers\.accordion\s*\{[^}]*display:\s*flex/s);
+    expect(cssText).toMatch(
+      /\.providers\.accordion\s*>\s*\.provider-slot\.is-expanded\s*\{[^}]*flex-grow:\s*1/s
+    );
+  });
+
+  it("styles empty states with an icon well and dashed card", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.empty-well\s*\{[^}]*border:\s*1px\s+dashed/s);
+    expect(cssText).toMatch(/\.empty-icon\s*\{[^}]*border-radius:\s*999px/s);
+  });
+
+  it("gives danger cards a muted footer for confirm actions", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(
+      /\.card-footer\s*\{[^}]*border-top:\s*1px\s+solid\s+var\(--authui-border\)/s
+    );
+    expect(cssText).toMatch(
+      /\.card-footer\s*\{[^}]*background:\s*color-mix\(in\s+oklab,\s*var\(--authui-muted\)/s
+    );
+  });
 });
 
 describe("design tokens", () => {
