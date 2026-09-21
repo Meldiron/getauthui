@@ -328,6 +328,8 @@ export interface AuthUIStrings {
   passwordStrengthFair: string;
   passwordStrengthStrong: string;
   passwordStrengthVeryStrong: string;
+  /** Badge on the last-used sign-in method. */
+  lastUsed: string;
   signedInAs: string;
   manageAccount: string;
   dialogAccount: string;

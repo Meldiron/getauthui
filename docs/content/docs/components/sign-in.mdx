@@ -41,3 +41,7 @@ The host is `display: block` with `max-width: 420px`. Override `max-width` on th
 ## Password strength
 
 Sign-up, password reset and change-password show a live strength meter as the user types. Scoring is client-only (length and character classes). Override the labels with `strings.passwordStrengthTooWeak` through `strings.passwordStrengthVeryStrong`.
+
+## Last used method
+
+After a successful sign-in, Auth UI stores the method key in `localStorage` (`authui:last-method`) and highlights it the next time the form opens (OAuth providers are sorted to the top, passwordless and email get a "Last used" badge). Nothing is sent to a server.

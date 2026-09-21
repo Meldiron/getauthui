@@ -303,6 +303,24 @@ export const base = css`
     color: var(--authui-muted-foreground);
     margin: 0;
   }
+
+  .btn.last-used {
+    border-color: var(--authui-brand);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--authui-brand) 35%, transparent);
+  }
+  .last-used-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-inline-start: auto;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--authui-brand);
+    background: color-mix(in oklab, var(--authui-brand) 12%, transparent);
+  }
   .form {
     display: flex;
     flex-direction: column;

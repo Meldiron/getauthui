@@ -10,6 +10,7 @@ import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
 import { scorePassword } from "../password-strength.js";
+import { getLastMethod, rememberLastMethod } from "../last-method.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -168,6 +169,7 @@ export class AuthUISignIn extends AuthUIElement {
     void this.run(async () => {
       await authStore.signInWithEmailPassword(this.email, this.password);
       this.password = "";
+      rememberLastMethod("email-password");
       this.fire("authui-success", { method: "email-password" });
     });
   };
@@ -178,6 +180,7 @@ export class AuthUISignIn extends AuthUIElement {
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
       this.password = "";
+      rememberLastMethod("email-password");
       this.fire("authui-success", { method: "sign-up" });
     });
   };
@@ -185,12 +188,14 @@ export class AuthUISignIn extends AuthUIElement {
   private onGuest = () => {
     void this.run(async () => {
       await authStore.signInAnonymously();
+      rememberLastMethod("anonymous");
       this.fire("authui-success", { method: "anonymous" });
     });
   };
 
   private onOAuth = (provider: OAuthProviderName) => {
     void this.run(async () => {
+      rememberLastMethod(`oauth:${provider}`);
       await authStore.signInWithOAuth(provider);
       if (authStore.isPreview) {
         this.fire("authui-success", { method: "oauth" });
@@ -278,6 +283,7 @@ export class AuthUISignIn extends AuthUIElement {
       await authStore.signInWithToken(token.userId, this.code);
       this.code = "";
       this.token = null;
+      rememberLastMethod(token.kind);
       this.fire("authui-success", { method: token.kind });
     }, "code");
   };
@@ -634,26 +640,33 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderProviders(): TemplateResult | typeof nothing {
-    const providers = this.config?.methods?.oauth ?? [];
+    const providers = [...(this.config?.methods?.oauth ?? [])];
     if (providers.length === 0) return nothing;
+    const last = getLastMethod();
+    providers.sort((a, b) => {
+      const aLast = last === `oauth:${a}` ? 0 : 1;
+      const bLast = last === `oauth:${b}` ? 0 : 1;
+      return aLast - bLast;
+    });
     const compact = providers.length > 2;
     return html`
       <div class="providers ${compact ? "two" : ""}">
-        ${providers.map(
-          (p) =>
-            html`<button
-              type="button"
-              class="btn btn-outline"
-              @click=${() => this.onOAuth(p)}
-              ?disabled=${this.busy}
-              aria-label=${this.t("continueWith", { provider: providerLabel(p) })}
+        ${providers.map((p) => {
+          const isLast = last === `oauth:${p}`;
+          return html`<button
+            type="button"
+            class="btn btn-outline ${isLast ? "last-used" : ""}"
+            @click=${() => this.onOAuth(p)}
+            ?disabled=${this.busy}
+            aria-label=${this.t("continueWith", { provider: providerLabel(p) })}
+          >
+            ${providerIcon(p)}
+            <span
+              >${compact ? providerLabel(p) : this.t("continueWith", { provider: providerLabel(p) })}</span
             >
-              ${providerIcon(p)}
-              <span
-                >${compact ? providerLabel(p) : this.t("continueWith", { provider: providerLabel(p) })}</span
-              >
-            </button>`
-        )}
+            ${isLast ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>` : nothing}
+          </button>`;
+        })}
       </div>
     `;
   }
@@ -684,7 +697,18 @@ export class AuthUISignIn extends AuthUIElement {
         }
         ${
           emailPassword
-            ? html`<form class="form" @submit=${this.onSignIn} novalidate>
+            ? html`<form
+                class="form ${getLastMethod() === "email-password" ? "last-used-form" : ""}"
+                @submit=${this.onSignIn}
+                novalidate
+              >
+                ${
+                  getLastMethod() === "email-password"
+                    ? html`<p class="hint">
+                        <span class="last-used-badge">${this.t("lastUsed")}</span>
+                      </p>`
+                    : nothing
+                }
                 ${this.emailField()}
                 ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
                 ${this.renderError()} ${this.submitButton(this.t("signIn"))}
@@ -694,16 +718,17 @@ export class AuthUISignIn extends AuthUIElement {
         ${
           passwordless.length > 0
             ? html`<div class="stack-sm">
-                ${passwordless.map(
-                  (p) =>
-                    html`<button
-                      type="button"
-                      class="btn btn-secondary btn-block"
-                      @click=${() => this.go(p.step)}
-                    >
-                      ${p.icon} ${p.label}
-                    </button>`
-                )}
+                ${passwordless.map((p) => {
+                  const isLast = getLastMethod() === p.step;
+                  return html`<button
+                    type="button"
+                    class="btn btn-secondary btn-block ${isLast ? "last-used" : ""}"
+                    @click=${() => this.go(p.step)}
+                  >
+                    ${p.icon} ${p.label}
+                    ${isLast ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>` : nothing}
+                  </button>`;
+                })}
               </div>`
             : nothing
         }
@@ -711,11 +736,16 @@ export class AuthUISignIn extends AuthUIElement {
           m.anonymous
             ? html`<button
                 type="button"
-                class="btn btn-ghost btn-block"
+                class="btn btn-ghost btn-block ${getLastMethod() === "anonymous" ? "last-used" : ""}"
                 @click=${this.onGuest}
                 ?disabled=${this.busy}
               >
                 ${icons.ghost} ${this.t("continueAsGuest")}
+                ${
+                  getLastMethod() === "anonymous"
+                    ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>`
+                    : nothing
+                }
               </button>`
             : nothing
         }

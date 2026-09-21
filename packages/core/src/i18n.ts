@@ -161,6 +161,7 @@ export const defaultStrings: AuthUIStrings = {
   passwordStrengthFair: "Fair",
   passwordStrengthStrong: "Strong",
   passwordStrengthVeryStrong: "Very strong",
+  lastUsed: "Last used",
   signedInAs: "Signed in as",
   manageAccount: "Manage account",
   dialogAccount: "Account",
