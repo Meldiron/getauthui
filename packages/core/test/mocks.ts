@@ -95,6 +95,11 @@ export function createAccountMock() {
     createMFAAuthenticator: vi.fn(async () => ({ secret: "ABCDEF", uri: "otpauth://totp/x" })),
     updateMFAAuthenticator: vi.fn(async () => ({})),
     createMFARecoveryCodes: vi.fn(async () => ({ recoveryCodes: ["aaaa-bbbb", "cccc-dddd"] })),
+    getMFARecoveryCodes: vi.fn(async () => ({ recoveryCodes: ["aaaa-bbbb", "cccc-dddd"] })),
+    updateMFARecoveryCodes: vi.fn(async () => ({ recoveryCodes: ["eeee-ffff", "gggg-hhhh"] })),
+    createEmailVerification: vi.fn(async () => ({})),
+    createVerification: vi.fn(async () => ({})),
+    updatePassword: vi.fn(async () => ({})),
   };
   return mock;
 }

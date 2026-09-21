@@ -596,3 +596,133 @@ describe("auth notice and last-method bugs", () => {
     expect(account.createOAuth2Token).toHaveBeenCalled();
   });
 });
+
+describe("account step-up and cooldown", () => {
+  it("retries the protected action after step-up MFA verify", async () => {
+    const err = (type: string, code = 401) => Object.assign(new Error(type), { type, code });
+    let createCalls = 0;
+    account.createMFARecoveryCodes.mockImplementation(async () => {
+      createCalls += 1;
+      if (createCalls === 1) throw err("user_challenge_required");
+      return { recoveryCodes: ["aaaa-bbbb", "cccc-dddd"] };
+    });
+
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const viewBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /view recovery|generate recovery/i.test(b.textContent ?? "")
+    );
+    expect(viewBtn).toBeTruthy();
+    viewBtn!.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).stepUp).toBeTruthy();
+
+    const factorBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /authenticator/i.test(b.textContent ?? "")
+    );
+    expect(factorBtn).toBeTruthy();
+    factorBtn!.click();
+    await tick();
+    await (el as any).updateComplete;
+
+    const codeInput = el.shadowRoot!.querySelector<HTMLInputElement>("#acc-stepup");
+    expect(codeInput).toBeTruthy();
+    codeInput!.value = "123456";
+    codeInput!.dispatchEvent(new Event("input"));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await tick();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).stepUp).toBeNull();
+    expect(createCalls).toBe(2);
+    expect(shadowText(el)).toMatch(/aaaa-bbbb/);
+  });
+
+  it("ticks the verify-email cooldown label while the timer is active", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: false,
+      phoneVerification: false,
+      phone: "",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    vi.useFakeTimers();
+    try {
+      (el as any).startVerifyEmailCooldown();
+      await (el as any).updateComplete;
+      expect(shadowText(el)).toMatch(/Sent\. You can resend in \d+ s/);
+      const before = Number((shadowText(el).match(/resend in (\d+) s/) ?? [])[1]);
+      expect(before).toBeGreaterThan(40);
+
+      await vi.advanceTimersByTimeAsync(3000);
+      await (el as any).updateComplete;
+      const after = Number((shadowText(el).match(/resend in (\d+) s/) ?? [])[1]);
+      expect(after).toBeLessThan(before);
+      expect(after).toBeGreaterThan(0);
+    } finally {
+      (el as any).clearVerifyEmailCooldownTimer();
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("user-button menu placement", () => {
+  it("flips the menu above the trigger when space below is tight", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-user-button></authui-user-button>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    el.shadowRoot!.querySelector<HTMLButtonElement>(".trigger")!.click();
+    await (el as any).updateComplete;
+
+    const trigger = el.shadowRoot!.querySelector(".trigger") as HTMLElement;
+    const menu = el.shadowRoot!.querySelector(".menu") as HTMLElement;
+    expect(menu).not.toBeNull();
+
+    // Near the bottom: almost no room below, plenty above.
+    Object.defineProperty(trigger, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        top: 500,
+        bottom: 532,
+        left: 200,
+        right: 232,
+        width: 32,
+        height: 32,
+        x: 200,
+        y: 500,
+        toJSON() {
+          return this;
+        },
+      }),
+    });
+    Object.defineProperty(menu, "offsetHeight", { configurable: true, get: () => 180 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 540 });
+
+    (el as any).placeMenu();
+    await (el as any).updateComplete;
+
+    expect((el as any).menuAbove).toBe(true);
+    expect(el.shadowRoot!.querySelector(".menu")!.classList.contains("above")).toBe(true);
+  });
+});

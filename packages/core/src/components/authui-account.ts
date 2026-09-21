@@ -168,11 +168,21 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private confirmSignOutAll = false;
   @state() private confirmDisconnectId: string | null = null;
   @state() private verifyEmailCooldownUntil = 0;
+  private verifyEmailCooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.active = this.tab;
     this.hydrate();
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.clearVerifyEmailCooldownTimer();
+    if (this.noticeTimer) {
+      clearTimeout(this.noticeTimer);
+      this.noticeTimer = null;
+    }
   }
 
   protected willUpdate(changed: Map<string, unknown>): void {
@@ -408,12 +418,27 @@ export class AuthUIAccount extends AuthUIElement {
       "verify",
       async () => {
         await authStore.sendEmailVerification();
-        this.verifyEmailCooldownUntil = Date.now() + 45000;
-        window.setTimeout(() => this.requestUpdate(), 45000);
+        this.startVerifyEmailCooldown();
       },
       this.t("verificationSent")
     );
   };
+
+  private startVerifyEmailCooldown(): void {
+    this.verifyEmailCooldownUntil = Date.now() + 45000;
+    this.clearVerifyEmailCooldownTimer();
+    this.verifyEmailCooldownTimer = setInterval(() => {
+      this.requestUpdate();
+      if (Date.now() >= this.verifyEmailCooldownUntil) this.clearVerifyEmailCooldownTimer();
+    }, 1000);
+  }
+
+  private clearVerifyEmailCooldownTimer(): void {
+    if (this.verifyEmailCooldownTimer) {
+      clearInterval(this.verifyEmailCooldownTimer);
+      this.verifyEmailCooldownTimer = null;
+    }
+  }
 
   private onSendPhoneVerification = () => {
     void this.run("verify-phone", async () => {
@@ -449,7 +474,7 @@ export class AuthUIAccount extends AuthUIElement {
         await authStore.updatePassword(this.newPassword, this.oldPassword);
         this.oldPassword = this.newPassword = this.newPasswordConfirm = "";
       },
-      this.t("passwordUpdated")
+      this.t("passwordChanged")
     );
   };
 
@@ -554,12 +579,18 @@ export class AuthUIAccount extends AuthUIElement {
     if (!this.requireValid(e)) return;
     const s = this.stepUp;
     if (!s?.challenge) return;
-    void this.run("stepup-code", async () => {
-      await authStore.completeMfaChallenge(s.challenge!.id, this.stepUpCode, { signIn: false });
-      this.stepUp = null;
-      this.stepUpCode = "";
-      await s.retry();
-    });
+    // Retry the protected action only after run() clears this.busy. Awaiting
+    // s.retry() inside the stepup-code action was a no-op (run returns early when busy).
+    void (async () => {
+      let verified = false;
+      await this.run("stepup-code", async () => {
+        await authStore.completeMfaChallenge(s.challenge!.id, this.stepUpCode, { signIn: false });
+        this.stepUp = null;
+        this.stepUpCode = "";
+        verified = true;
+      });
+      if (verified) await s.retry();
+    })();
   };
 
   private onDeleteSession = (id: string) => {
