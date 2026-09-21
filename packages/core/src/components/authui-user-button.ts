@@ -42,9 +42,12 @@ export class AuthUIUserButton extends AuthUIElement {
       .menu {
         position: absolute;
         top: calc(100% + 6px);
+        bottom: auto;
         inset-inline-end: 0;
         min-width: 220px;
         max-width: min(320px, 90vw);
+        max-height: min(360px, calc(100dvh - 16px));
+        overflow-y: auto;
         background: var(--authui-popover);
         color: var(--authui-popover-foreground);
         border: 1px solid var(--authui-border);
@@ -55,6 +58,10 @@ export class AuthUIUserButton extends AuthUIElement {
         display: flex;
         flex-direction: column;
         gap: 2px;
+      }
+      .menu.above {
+        top: auto;
+        bottom: calc(100% + 6px);
       }
       .menu-header {
         min-width: 0;
@@ -131,6 +138,7 @@ export class AuthUIUserButton extends AuthUIElement {
   @property({ type: String }) src = "";
 
   @state() private menuOpen = false;
+  @state() private menuAbove = false;
   @state() private teams: Models.Team<Models.Preferences>[] = [];
   @state() private teamsLoading = false;
   @state() private activeTeamId: string | null = null;
@@ -140,6 +148,8 @@ export class AuthUIUserButton extends AuthUIElement {
     document.addEventListener("click", this.onDocumentClick, true);
     document.addEventListener("keydown", this.onKeydown);
     this.addEventListener("keydown", this.onKeydown);
+    window.addEventListener("resize", this.onReposition);
+    window.addEventListener("scroll", this.onReposition, true);
   }
 
   disconnectedCallback(): void {
@@ -147,6 +157,31 @@ export class AuthUIUserButton extends AuthUIElement {
     document.removeEventListener("click", this.onDocumentClick, true);
     document.removeEventListener("keydown", this.onKeydown);
     this.removeEventListener("keydown", this.onKeydown);
+    window.removeEventListener("resize", this.onReposition);
+    window.removeEventListener("scroll", this.onReposition, true);
+  }
+
+  private onReposition = (): void => {
+    if (this.menuOpen) this.placeMenu();
+  };
+
+  /** Flip the menu above the trigger when there is not enough space below. */
+  private placeMenu(): void {
+    const trigger = this.renderRoot?.querySelector(".trigger") as HTMLElement | null;
+    const menu = this.renderRoot?.querySelector(".menu") as HTMLElement | null;
+    if (!trigger || !menu) return;
+    const tr = trigger.getBoundingClientRect();
+    const gap = 6;
+    const margin = 8;
+    // Measure natural height without the previous max-height clamp.
+    menu.style.maxHeight = "";
+    const needed = menu.offsetHeight + gap;
+    const spaceBelow = window.innerHeight - tr.bottom;
+    const spaceAbove = tr.top;
+    const above = spaceBelow < needed && spaceAbove > spaceBelow;
+    if (above !== this.menuAbove) this.menuAbove = above;
+    const available = Math.max(80, (above ? spaceAbove : spaceBelow) - gap - margin);
+    menu.style.maxHeight = `${available}px`;
   }
 
   private onDocumentClick = (e: Event) => {
@@ -202,9 +237,19 @@ export class AuthUIUserButton extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("menuOpen") && this.menuOpen) {
-      if (this.showTeams) void this.loadTeams();
-      requestAnimationFrame(() => this.focusMenuItem(0));
+    if (changed.has("menuOpen")) {
+      if (this.menuOpen) {
+        if (this.showTeams) void this.loadTeams();
+        requestAnimationFrame(() => {
+          this.placeMenu();
+          this.focusMenuItem(0);
+        });
+      } else {
+        this.menuAbove = false;
+      }
+    }
+    if (this.menuOpen && (changed.has("teams") || changed.has("teamsLoading"))) {
+      requestAnimationFrame(() => this.placeMenu());
     }
   }
 
@@ -268,7 +313,7 @@ export class AuthUIUserButton extends AuthUIElement {
       </button>
       ${
         this.menuOpen
-          ? html`<div class="menu" role="menu">
+          ? html`<div class="menu ${this.menuAbove ? "above" : ""}" role="menu">
               <div class="menu-header">
                 <span class="row-title" title=${label}>${label}</span>
                 ${
