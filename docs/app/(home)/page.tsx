@@ -136,16 +136,7 @@ const steps = [
     desc: "Your users pick a method and sign in. The session belongs to your page, so the Appwrite SDK in your own code sees it right away.",
     code: (
       <>
-        {T.kw("import")}
-        {" "}
-        {T.pl("{")}
-        {" "}
-        {T.fn("AuthUI")}
-        {" "}
-        {T.pl("}")}
-        {" "}
-        {T.kw("from")}
-        {" "}
+        {T.kw("import")} {T.pl("{")} {T.fn("AuthUI")} {T.pl("}")} {T.kw("from")}{" "}
         {T.str('"@getauthui/core"')}
         {T.pl(";")}
         {"\n\n"}

@@ -164,9 +164,7 @@ describe("<authui-sign-in>", () => {
     const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
     await tick();
     await (el as any).updateComplete;
-    const toggle = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      ".input-wrap button.btn-icon"
-    )!;
+    const toggle = el.shadowRoot!.querySelector<HTMLButtonElement>(".input-wrap button.btn-icon")!;
     expect(toggle.getAttribute("tabindex")).not.toBe("-1");
     expect(toggle.getAttribute("aria-label")).toMatch(/Show password|Hide password/);
   });
