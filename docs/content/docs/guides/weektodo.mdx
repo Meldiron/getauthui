@@ -324,13 +324,49 @@ Import replaces local data the same way a `.wtdb` file import does, then reloads
 
 ## Optional: account button in the sidebar
 
-If you want a persistent trigger outside Settings, drop a user button at the bottom of `src/components/layout/sideBar.vue`, above the gear icon:
+If you want a persistent trigger outside Settings, put an account control at the bottom of `src/components/layout/sideBar.vue`, above the gear icon. WeekToDo’s rail is icon-only (`bi-*` at 1.25rem with transparent padding until hover). The default [`<authui-user-button>`](/docs/components/user-button) Sign in state is a shadow-DOM primary pill, so it cannot match that rail from outside CSS. Use [`<authui-show>`](/docs/components/show) with a Bootstrap person icon while signed out, and keep the user button only while signed in (its avatar trigger is already circular and transparent):
 
 ```html title="src/components/layout/sideBar.vue"
-<authui-user-button style="width: 40px; margin: 0.5rem auto; overflow: hidden"></authui-user-button>
+<authui-show when="signed-out">
+  <i class="bi-person" title="Sign in" @click="openSignIn"></i>
+</authui-show>
+<authui-show when="signed-in">
+  <authui-user-button class="sidebar-authui"></authui-user-button>
+</authui-show>
 ```
 
-[`<authui-user-button>`](/docs/components/user-button) shows Sign in while signed out and the avatar menu while signed in; WeekToDo’s sidebar is an icon-only rail about 58px wide, so the default Sign in pill overflows unless the button is constrained as shown.
+In the same file’s `<script>`, import Auth UI and open the sign-in modal (same helper as Settings → Data; sideBar needs its own copy):
+
+```js title="src/components/layout/sideBar.vue"
+import { AuthUI } from "@getauthui/core";
+
+// inside methods:
+openSignIn() {
+  AuthUI.open("sign-in");
+},
+```
+
+Center the signed-in avatar in the rail (no bulky margin). `authui-show` uses `display: contents` when ready, so the icon and button sit as flex children of `.side-bar`:
+
+```css title="src/components/layout/sideBar.vue"
+.side-bar > i,
+.side-bar authui-show > i,
+.sidebar-icon {
+  font-size: 1.25rem;
+  padding: 10px;
+  margin-bottom: 9px;
+  align-self: center;
+  cursor: pointer;
+  transition: 0.4s cubic-bezier(0.2, 1, 0.1, 1);
+}
+
+.side-bar authui-user-button.sidebar-authui {
+  align-self: center;
+  margin-bottom: 9px;
+  display: flex;
+  justify-content: center;
+}
+```
 
 </Step>
 <Step>
