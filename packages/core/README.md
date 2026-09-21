@@ -15,7 +15,7 @@
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.6"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.7"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -65,7 +65,7 @@ CDN:
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.6"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.7"></script>
 ```
 
 The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
