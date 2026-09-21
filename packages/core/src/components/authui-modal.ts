@@ -56,21 +56,49 @@ export class AuthUIModal extends AuthUIElement {
           transform: none;
         }
       }
-      .body {
-        padding: 24px;
+      .frame {
+        display: flex;
+        flex-direction: column;
         max-height: calc(100dvh - 2rem);
+        min-height: 0;
+        position: relative;
+      }
+      .chrome {
+        flex-shrink: 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 8px 8px 0;
+        background: var(--authui-background);
+      }
+      .body {
+        padding: 4px 24px 28px;
         overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
       }
       .close {
-        position: absolute;
-        top: 12px;
-        inset-inline-end: 12px;
         width: 32px;
         height: 32px;
         border-radius: var(--authui-radius-sm);
         opacity: 0.7;
       }
       .close:hover {
+        opacity: 1;
+      }
+      .scroll-fade {
+        pointer-events: none;
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        height: 40px;
+        border-radius: 0 0 var(--authui-radius-lg) var(--authui-radius-lg);
+        background: linear-gradient(to top, var(--authui-background), transparent);
+        opacity: 0;
+        transition: opacity 150ms;
+      }
+      .scroll-fade.show {
         opacity: 1;
       }
       authui-sign-in,
@@ -88,7 +116,10 @@ export class AuthUIModal extends AuthUIElement {
   @property({ type: Boolean, attribute: "close-on-success" }) closeOnSuccess = true;
 
   @state() private handledPending: unknown = null;
+  @state() private scrollCue = false;
   @query("dialog") private dialog?: HTMLDialogElement;
+  @query(".body") private bodyEl?: HTMLElement;
+  private bodyResizeObserver: ResizeObserver | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -100,6 +131,8 @@ export class AuthUIModal extends AuthUIElement {
     super.disconnectedCallback();
     window.removeEventListener("authui:open", this.onOpenEvent);
     window.removeEventListener("authui:close", this.onCloseEvent);
+    this.bodyResizeObserver?.disconnect();
+    this.bodyResizeObserver = null;
   }
 
   private onOpenEvent = (e: Event) => {
@@ -121,13 +154,48 @@ export class AuthUIModal extends AuthUIElement {
     this.open = false;
   }
 
+  private syncScrollCue = (): void => {
+    const el = this.bodyEl;
+    if (!el) {
+      this.scrollCue = false;
+      return;
+    }
+    const canScroll = el.scrollHeight > el.clientHeight + 1;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+    const next = canScroll && !atBottom;
+    if (next !== this.scrollCue) this.scrollCue = next;
+  };
+
+  private observeBody(): void {
+    this.bodyResizeObserver?.disconnect();
+    this.bodyResizeObserver = null;
+    const el = this.bodyEl;
+    if (!el || typeof ResizeObserver === "undefined") {
+      this.syncScrollCue();
+      return;
+    }
+    this.bodyResizeObserver = new ResizeObserver(() => this.syncScrollCue());
+    this.bodyResizeObserver.observe(el);
+    // Also watch content size changes inside the scroll body.
+    if (el.firstElementChild) this.bodyResizeObserver.observe(el.firstElementChild);
+    this.syncScrollCue();
+  }
+
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("open") && this.dialog) {
       if (this.open && !this.dialog.open) {
         this.dialog.showModal();
-        requestAnimationFrame(() => this.focusPrimary());
+        requestAnimationFrame(() => {
+          this.focusPrimary();
+          this.observeBody();
+        });
       }
       if (!this.open && this.dialog.open) this.dialog.close();
+      if (!this.open) {
+        this.scrollCue = false;
+        this.bodyResizeObserver?.disconnect();
+        this.bodyResizeObserver = null;
+      }
     }
     if (changed.has("auth")) {
       const pending = this.auth.pending;
@@ -146,6 +214,9 @@ export class AuthUIModal extends AuthUIElement {
       if (this.open && this.auth.status === "signed-out" && this.view === "account") {
         this.view = "sign-in";
       }
+    }
+    if (this.open && (changed.has("view") || changed.has("auth") || changed.has("open"))) {
+      requestAnimationFrame(() => this.observeBody());
     }
   }
 
@@ -193,24 +264,29 @@ export class AuthUIModal extends AuthUIElement {
         @authui-open=${this.onInnerOpen}
         @authui-success=${this.onSuccess}
       >
-        <div class="body">
-          <button
-            class="btn btn-ghost btn-icon close"
-            @click=${this.hide}
-            aria-label=${this.t("close")}
-          >
-            ${icons.x}
-          </button>
-          ${
-            !this.open
-              ? nothing
-              : account
-                ? html`<authui-account embedded></authui-account>`
-                : html`<authui-sign-in
-                    embedded
-                    .view=${this.view === "account" ? "sign-in" : this.view}
-                  ></authui-sign-in>`
-          }
+        <div class="frame">
+          <div class="chrome">
+            <button
+              class="btn btn-ghost btn-icon close"
+              @click=${this.hide}
+              aria-label=${this.t("close")}
+            >
+              ${icons.x}
+            </button>
+          </div>
+          <div class="body" @scroll=${this.syncScrollCue}>
+            ${
+              !this.open
+                ? nothing
+                : account
+                  ? html`<authui-account embedded></authui-account>`
+                  : html`<authui-sign-in
+                      embedded
+                      .view=${this.view === "account" ? "sign-in" : this.view}
+                    ></authui-sign-in>`
+            }
+          </div>
+          <div class="scroll-fade ${this.scrollCue ? "show" : ""}" aria-hidden="true"></div>
         </div>
       </dialog>
     `;
