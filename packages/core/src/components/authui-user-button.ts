@@ -1,4 +1,5 @@
 import { css, html, nothing } from "lit";
+import type { Models } from "appwrite";
 import { customElement, property, state } from "lit/decorators.js";
 import { AuthUIElement } from "./element.js";
 import { authStore } from "../store.js";
@@ -11,6 +12,9 @@ import { avatarInitial, icons } from "../icons.js";
  */
 @customElement("authui-user-button")
 export class AuthUIUserButton extends AuthUIElement {
+  /** When set, list the user's Appwrite teams and let them pick an active one. */
+  @property({ type: Boolean, attribute: "show-teams" }) showTeams = false;
+
   static styles = [
     ...AuthUIElement.styles,
     css`
@@ -95,6 +99,26 @@ export class AuthUIUserButton extends AuthUIElement {
         height: 16px;
         color: var(--authui-muted-foreground);
       }
+      .menu-section {
+        border-top: 1px solid var(--authui-border);
+        margin-top: 4px;
+        padding-top: 4px;
+      }
+      .menu-section-label {
+        padding: 6px 10px 2px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--authui-muted-foreground);
+      }
+      .menu-item.active {
+        background: var(--authui-accent);
+      }
+      .menu-item .check {
+        margin-inline-start: auto;
+        color: var(--authui-brand);
+      }
       .avatar {
         width: 32px;
         height: 32px;
@@ -107,6 +131,9 @@ export class AuthUIUserButton extends AuthUIElement {
   @property({ type: String }) src = "";
 
   @state() private menuOpen = false;
+  @state() private teams: Models.Team<Models.Preferences>[] = [];
+  @state() private teamsLoading = false;
+  @state() private activeTeamId: string | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -176,9 +203,44 @@ export class AuthUIUserButton extends AuthUIElement {
 
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("menuOpen") && this.menuOpen) {
+      if (this.showTeams) void this.loadTeams();
       requestAnimationFrame(() => this.focusMenuItem(0));
     }
   }
+
+  private toggleMenu = (): void => {
+    this.menuOpen = !this.menuOpen;
+    if (this.menuOpen && this.showTeams) void this.loadTeams();
+  };
+
+  private async loadTeams(): Promise<void> {
+    this.teamsLoading = true;
+    this.activeTeamId = authStore.getActiveTeamId();
+    try {
+      this.teams = await authStore.listTeams();
+      // Drop a stale active id that is no longer a membership.
+      if (this.activeTeamId && !this.teams.some((team) => team.$id === this.activeTeamId)) {
+        this.activeTeamId = null;
+        authStore.setActiveTeam(null);
+      }
+    } catch {
+      this.teams = [];
+    } finally {
+      this.teamsLoading = false;
+    }
+  }
+
+  private selectTeam = (team: Models.Team<Models.Preferences>): void => {
+    authStore.setActiveTeam({ $id: team.$id, name: team.name });
+    this.activeTeamId = team.$id;
+    this.dispatchEvent(
+      new CustomEvent("authui-active-team", {
+        detail: { teamId: team.$id, team },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  };
 
   protected render() {
     const { status, user, configured } = this.auth;
@@ -197,7 +259,7 @@ export class AuthUIUserButton extends AuthUIElement {
         class="trigger"
         aria-haspopup="menu"
         aria-expanded=${this.menuOpen ? "true" : "false"}
-        @click=${() => (this.menuOpen = !this.menuOpen)}
+        @click=${this.toggleMenu}
         aria-label=${label}
       >
         <span class="avatar"
@@ -215,6 +277,38 @@ export class AuthUIUserButton extends AuthUIElement {
                     : nothing
                 }
               </div>
+              ${
+                this.showTeams
+                  ? html`<div class="menu-section">
+                      <div class="menu-section-label">${this.t("teamsLabel")}</div>
+                      ${
+                        this.teamsLoading
+                          ? html`<div class="menu-item" aria-busy="true">
+                              <span class="spinner"></span>
+                            </div>`
+                          : this.teams.length === 0
+                            ? html`<div class="menu-item" role="note">${this.t("noTeams")}</div>`
+                            : this.teams.map(
+                                (team) =>
+                                  html`<button
+                                    class="menu-item ${team.$id === this.activeTeamId ? "active" : ""}"
+                                    role="menuitemradio"
+                                    aria-checked=${team.$id === this.activeTeamId ? "true" : "false"}
+                                    @click=${() => this.selectTeam(team)}
+                                  >
+                                    ${icons.users}
+                                    <span title=${team.name}>${team.name}</span>
+                                    ${
+                                      team.$id === this.activeTeamId
+                                        ? html`<span class="check">${icons.check}</span>`
+                                        : nothing
+                                    }
+                                  </button>`
+                              )
+                      }
+                    </div>`
+                  : nothing
+              }
               <button
                 class="menu-item"
                 role="menuitem"

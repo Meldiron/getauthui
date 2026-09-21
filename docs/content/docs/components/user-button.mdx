@@ -21,3 +21,17 @@ The default slot is the label of the sign-in button shown while signed out.
 ## Menu
 
 Clicking the avatar opens a menu with the user's name and email, **Manage account** (opens the modal on the account screen) and **Sign out**. The menu closes on outside click and Escape.
+
+## Teams switcher
+
+Set `show-teams` to list the signed-in user's Appwrite teams in the menu and let them pick an active team. The choice is stored in `localStorage` (`authui:active-team:<projectId>`) and Auth UI emits `authui:active-team` on `window` (and `authui-active-team` on the element) with `{ teamId, team }`. This is not team administration; create and invite members in the Appwrite Console or your own UI.
+
+```html
+<authui-user-button show-teams></authui-user-button>
+
+<script>
+  AuthUI.on("active-team", ({ teamId, team }) => {
+    console.log("active team", teamId, team?.name);
+  });
+</script>
+```

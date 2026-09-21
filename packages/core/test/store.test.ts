@@ -261,3 +261,29 @@ describe("handleRedirect notices", () => {
     expect(pending).toMatchObject({ type: "notice", tone: "error" });
   });
 });
+
+describe("teams", () => {
+  it("persists the active team and emits active-team", async () => {
+    authStore.configure(config);
+    await tick();
+    const listener = vi.fn();
+    authStore.on("active-team", listener);
+    authStore.setActiveTeam({ $id: "t1", name: "Acme" });
+    expect(authStore.getActiveTeamId()).toBe("t1");
+    expect(listener).toHaveBeenCalledWith({
+      teamId: "t1",
+      team: { $id: "t1", name: "Acme" },
+    });
+    authStore.setActiveTeam(null);
+    expect(authStore.getActiveTeamId()).toBeNull();
+  });
+
+  it("returns no teams while signed out or in preview", async () => {
+    authStore.configure(config);
+    await tick();
+    expect(await authStore.listTeams()).toEqual([]);
+    authStore.configure({ ...config, preview: true });
+    await tick();
+    expect(await authStore.listTeams()).toEqual([]);
+  });
+});

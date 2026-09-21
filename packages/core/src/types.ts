@@ -166,6 +166,7 @@ export type AuthUIEventMap = {
   "signed-in": Models.User<Models.Preferences>;
   "signed-out": undefined;
   error: { message: string; type: string; code: number };
+  "active-team": { teamId: string | null; team: { $id: string; name: string } | null };
 };
 
 export type AuthUIEventName = keyof AuthUIEventMap;
@@ -330,6 +331,9 @@ export interface AuthUIStrings {
   passwordStrengthVeryStrong: string;
   /** Badge on the last-used sign-in method. */
   lastUsed: string;
+  teamsLabel: string;
+  noTeams: string;
+  activeTeam: string;
   signedInAs: string;
   manageAccount: string;
   dialogAccount: string;

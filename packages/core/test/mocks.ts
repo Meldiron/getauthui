@@ -113,6 +113,9 @@ export function mockAppwrite() {
         return this;
       }
     },
+    Teams: class {
+      list = vi.fn(async () => ({ teams: [] }));
+    },
     Account: class {
       constructor() {
         return account;

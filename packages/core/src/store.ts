@@ -1,4 +1,4 @@
-import { Account, Client, ID, type Models } from "appwrite";
+import { Account, Client, ID, Teams, type Models } from "appwrite";
 
 /**
  * Appwrite renamed several Account methods in 1.8 (e.g. createMfaAuthenticator became
@@ -20,6 +20,7 @@ export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
 import { defaultStrings } from "./i18n.js";
 import { PreviewAccount } from "./preview.js";
 import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
+import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 import type {
   AuthUIConfig,
   AuthUIEventMap,
@@ -72,6 +73,8 @@ export class AuthStore {
     this.client = new Client().setEndpoint(config.endpoint).setProject(config.project);
     this.preview = config.preview ? new PreviewAccount() : null;
     this.account = this.preview ? (this.preview as unknown as Account) : new Account(this.client);
+    this.teams = null;
+    this.activeTeamId = getStoredActiveTeamId(config.project);
     this.setState({ configured: true, status: "loading", configError: null });
     if (this.preview) {
       void this.refresh();
@@ -131,6 +134,40 @@ export class AuthStore {
    */
   getAccount(): Account | null {
     return this.account;
+  }
+
+  private teams: Teams | null = null;
+  private activeTeamId: string | null = null;
+
+  /** List teams the signed-in user belongs to. Empty in preview or when signed out. */
+  async listTeams(): Promise<Models.Team<Models.Preferences>[]> {
+    if (this.preview || !this.client || this.state.status !== "signed-in") return [];
+    this.teams ??= new Teams(this.client);
+    try {
+      const res = await this.teams.list();
+      return res.teams ?? [];
+    } catch (err) {
+      this.fail(err);
+    }
+  }
+
+  getActiveTeamId(): string | null {
+    if (this.activeTeamId) return this.activeTeamId;
+    const project = this.config?.project;
+    if (!project) return null;
+    this.activeTeamId = getStoredActiveTeamId(project);
+    return this.activeTeamId;
+  }
+
+  /**
+   * Remember the active team locally and emit `active-team`.
+   * Does not call Appwrite; membership is already required to appear in listTeams().
+   */
+  setActiveTeam(team: { $id: string; name: string } | null): void {
+    const project = this.config?.project;
+    if (project) setStoredActiveTeamId(project, team?.$id ?? null);
+    this.activeTeamId = team?.$id ?? null;
+    this.emit("active-team", { teamId: this.activeTeamId, team });
   }
 
   getStrings(): AuthUIStrings {
@@ -790,6 +827,8 @@ export class AuthStore {
   reset(): void {
     this.client = null;
     this.account = null;
+    this.teams = null;
+    this.activeTeamId = null;
     this.preview = null;
     this.config = null;
     this.state = initialState();
