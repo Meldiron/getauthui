@@ -27,6 +27,8 @@ export const ErrorTypes = {
   recoveryCodesNotFound: "user_recovery_codes_not_found",
   authenticatorNotFound: "user_authenticator_not_found",
   routeNotFound: "general_route_not_found",
+  projectNotFound: "project_not_found",
+  unknownOrigin: "general_unknown_origin",
   emailAlreadyVerified: "user_email_already_verified",
   sessionNotFound: "user_session_not_found",
   wafChallenged: "waf_request_challenged",
@@ -114,9 +116,35 @@ export function describeError(
     if (param === "name") return s.errorInvalidName;
     return s.errorGeneric;
   }
+  if (e.type === ErrorTypes.projectNotFound || e.type === ErrorTypes.unknownOrigin) {
+    return s.errorConfig;
+  }
+  if (e.type === ErrorTypes.routeNotFound) {
+    return s.errorConfigEndpoint;
+  }
   if (e.code === 0 && /fetch|network/i.test(e.message)) return s.errorNetwork;
   // Never surface raw messages that still contain Appwrite backtick param markers.
   if (/Invalid `\w+` param/i.test(e.message)) return s.errorGeneric;
-  if (/^\s*<(!doctype|html)/i.test(e.message)) return s.errorGeneric;
+  // toAuthUIError strips HTML 404 bodies to "". That usually means a missing /v1.
+  if (!e.message) {
+    if (e.code === 404 || e.type === ErrorTypes.routeNotFound) return s.errorConfigEndpoint;
+    return s.errorGeneric;
+  }
   return e.message || s.errorGeneric;
+}
+
+/** True when the error points at a wrong project, origin, endpoint or a dead network on first contact. */
+export function isConfigError(err: unknown): boolean {
+  const e = toAuthUIError(err);
+  if (
+    e.type === ErrorTypes.projectNotFound ||
+    e.type === ErrorTypes.unknownOrigin ||
+    e.type === ErrorTypes.routeNotFound
+  ) {
+    return true;
+  }
+  // HTML 404 body (already stripped to "").
+  if (!e.message && e.code === 404) return true;
+  if (e.code === 0 && /fetch|network|load failed|failed to fetch/i.test(e.message)) return true;
+  return false;
 }

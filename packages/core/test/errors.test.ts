@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeError, toAuthUIError } from "../src/errors.js";
+import { describeError, isConfigError, toAuthUIError } from "../src/errors.js";
 import { defaultStrings, format } from "../src/i18n.js";
 
 describe("errors", () => {
@@ -84,14 +84,34 @@ describe("errors", () => {
     ).toBe(defaultStrings.errorInvalidPhone);
   });
 
-  it("strips HTML error bodies so they never reach the UI", () => {
+  it("strips HTML error bodies and hints at a missing /v1 endpoint", () => {
     const html = "<!DOCTYPE html><html><body>not found</body></html>";
     expect(
       toAuthUIError({ message: html, type: "general_route_not_found", code: 404 }).message
     ).toBe("");
     expect(
       describeError({ message: html, type: "general_route_not_found", code: 404 }, defaultStrings)
-    ).toBe(defaultStrings.errorGeneric);
+    ).toBe(defaultStrings.errorConfigEndpoint);
+  });
+
+  it("maps project_not_found and unknown origin to the config hint", () => {
+    expect(
+      describeError({ type: "project_not_found", message: "missing", code: 404 }, defaultStrings)
+    ).toBe(defaultStrings.errorConfig);
+    expect(
+      describeError(
+        { type: "general_unknown_origin", message: "origin", code: 403 },
+        defaultStrings
+      )
+    ).toBe(defaultStrings.errorConfig);
+  });
+
+  it("flags config errors for the store preflight", () => {
+    expect(isConfigError({ type: "project_not_found", message: "x", code: 404 })).toBe(true);
+    expect(isConfigError({ type: "general_unknown_origin", message: "x", code: 403 })).toBe(true);
+    expect(isConfigError({ type: "user_invalid_credentials", message: "x", code: 401 })).toBe(
+      false
+    );
   });
 
   it("formats placeholders", () => {

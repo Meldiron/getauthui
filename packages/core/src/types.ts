@@ -154,6 +154,11 @@ export interface AuthUIState {
   mfaFactors: Models.MfaFactors | null;
   pending: AuthUIPendingAction | null;
   configured: boolean;
+  /**
+   * Developer-facing configuration problem (wrong project, origin, endpoint, or
+   * incomplete <authui-config>). When set, sign-in shows this instead of a form.
+   */
+  configError: string | null;
 }
 
 export type AuthUIEventMap = {
@@ -309,6 +314,12 @@ export interface AuthUIStrings {
   errorNetwork: string;
   errorMethodDisabled: string;
   errorNotConfigured: string;
+  /** Incomplete <authui-config> / init (missing endpoint or project). */
+  errorConfigIncomplete: string;
+  /** Wrong project, origin, endpoint, or unreachable API during the first refresh. */
+  errorConfig: string;
+  /** Hint when the endpoint looks like it is missing /v1. */
+  errorConfigEndpoint: string;
   passwordHint: string;
   signedInAs: string;
   manageAccount: string;

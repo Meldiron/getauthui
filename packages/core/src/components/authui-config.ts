@@ -53,7 +53,14 @@ export class AuthUIConfigElement extends LitElement {
   }
 
   private configure(): void {
-    if (!this.endpoint || !this.project) return;
+    if (!this.endpoint || !this.project) {
+      // Defer one microtask so attributes set in the same turn can land first
+      // (e.g. frameworks that assign properties right after createElement).
+      queueMicrotask(() => {
+        if (!this.endpoint || !this.project) authStore.notifyConfigIncomplete();
+      });
+      return;
+    }
     const config = this.toConfig();
     const current = authStore.getConfig();
     if (current && JSON.stringify(current) === JSON.stringify(config)) return;

@@ -527,6 +527,12 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderStep(): TemplateResult {
+    if (this.auth.configError) {
+      return html`<div class="alert alert-error" role="alert">
+        ${icons.alert}
+        <div class="alert-body">${this.auth.configError}</div>
+      </div>`;
+    }
     if (!this.auth.configured) {
       return html`<div class="alert alert-error" role="alert">
         ${icons.alert}

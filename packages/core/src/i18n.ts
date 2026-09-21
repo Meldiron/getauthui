@@ -148,6 +148,12 @@ export const defaultStrings: AuthUIStrings = {
   errorNetwork: "Could not reach the server. Check your connection.",
   errorMethodDisabled: "This sign-in method is disabled for this project.",
   errorNotConfigured: "Auth UI is not configured. Call AuthUI.init() or add <authui-config>.",
+  errorConfigIncomplete:
+    "Auth UI is missing endpoint or project. Set them on <authui-config> or pass them to AuthUI.init().",
+  errorConfig:
+    "Auth UI cannot reach this Appwrite project. Check that endpoint ends with /v1, the project ID is correct, and this hostname is registered as a Web platform.",
+  errorConfigEndpoint:
+    "Check that endpoint ends with /v1. Appwrite API URLs look like https://cloud.appwrite.io/v1.",
   passwordHint: "At least 8 characters.",
   signedInAs: "Signed in as",
   manageAccount: "Manage account",

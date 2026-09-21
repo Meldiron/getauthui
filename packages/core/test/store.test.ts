@@ -20,6 +20,41 @@ describe("AuthStore", () => {
     expect(authStore.getState().configured).toBe(true);
   });
 
+  it("warns and sets configError when the project does not exist", async () => {
+    account.get.mockRejectedValueOnce({
+      type: "project_not_found",
+      message: "Project with the requested ID could not be found.",
+      code: 404,
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorListener = vi.fn();
+    authStore.on("error", errorListener);
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(authStore.getState().status).toBe("signed-out");
+    expect(authStore.getState().configError).toMatch(/project|endpoint|platform/i);
+    expect(warn).toHaveBeenCalled();
+    expect(errorListener).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns when endpoint does not end with /v1", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    authStore.configure({ ...config, endpoint: "https://cloud.appwrite.io" });
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/\/v1/));
+    warn.mockRestore();
+  });
+
+  it("notifyConfigIncomplete leaves a developer-facing configError", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    authStore.notifyConfigIncomplete();
+    expect(authStore.getState().status).toBe("signed-out");
+    expect(authStore.getState().configured).toBe(false);
+    expect(authStore.getState().configError).toMatch(/endpoint|project/i);
+    warn.mockRestore();
+  });
+
   it("signs in with email and password and emits signed-in", async () => {
     authStore.configure(config);
     const listener = vi.fn();

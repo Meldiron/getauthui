@@ -181,8 +181,10 @@ export class AuthUIUserButton extends AuthUIElement {
   }
 
   protected render() {
-    const { status, user } = this.auth;
-    if (status === "loading")
+    const { status, user, configured } = this.auth;
+    // Only spin while a real refresh is in flight. Incomplete config used to leave
+    // status stuck on "loading" with a forever spinner.
+    if (status === "loading" && configured)
       return html`<span class="avatar"><span class="spinner"></span></span>`;
     if (status !== "signed-in" || !user) {
       return html`<button class="btn btn-primary btn-sm" @click=${() => openModal("sign-in")}>

@@ -19,7 +19,7 @@ function call<T>(target: object, names: string[], args: unknown[]): Promise<T> {
 export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
 import { defaultStrings } from "./i18n.js";
 import { PreviewAccount } from "./preview.js";
-import { describeError, ErrorTypes, isErrorType, toAuthUIError } from "./errors.js";
+import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
 import type {
   AuthUIConfig,
   AuthUIEventMap,
@@ -43,6 +43,7 @@ const initialState = (): AuthUIState => ({
   mfaFactors: null,
   pending: null,
   configured: false,
+  configError: null,
 });
 
 /**
@@ -61,16 +62,40 @@ export class AuthStore {
 
   /** Configure the Appwrite client. Safe to call more than once; the last call wins. */
   configure(config: AuthUIConfig): void {
+    const endpoint = config.endpoint.trim().replace(/\/+$/, "");
+    if (endpoint && !endpoint.endsWith("/v1")) {
+      console.warn(
+        `[authui] endpoint should end with /v1 (got "${config.endpoint}"). Without it Appwrite returns HTML 404 pages.`
+      );
+    }
     this.config = config;
     this.client = new Client().setEndpoint(config.endpoint).setProject(config.project);
     this.preview = config.preview ? new PreviewAccount() : null;
     this.account = this.preview ? (this.preview as unknown as Account) : new Account(this.client);
-    this.setState({ configured: true, status: "loading" });
+    this.setState({ configured: true, status: "loading", configError: null });
     if (this.preview) {
       void this.refresh();
     } else if (typeof window !== "undefined") {
       void this.handleRedirect().then(() => this.refresh());
     }
+  }
+
+  /**
+   * Called by <authui-config> when it is on the page but missing endpoint or project.
+   * Moves status off "loading" so the UI can show a developer-facing message.
+   */
+  notifyConfigIncomplete(): void {
+    if (this.config) return;
+    const message = this.getStrings().errorConfigIncomplete;
+    console.warn(`[authui] ${message}`);
+    this.setState({
+      status: "signed-out",
+      user: null,
+      mfaFactors: null,
+      configured: false,
+      configError: message,
+      pending: { type: "notice", tone: "error", message },
+    });
   }
 
   private preview: PreviewAccount | null = null;
@@ -174,7 +199,7 @@ export class AuthStore {
       const wasSignedIn = this.state.status === "signed-in";
       try {
         const user = await this.account.get();
-        this.setState({ status: "signed-in", user, mfaFactors: null });
+        this.setState({ status: "signed-in", user, mfaFactors: null, configError: null });
         if (!wasSignedIn) this.emit("signed-in", user);
       } catch (err) {
         if (isErrorType(err, ErrorTypes.moreFactorsRequired)) {
@@ -202,8 +227,23 @@ export class AuthStore {
             },
           });
           if (wasSignedIn) this.emit("signed-out", undefined);
+        } else if (!wasSignedIn && isConfigError(err)) {
+          const message = describeError(err, this.getStrings());
+          const hint = message || this.getStrings().errorConfig;
+          console.warn(
+            `[authui] ${hint} (endpoint=${this.config?.endpoint ?? "?"}, project=${this.config?.project ?? "?"})`
+          );
+          const e = toAuthUIError(err);
+          this.emit("error", { message: hint, type: e.type, code: e.code });
+          this.setState({
+            status: "signed-out",
+            user: null,
+            mfaFactors: null,
+            configError: hint,
+            pending: { type: "notice", tone: "error", message: hint },
+          });
         } else {
-          this.setState({ status: "signed-out", user: null, mfaFactors: null });
+          this.setState({ status: "signed-out", user: null, mfaFactors: null, configError: null });
           if (wasSignedIn) this.emit("signed-out", undefined);
         }
       }
