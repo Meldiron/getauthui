@@ -12,6 +12,8 @@ export { AuthUIUserButton } from "./components/authui-user-button.js";
 export { authStore, AuthStore } from "./store.js";
 export { openModal, closeModal } from "./modal-controller.js";
 export { describeError, ErrorTypes, isConfigError, toAuthUIError } from "./errors.js";
+export { scorePassword } from "./password-strength.js";
+export type { PasswordStrength, PasswordStrengthLevel } from "./password-strength.js";
 export { PreviewAccount } from "./preview.js";
 export { defaultStrings, providerLabel } from "./i18n.js";
 

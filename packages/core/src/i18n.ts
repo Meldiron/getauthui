@@ -155,6 +155,12 @@ export const defaultStrings: AuthUIStrings = {
   errorConfigEndpoint:
     "Check that endpoint ends with /v1. Appwrite API URLs look like https://cloud.appwrite.io/v1.",
   passwordHint: "At least 8 characters.",
+  passwordStrengthLabel: "Password strength",
+  passwordStrengthTooWeak: "Too weak",
+  passwordStrengthWeak: "Weak",
+  passwordStrengthFair: "Fair",
+  passwordStrengthStrong: "Strong",
+  passwordStrengthVeryStrong: "Very strong",
   signedInAs: "Signed in as",
   manageAccount: "Manage account",
   dialogAccount: "Account",

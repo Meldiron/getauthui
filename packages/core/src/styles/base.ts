@@ -270,6 +270,39 @@ export const base = css`
     color: var(--authui-muted-foreground);
     margin: 0;
   }
+  .strength {
+    display: grid;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .strength-meter {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    height: 4px;
+  }
+  .strength-meter span {
+    border-radius: 999px;
+    background: var(--authui-muted);
+    transition: background-color 120ms ease;
+  }
+  .strength-meter[data-level="1"] span:nth-child(-n + 1) {
+    background: var(--authui-destructive);
+  }
+  .strength-meter[data-level="2"] span:nth-child(-n + 2) {
+    background: var(--authui-warning-foreground);
+  }
+  .strength-meter[data-level="3"] span:nth-child(-n + 3) {
+    background: var(--authui-warning-foreground);
+  }
+  .strength-meter[data-level="4"] span {
+    background: var(--authui-success);
+  }
+  .strength-label {
+    font-size: 12px;
+    color: var(--authui-muted-foreground);
+    margin: 0;
+  }
   .form {
     display: flex;
     flex-direction: column;

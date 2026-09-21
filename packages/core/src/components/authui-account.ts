@@ -7,6 +7,7 @@ import { previewQrDataUrl } from "../preview.js";
 import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
+import { scorePassword } from "../password-strength.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "activity";
 
@@ -811,7 +812,28 @@ export class AuthUIAccount extends AuthUIElement {
                 @input=${this.bind("emailPassword")}
                 autocomplete="new-password"
               />
-              <p class="hint">${this.t("passwordHint")}</p>
+              ${
+                this.emailPassword
+                  ? (() => {
+                      const strength = scorePassword(this.emailPassword);
+                      return html`<div class="strength" aria-live="polite">
+                        <div
+                          class="strength-meter"
+                          data-level=${String(strength.level)}
+                          role="meter"
+                          aria-label=${this.t("passwordStrengthLabel")}
+                          aria-valuemin="0"
+                          aria-valuemax="4"
+                          aria-valuenow=${String(strength.level)}
+                          aria-valuetext=${this.t(strength.labelKey)}
+                        >
+                          <span></span><span></span><span></span><span></span>
+                        </div>
+                        <p class="strength-label">${this.t(strength.labelKey)}</p>
+                      </div>`;
+                    })()
+                  : html`<p class="hint">${this.t("passwordHint")}</p>`
+              }
             </div>
             ${this.error("guest")}
           </form>`,
@@ -1115,7 +1137,28 @@ export class AuthUIAccount extends AuthUIElement {
                     @input=${this.bind("newPassword")}
                     autocomplete="new-password"
                   />
-                  <p class="hint">${this.t("passwordHint")}</p>
+                  ${
+                    this.newPassword
+                      ? (() => {
+                          const strength = scorePassword(this.newPassword);
+                          return html`<div class="strength" aria-live="polite">
+                            <div
+                              class="strength-meter"
+                              data-level=${String(strength.level)}
+                              role="meter"
+                              aria-label=${this.t("passwordStrengthLabel")}
+                              aria-valuemin="0"
+                              aria-valuemax="4"
+                              aria-valuenow=${String(strength.level)}
+                              aria-valuetext=${this.t(strength.labelKey)}
+                            >
+                              <span></span><span></span><span></span><span></span>
+                            </div>
+                            <p class="strength-label">${this.t(strength.labelKey)}</p>
+                          </div>`;
+                        })()
+                      : html`<p class="hint">${this.t("passwordHint")}</p>`
+                  }
                 </div>
                 <div class="field">
                   <label class="label" for="acc-new-password-confirm"

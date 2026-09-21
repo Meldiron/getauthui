@@ -9,6 +9,7 @@ import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
+import { scorePassword } from "../password-strength.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -426,7 +427,11 @@ export class AuthUISignIn extends AuthUIElement {
     field: "password" | "passwordConfirm";
     hint?: string;
     forgot?: boolean;
+    /** Show the live strength meter (sign-up / reset only). */
+    meter?: boolean;
   }): TemplateResult {
+    const value = this[opts.field];
+    const strength = opts.meter ? scorePassword(value) : null;
     return html`
       <div class="field">
         <label class="label" for=${opts.id}>
@@ -451,7 +456,7 @@ export class AuthUISignIn extends AuthUIElement {
             autocomplete=${opts.autocomplete}
             required
             minlength="8"
-            .value=${this[opts.field]}
+            .value=${value}
             @input=${this.bind(opts.field)}
           />
           <button
@@ -464,7 +469,27 @@ export class AuthUISignIn extends AuthUIElement {
             ${this.showPassword ? icons.eyeOff : icons.eye}
           </button>
         </div>
-        ${opts.hint ? html`<p class="hint">${opts.hint}</p>` : nothing}
+        ${
+          strength && value
+            ? html`<div class="strength" aria-live="polite">
+                <div
+                  class="strength-meter"
+                  data-level=${String(strength.level)}
+                  role="meter"
+                  aria-label=${this.t("passwordStrengthLabel")}
+                  aria-valuemin="0"
+                  aria-valuemax="4"
+                  aria-valuenow=${String(strength.level)}
+                  aria-valuetext=${this.t(strength.labelKey)}
+                >
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <p class="strength-label">${this.t(strength.labelKey)}</p>
+              </div>`
+            : opts.hint
+              ? html`<p class="hint">${opts.hint}</p>`
+              : nothing
+        }
       </div>
     `;
   }
@@ -732,7 +757,7 @@ export class AuthUISignIn extends AuthUIElement {
               : nothing
           }
           ${this.emailField()}
-          ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint") })}
+          ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.renderError()} ${this.submitButton(this.t("createAccount"))}
         </form>
         <div class="links">
@@ -780,7 +805,7 @@ export class AuthUISignIn extends AuthUIElement {
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onReset} novalidate>
-          ${this.passwordField({ label: this.t("newPassword"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint") })}
+          ${this.passwordField({ label: this.t("newPassword"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.passwordField({ label: this.t("confirmPassword"), autocomplete: "new-password", id: "authui-password-confirm", field: "passwordConfirm" })}
           ${this.renderError()} ${this.submitButton(this.t("resetPassword"))}
         </form>

@@ -321,6 +321,13 @@ export interface AuthUIStrings {
   /** Hint when the endpoint looks like it is missing /v1. */
   errorConfigEndpoint: string;
   passwordHint: string;
+  /** Live password strength meter labels. */
+  passwordStrengthLabel: string;
+  passwordStrengthTooWeak: string;
+  passwordStrengthWeak: string;
+  passwordStrengthFair: string;
+  passwordStrengthStrong: string;
+  passwordStrengthVeryStrong: string;
   signedInAs: string;
   manageAccount: string;
   dialogAccount: string;
