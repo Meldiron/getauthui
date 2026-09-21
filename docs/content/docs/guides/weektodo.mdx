@@ -327,10 +327,10 @@ Import replaces local data the same way a `.wtdb` file import does, then reloads
 If you want a persistent trigger outside Settings, drop a user button at the bottom of `src/components/layout/sideBar.vue`, above the gear icon:
 
 ```html title="src/components/layout/sideBar.vue"
-<authui-user-button style="margin: 0.5rem auto"></authui-user-button>
+<authui-user-button style="width: 40px; margin: 0.5rem auto; overflow: hidden"></authui-user-button>
 ```
 
-[`<authui-user-button>`](/docs/components/user-button) shows Sign in while signed out and the avatar menu while signed in. No extra wiring.
+[`<authui-user-button>`](/docs/components/user-button) shows Sign in while signed out and the avatar menu while signed in; WeekToDo’s sidebar is an icon-only rail about 58px wide, so the default Sign in pill overflows unless the button is constrained as shown.
 
 </Step>
 <Step>
