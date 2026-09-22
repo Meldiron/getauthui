@@ -36,6 +36,17 @@ Auth UI is a set of framework-agnostic web components built with [Lit](https://l
 
 Earlier versions of Auth UI were a hosted login page on a separate domain. Browsers now block or partition third-party cookies, so a session created on one site cannot be read from another. Auth UI v2 runs inside your page instead. Its requests to Appwrite are indistinguishable from your own app's requests, so the session lands exactly where your app needs it. Read more in [How it works](/docs/how-it-works).
 
+## What it's not
+
+Auth UI is not a hosted identity provider and not a multi-backend auth kit. It does not:
+
+- Replace Appwrite (or work with Clerk, Auth0, Supabase Auth, and so on)
+- Run an Auth UI backend or a custom login domain
+- Store or broker sessions off your origin
+- Replace a fully custom form when you only need one Appwrite call
+
+If you need those things, see the [Comparison](/docs/comparison) page. For Appwrite apps that want drop-in Lit components on your own domain, start with [Getting started](/docs/getting-started).
+
 ## Where to go next
 
 <Cards>
@@ -43,6 +54,11 @@ Earlier versions of Auth UI were a hosted login page on a separate domain. Brows
     title="Getting started"
     href="/docs/getting-started"
     description="Add Auth UI to a page in five minutes."
+  />
+  <Card
+    title="Comparison"
+    href="/docs/comparison"
+    description="Auth UI vs Clerk, Auth0, Supabase Auth UI, and hand-rolled forms."
   />
   <Card
     title="Configuration"

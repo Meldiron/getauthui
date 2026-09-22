@@ -35,4 +35,20 @@ pnpm --filter docs dev        # http://localhost:3100
 
 ## Publishing
 
-`packages/core` publishes to npm as `@getauthui/core`. `prepublishOnly` copies the root README and LICENSE and runs the build. CDN consumers load `dist/authui.cdn.mjs` through the `unpkg` and `jsdelivr` fields.
+`packages/core` publishes to npm as `@getauthui/core` (npm user `meldiron`). `prepublishOnly` copies the root README and LICENSE and runs the build. CDN consumers load `dist/authui.cdn.mjs` through the `unpkg` and `jsdelivr` fields.
+
+**CDN pins are versioned with the package.** Homepage and docs read `docs/lib/shared.ts` (`cdnUrl`). Install snippets also live in README, `packages/core/README`, docs MDX, and `skills/authui-creator/SKILL.md`. After any version bump run `pnpm sync:cdn-pins` so every `@getauthui/core@x.y.z` pin and the skill tip move together. Do not hand-edit pins in isolation.
+
+### Humans
+
+1. `pnpm human:login` once (npm account `meldiron`).
+2. Set the new version in `packages/core/package.json` (or use an `agent:publish-*` script).
+3. `pnpm sync:cdn-pins`
+4. `pnpm human:publish` (builds, then `npm publish --access public` from `packages/core`)
+5. Commit version + pin sync, push `origin/main`, then `pnpm docs:deploy` (Appwrite Sites site `authui-docs`, monorepo root as `--code`).
+
+### Agents
+
+- `pnpm agent:publish-patch` / `agent:publish-minor` / `agent:publish-pre`: bump with `npm version --no-git-tag-version`, sync CDN pins, build, publish. Prereleases use the current branch name as the npm dist-tag.
+- Then commit the version bump and pin sync, push, and run `pnpm docs:deploy`. Wait until the Sites deployment is ready.
+- Do not run publish scripts unless the task explicitly asks for an npm release.

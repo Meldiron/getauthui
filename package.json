@@ -10,7 +10,15 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,mdx,css}\" --ignore-path .gitignore",
     "dev:core": "pnpm --filter @getauthui/core dev",
     "dev:docs": "pnpm --filter docs dev",
-    "build:docs": "pnpm --filter @getauthui/core build && pnpm --filter docs build"
+    "build:docs": "pnpm --filter @getauthui/core build && pnpm --filter docs build",
+    "sync:cdn-pins": "node scripts/sync-cdn-pins.mjs",
+    "human:login": "npm login",
+    "human:build": "pnpm --filter @getauthui/core build && echo '\\nBuild complete. Sync pins if you bumped the version (pnpm sync:cdn-pins), then: pnpm human:publish'",
+    "human:publish": "pnpm human:build && pnpm --filter @getauthui/core exec npm publish --access public && echo '\\nPublished @getauthui/core. Commit any pin sync, push origin/main, then: pnpm docs:deploy'",
+    "agent:publish-pre": "BRANCH=$(git rev-parse --abbrev-ref HEAD) && pnpm --filter @getauthui/core exec npm version prerelease --preid=$BRANCH --no-git-tag-version && pnpm sync:cdn-pins && pnpm --filter @getauthui/core build && pnpm --filter @getauthui/core exec npm publish --access public --tag $BRANCH && echo '\\nPrerelease published. Commit version + pin sync, push, then: pnpm docs:deploy'",
+    "agent:publish-patch": "pnpm --filter @getauthui/core exec npm version patch --no-git-tag-version && pnpm sync:cdn-pins && pnpm --filter @getauthui/core build && pnpm --filter @getauthui/core exec npm publish --access public && echo '\\nPatch published. Commit version + pin sync, push origin/main, then: pnpm docs:deploy'",
+    "agent:publish-minor": "pnpm --filter @getauthui/core exec npm version minor --no-git-tag-version && pnpm sync:cdn-pins && pnpm --filter @getauthui/core build && pnpm --filter @getauthui/core exec npm publish --access public && echo '\\nMinor published. Commit version + pin sync, push origin/main, then: pnpm docs:deploy'",
+    "docs:deploy": "appwrite client --endpoint https://fra.cloud.appwrite.io/v1 --project-id 6aafa421001e80b7153a && appwrite sites create-deployment --site-id authui-docs --code . --activate -f"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

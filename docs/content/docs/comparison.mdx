@@ -1,0 +1,65 @@
+---
+title: Comparison
+description: How Auth UI compares to Clerk Components, Auth0 Universal Login, Supabase Auth UI, and hand-rolled Appwrite forms.
+---
+
+## Feature comparison
+
+| Feature | Auth UI | Clerk Components | Auth0 Universal Login | Supabase Auth UI | Hand-rolled Appwrite forms |
+| --- | --- | --- | --- | --- | --- |
+| Works with Appwrite | Yes | No | No | No | Yes |
+| Hosted IdP / auth backend | No (uses your Appwrite) | Yes | Yes | Yes (Supabase Auth) | No |
+| Session on your origin | Yes | Depends on setup | Hosted login domain | Yes (your Supabase project) | Yes |
+| Drop-in Lit web components | Yes | React-first components | Hosted pages | React / framework packages | You build them |
+| One script tag / CDN | Yes | No | Embed / redirect | Limited | N/A |
+| Email / password, OAuth, passwordless | Via Appwrite | Yes | Yes | Yes | You wire Appwrite SDK |
+| MFA UI | Yes | Yes | Yes | Partial | You build it |
+| Account / sessions UI | Yes | Yes | Dashboard / APIs | Limited | You build it |
+| Framework agnostic | Yes | React-centric | Hosted | Framework packages | Whatever you choose |
+| Bundle (CDN, gzipped) | ~101 KB ESM / ~87 KB IIFE | Larger app SDK | Hosted (no local UI bundle) | Smaller UI kit | Your code |
+
+Sizes for Auth UI are the published `@getauthui/core@0.1.16` CDN builds (Lit and the Appwrite Web SDK included).
+
+## Honest framing
+
+Auth UI is **Appwrite-only**. It is not a hosted identity provider. There is no Auth UI backend, no custom login domain, and no session hand-off through a third-party origin. You bring an Appwrite project; Auth UI is the UI layer on top of the official Web SDK, running as Lit custom elements inside your page.
+
+If you need a full IdP with social connections, enterprise SAML, or a hosted login box that is not Appwrite, look at Clerk, Auth0, or similar. If your stack is Supabase, use Supabase Auth UI. If you already call Appwrite `Account` yourself and only want a few fields, hand-rolled forms can be enough.
+
+## Where Auth UI wins
+
+**Session stays on your origin.** Requests go from your page to your Appwrite endpoint. Third-party cookie blocking does not break the session the way a separate hosted login domain can.
+
+**Drop-in web components.** One pinned script (or an npm import) registers `<authui-config>`, `<authui-button>`, `<authui-modal>`, `<authui-show>`, and the rest. Works with plain HTML and any framework that tolerates custom elements.
+
+**Appwrite surface area without reinventing forms.** Sign-in methods, MFA challenges, recovery, verification, sessions, and account settings are covered in one themeable kit that follows the Appwrite Console design system.
+
+**No Auth UI server to operate.** Configuration is attributes or `AuthUI.init`. Persistence is the Appwrite SDK's job.
+
+## Where the others win
+
+**Clerk Components** shine when you want a complete user management product (organizations, billing hooks, React-first DX) and are fine depending on Clerk as the IdP.
+
+**Auth0 Universal Login** wins for enterprise federation, extensive IdP connections, and a hosted, centrally branded login experience across many apps.
+
+**Supabase Auth UI** is the natural fit when your backend is already Supabase. It is not a substitute for Appwrite.
+
+**Hand-rolled Appwrite forms** win when you need a bespoke flow, minimal bytes, or only one method (for example email OTP alone) and you are happy to maintain the UI and error handling yourself.
+
+## When to use Auth UI
+
+- Your auth backend is Appwrite (Cloud or self-hosted)
+- You want sign-in, MFA, and account UI without building forms from scratch
+- You need the session on your origin (SPA, static site, or same-site app)
+- You prefer web components or a single CDN script over a React-only kit
+- You do not want a second auth vendor beside Appwrite
+
+## When not to use Auth UI
+
+- You need a hosted IdP that is not Appwrite (Clerk, Auth0, Cognito, and so on)
+- Your project is on Supabase, Firebase Auth, or similar (use that ecosystem's UI)
+- You must have server-rendered auth pages with no client JavaScript
+- You only need a single custom field and already own the Appwrite SDK calls
+- You need Auth UI to store or broker sessions on its own domain (it deliberately does not)
+
+See also [How it works](/docs/how-it-works) for the origin and redirect model, and [Getting started](/docs/getting-started) to try it on a page.
