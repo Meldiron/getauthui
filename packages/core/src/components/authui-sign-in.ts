@@ -57,11 +57,13 @@ export class AuthUISignIn extends AuthUIElement {
   @query("form input:not([type=hidden])") private firstInput?: HTMLInputElement;
 
   private email = "";
-  private password = "";
-  private passwordConfirm = "";
+  @state() private password = "";
+  @state() private passwordConfirm = "";
   private name = "";
   private phone = "";
   private code = "";
+  /** Sign-up legal checkbox when legal.requireAcceptance is set. */
+  @state() private legalAccepted = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -144,6 +146,7 @@ export class AuthUISignIn extends AuthUIElement {
     this.showPassword = false;
     this.password = "";
     this.passwordConfirm = "";
+    this.legalAccepted = false;
     if (step !== "mfa") this.challenge = null;
     if (step !== "email-otp" && step !== "phone" && step !== "magic-url") this.token = null;
     this.fire("authui-view", { view: step });
@@ -185,6 +188,7 @@ export class AuthUISignIn extends AuthUIElement {
   private onSignUp = (e: Event) => {
     e.preventDefault();
     if (!this.requireValid(e)) return;
+    if (!this.ensureLegalAccepted()) return;
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
       this.password = "";
@@ -202,6 +206,7 @@ export class AuthUISignIn extends AuthUIElement {
   };
 
   private onOAuth = (provider: OAuthProviderName) => {
+    if (this.step === "sign-up" && !this.ensureLegalAccepted()) return;
     void this.run(async () => {
       // Stash the provider; only persist Last used after a successful session
       // (preview completes in place; real OAuth remembers on redirect return).
@@ -549,15 +554,56 @@ export class AuthUISignIn extends AuthUIElement {
     `;
   }
 
+  /** True when sign-up must show/enforce the legal checkbox. */
+  private needsLegalAcceptance(): boolean {
+    const legal = this.config?.legal;
+    if (!legal?.requireAcceptance) return false;
+    return !!(legal.termsUrl || legal.privacyUrl);
+  }
+
+  /** Block sign-up / OAuth when the required legal checkbox is unchecked. */
+  private ensureLegalAccepted(): boolean {
+    if (!this.needsLegalAcceptance() || this.legalAccepted) return true;
+    this.error = this.t("errorLegalRequired");
+    return false;
+  }
+
+  private legalLinks(): TemplateResult | typeof nothing {
+    const legal = this.config?.legal;
+    if (!legal?.termsUrl && !legal?.privacyUrl) return nothing;
+    return html`${
+      legal.termsUrl
+        ? html`<a href=${legal.termsUrl} target="_blank" rel="noopener">${this.t("terms")}</a>`
+        : nothing
+    }${legal.termsUrl && legal.privacyUrl ? html` ${this.t("and")} ` : nothing}${
+      legal.privacyUrl
+        ? html`<a href=${legal.privacyUrl} target="_blank" rel="noopener">${this.t("privacy")}</a>`
+        : nothing
+    }`;
+  }
+
   private legal(): TemplateResult | typeof nothing {
     const legal = this.config?.legal;
     if (!legal?.termsUrl && !legal?.privacyUrl) return nothing;
-    return html`<p class="legal">
-      ${this.t("agreeTo")}
-      ${legal.termsUrl ? html`<a href=${legal.termsUrl} target="_blank" rel="noopener">${this.t("terms")}</a>` : nothing}
-      ${legal.termsUrl && legal.privacyUrl ? html` ${this.t("and")} ` : nothing}
-      ${legal.privacyUrl ? html`<a href=${legal.privacyUrl} target="_blank" rel="noopener">${this.t("privacy")}</a>` : nothing}.
-    </p>`;
+    // On sign-up with requireAcceptance the checkbox replaces the passive footer.
+    if (this.step === "sign-up" && this.needsLegalAcceptance()) return nothing;
+    return html`<p class="legal">${this.t("agreeTo")} ${this.legalLinks()}.</p>`;
+  }
+
+  /** Required acceptance checkbox on sign-up when legal.requireAcceptance is set. */
+  private legalAcceptField(): TemplateResult | typeof nothing {
+    if (!this.needsLegalAcceptance()) return nothing;
+    return html`<label class="legal-accept">
+      <input
+        type="checkbox"
+        .checked=${this.legalAccepted}
+        @change=${(e: Event) => {
+          this.legalAccepted = (e.target as HTMLInputElement).checked;
+          if (this.legalAccepted && this.error === this.t("errorLegalRequired")) this.error = "";
+        }}
+      />
+      <span>${this.t("acceptLegal")} ${this.legalLinks()}.</span>
+    </label>`;
   }
 
   private backLink(step: Step = "sign-in"): TemplateResult {
@@ -656,8 +702,44 @@ export class AuthUISignIn extends AuthUIElement {
     const last = getLastMethod();
     const lastOAuth = providers.find((p) => last === `oauth:${p}`) ?? null;
 
-    // 1–2 providers: full labels, no accordion (density is fine).
-    if (providers.length <= 2) {
+    // Resolve layout: explicit config wins; otherwise stack for 1–2, accordion for 3+.
+    const raw = this.config?.methods?.oauthLayout;
+    const layout =
+      raw === "horizontal" || raw === "icon"
+        ? "icon"
+        : raw === "stack" || raw === "accordion"
+          ? raw
+          : providers.length <= 2
+            ? "stack"
+            : "accordion";
+
+    if (layout === "icon") {
+      return html`
+        <div class="providers icon">
+          ${providers.map((p) => {
+            const isLast = last === `oauth:${p}`;
+            const label = this.t("continueWith", { provider: providerLabel(p) });
+            return html`<button
+              type="button"
+              class="btn btn-outline ${isLast ? "last-used" : ""}"
+              @click=${() => this.onOAuth(p)}
+              ?disabled=${this.busy}
+              aria-label=${isLast ? `${label}. ${this.t("lastUsed")}` : label}
+              title=${label}
+            >
+              ${providerIcon(p)}
+              ${
+                isLast
+                  ? html`<span class="oauth-last-used-dot" aria-hidden="true"></span>`
+                  : nothing
+              }
+            </button>`;
+          })}
+        </div>
+      `;
+    }
+
+    if (layout === "stack") {
       const ordered = [...providers].sort((a, b) => {
         const aLast = last === `oauth:${a}` ? 0 : 1;
         const bLast = last === `oauth:${b}` ? 0 : 1;
@@ -684,7 +766,7 @@ export class AuthUISignIn extends AuthUIElement {
       `;
     }
 
-    // 3+: Vibes-style accordion. Expand last-used (or first) by default.
+    // accordion (default for 3+)
     const expanded =
       this.expandedOAuth && providers.includes(this.expandedOAuth)
         ? this.expandedOAuth
@@ -852,7 +934,8 @@ export class AuthUISignIn extends AuthUIElement {
           }
           ${this.emailField()}
           ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
-          ${this.renderError()} ${this.submitButton(this.t("createAccount"))}
+          ${this.legalAcceptField()} ${this.renderError()}
+          ${this.submitButton(this.t("createAccount"))}
         </form>
         <div class="links">
           <span>${this.t("haveAccount")}</span>

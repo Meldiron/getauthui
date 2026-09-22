@@ -776,3 +776,114 @@ describe("user-button menu placement", () => {
     expect(el.shadowRoot!.querySelector(".menu")!.classList.contains("above")).toBe(true);
   });
 });
+
+describe("0.1.10 features", () => {
+  it("updates the password strength meter live while typing on sign-up", async () => {
+    authStore.configure(config);
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in view="sign-up"></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const pw = root.querySelector("#authui-password") as HTMLInputElement;
+    expect(pw).toBeTruthy();
+    expect(root.querySelector(".strength")).toBeNull();
+    pw.value = "Aa1!";
+    pw.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect(root.querySelector(".strength")).not.toBeNull();
+    expect(shadowText(el)).toMatch(/weak|fair|strong|too weak/i);
+    pw.value = "Aa1!Aa1!Longer";
+    pw.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toMatch(/strong|fair/i);
+  });
+
+  it("requires legal acceptance on sign-up when configured", async () => {
+    authStore.configure({
+      ...config,
+      legal: { termsUrl: "/terms", privacyUrl: "/privacy", requireAcceptance: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in view="sign-up"></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const box = root.querySelector(".legal-accept input") as HTMLInputElement;
+    expect(box).toBeTruthy();
+    expect(box.checked).toBe(false);
+    const name = root.querySelector("#authui-name") as HTMLInputElement;
+    const email = root.querySelector("#authui-email") as HTMLInputElement;
+    const pw = root.querySelector("#authui-password") as HTMLInputElement;
+    name.value = "Ada";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    email.value = "new@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    pw.value = "password123";
+    pw.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect((el as any).legalAccepted).toBe(false);
+    root
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    await (el as any).updateComplete;
+    expect((el as any).error).toMatch(/Accept the terms/i);
+    expect(shadowText(el)).toMatch(/Accept the terms/i);
+    expect(authStore.getState().status).not.toBe("signed-in");
+    box.checked = true;
+    box.dispatchEvent(new Event("change", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect((el as any).legalAccepted).toBe(true);
+  });
+
+  it("renders icon oauth layout when methods.oauthLayout is icon", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, oauth: ["google", "github", "apple"], oauthLayout: "icon" },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const providers = el.shadowRoot!.querySelector(".providers");
+    expect(providers?.classList.contains("icon")).toBe(true);
+    expect(providers?.classList.contains("accordion")).toBe(false);
+  });
+
+  it("renders custom menuItems on the user button", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    await tick();
+    const el = await mount<HTMLElement & { menuItems: unknown[] }>(
+      `<authui-user-button></authui-user-button>`
+    );
+    el.menuItems = [
+      { label: "Billing", actionId: "billing" },
+      { label: "Docs", href: "/docs" },
+    ];
+    await (el as any).updateComplete;
+    el.shadowRoot!.querySelector<HTMLButtonElement>(".trigger")!.click();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const items = [...root.querySelectorAll('[role="menuitem"]')].map((n) => n.textContent?.trim());
+    expect(items.some((t) => t === "Billing")).toBe(true);
+    expect(items.some((t) => t === "Docs")).toBe(true);
+    const link = root.querySelector('a.menu-item[href="/docs"]');
+    expect(link).not.toBeNull();
+    let fired: string | null = null;
+    el.addEventListener("authui-menu-action", ((e: CustomEvent) => {
+      fired = e.detail.actionId;
+    }) as EventListener);
+    const billing = [...root.querySelectorAll("button.menu-item")].find((b) =>
+      /Billing/.test(b.textContent ?? "")
+    )!;
+    billing.click();
+    expect(fired).toBe("billing");
+  });
+
+  it("parses require-acceptance and oauth-layout on authui-config", async () => {
+    await mount(
+      `<authui-config endpoint="https://x/v1" project="p" terms-url="/t" privacy-url="/p" require-acceptance="true" oauth-layout="stack" methods="email-password oauth:google"></authui-config>`
+    );
+    const cfg = authStore.getConfig()!;
+    expect(cfg.legal?.requireAcceptance).toBe(true);
+    expect(cfg.methods?.oauthLayout).toBe("stack");
+  });
+});

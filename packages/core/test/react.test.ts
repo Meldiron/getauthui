@@ -36,7 +36,13 @@ vi.mock("appwrite", async () => {
   };
 });
 
-import { AuthUIProvider, Show, useAuthUI, AuthUIModal } from "../src/react/index.js";
+import {
+  AuthUIProvider,
+  Show,
+  useAuthUI,
+  AuthUIModal,
+  AuthUIUserButton,
+} from "../src/react/index.js";
 import { authStore } from "../src/store.js";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -181,5 +187,22 @@ describe("React AuthUIModal closeOnSuccess (D6)", () => {
     expect(modal).not.toBeNull();
     expect(modal.getAttribute("close-on-success")).toBe("false");
     expect(modal.closeOnSuccess).toBe(false);
+  });
+});
+
+describe("React AuthUIUserButton showTeams", () => {
+  it("maps showTeams to the show-teams attribute and JS property", async () => {
+    authStore.configure(config);
+    await tick();
+    render(createElement(AuthUIUserButton, { showTeams: true }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const btn = container.querySelector("authui-user-button") as HTMLElement & {
+      showTeams: boolean;
+    };
+    expect(btn).not.toBeNull();
+    expect(btn.hasAttribute("show-teams")).toBe(true);
+    expect(btn.showTeams).toBe(true);
   });
 });

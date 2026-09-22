@@ -178,6 +178,8 @@ export const defaultStrings: AuthUIStrings = {
   guestAccount: "Guest account",
   guestAccountDescription: "Add an email and password to keep your data.",
   preview: "Preview",
+  acceptLegal: "I agree to the",
+  errorLegalRequired: "Accept the terms to continue.",
 };
 
 /** Substitute `{placeholders}` in a string. */

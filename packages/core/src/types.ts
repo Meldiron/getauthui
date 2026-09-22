@@ -67,6 +67,9 @@ export type AuthUIView =
 export type AuthUITheme = "light" | "dark" | "auto";
 export type AuthUIRadius = "none" | "sm" | "md" | "lg" | "xl" | "full";
 
+/** How OAuth provider buttons are laid out. */
+export type AuthUIOauthLayout = "stack" | "accordion" | "icon" | "horizontal";
+
 export interface AuthUIMethods {
   /** Email + password sign in and sign up. Default: true. */
   emailPassword?: boolean;
@@ -80,6 +83,11 @@ export interface AuthUIMethods {
   anonymous?: boolean;
   /** OAuth2 providers to show, in order. Default: []. */
   oauth?: OAuthProviderName[];
+  /**
+   * OAuth button layout. Default: `stack` for 1–2 providers, `accordion` for 3+.
+   * `icon` / `horizontal` = compact icon-only row. `stack` = full-width labeled buttons.
+   */
+  oauthLayout?: AuthUIOauthLayout;
 }
 
 export interface AuthUIBranding {
@@ -100,6 +108,23 @@ export interface AuthUIBranding {
 export interface AuthUILegal {
   termsUrl?: string;
   privacyUrl?: string;
+  /**
+   * When true, sign-up shows a required checkbox that must be checked before
+   * email sign-up or OAuth. Client-only gate; nothing is sent to Appwrite.
+   */
+  requireAcceptance?: boolean;
+}
+
+/** Custom item in the <authui-user-button> account menu. */
+export interface AuthUIMenuItem {
+  /** Visible label (integrator-supplied; not passed through t()). */
+  label: string;
+  /** Navigate here on click (renders as a link). */
+  href?: string;
+  /** Link target, e.g. "_blank". */
+  target?: string;
+  /** Opaque id; clicking fires `authui-menu-action` with `{ actionId }`. */
+  actionId?: string;
 }
 
 export interface AuthUIConfig {
@@ -348,4 +373,8 @@ export interface AuthUIStrings {
   guestAccount: string;
   guestAccountDescription: string;
   preview: string;
+  /** Prefix for the required legal checkbox on sign-up, before terms/privacy links. */
+  acceptLegal: string;
+  /** Shown when sign-up is blocked because the legal checkbox is unchecked. */
+  errorLegalRequired: string;
 }

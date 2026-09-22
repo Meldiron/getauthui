@@ -10,17 +10,45 @@ description: Avatar with an account menu while signed in, a sign-in button other
 
 ## Attributes
 
-| Name  | Type     | Description                                                                          |
-| ----- | -------- | ------------------------------------------------------------------------------------ |
-| `src` | `string` | Avatar image URL. Falls back to the first letter of the user's name, email or phone. |
+| Name         | Type               | Description                                                                          |
+| ------------ | ------------------ | ------------------------------------------------------------------------------------ |
+| `src`        | `string`           | Avatar image URL. Falls back to the first letter of the user's name, email or phone. |
+| `show-teams` | `boolean`          | List Appwrite teams and let the user pick an active one.                             |
+| `menuItems`  | `AuthUIMenuItem[]` | Extra menu rows (property only). See Custom menu items.                              |
 
 ## Slots
 
-The default slot is the label of the sign-in button shown while signed out.
+The default slot is the label of the sign-in button shown while signed out. The named slot `menu-items` projects custom content into the signed-in menu (between teams and **Manage account**). Prefer the `menuItems` property when you want those rows included in arrow-key navigation.
 
 ## Menu
 
-Clicking the avatar opens a menu with the user's name and email, **Manage account** (opens the modal on the account screen) and **Sign out**. The menu closes on outside click and Escape.
+Clicking the avatar opens a menu with the user's name and email, optional custom items, **Manage account** (opens the modal on the account screen) and **Sign out**. The menu closes on outside click and Escape.
+
+## Custom menu items
+
+Pass a `menuItems` array of `{ label, href?, target?, actionId? }`. Links use `href` (and optional `target`). Action rows fire `authui-menu-action` with `{ actionId }` when clicked. Labels are used as-is (not passed through `t()`).
+
+```html
+<authui-user-button id="user"></authui-user-button>
+<script>
+  const btn = document.getElementById("user");
+  btn.menuItems = [
+    { label: "Billing", actionId: "billing" },
+    { label: "Docs", href: "/docs", target: "_blank" },
+  ];
+  btn.addEventListener("authui-menu-action", (e) => {
+    if (e.detail.actionId === "billing") location.href = "/billing";
+  });
+</script>
+```
+
+Or project markup with the named slot:
+
+```html
+<authui-user-button>
+  <button slot="menu-items" class="menu-item" role="menuitem" type="button">Billing</button>
+</authui-user-button>
+```
 
 ## Teams switcher
 

@@ -66,15 +66,15 @@ Returns the current state plus helpers, and re-renders on every change.
 
 ## Components
 
-| Component          | Wraps                              | Props                                 |
-| ------------------ | ---------------------------------- | ------------------------------------- |
-| `AuthUIProvider`   | configures the store synchronously | `config`                              |
-| `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`      |
-| `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children` |
-| `AuthUIUserButton` | `<authui-user-button>`             | `src`, `children`                     |
-| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                   |
-| `AuthUIAccount`    | `<authui-account>`                 | `tab`                                 |
-| `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`          |
+| Component          | Wraps                              | Props                                                       |
+| ------------------ | ---------------------------------- | ----------------------------------------------------------- |
+| `AuthUIProvider`   | configures the store synchronously | `config`                                                    |
+| `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`                            |
+| `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children`                       |
+| `AuthUIUserButton` | `<authui-user-button>`             | `src`, `showTeams`, `menuItems`, `onMenuAction`, `children` |
+| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                                         |
+| `AuthUIAccount`    | `<authui-account>`                 | `tab`                                                       |
+| `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`                                |
 
 ## `Show` vs `<authui-show>`
 

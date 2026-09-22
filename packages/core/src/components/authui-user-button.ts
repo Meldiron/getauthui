@@ -5,6 +5,7 @@ import { AuthUIElement } from "./element.js";
 import { authStore } from "../store.js";
 import { openModal } from "../modal-controller.js";
 import { avatarInitial, icons } from "../icons.js";
+import type { AuthUIMenuItem } from "../types.js";
 
 /**
  * Avatar with a menu: shows a sign-in button while signed out, and the user's
@@ -14,6 +15,13 @@ import { avatarInitial, icons } from "../icons.js";
 export class AuthUIUserButton extends AuthUIElement {
   /** When set, list the user's Appwrite teams and let them pick an active one. */
   @property({ type: Boolean, attribute: "show-teams" }) showTeams = false;
+
+  /**
+   * Extra menu rows between teams and the built-in Manage account / Sign out items.
+   * Labels are integrator-supplied (not passed through t()). Prefer this over the
+   * `menu-items` slot when you want keyboard navigation to include the rows.
+   */
+  @property({ attribute: false }) menuItems: AuthUIMenuItem[] = [];
 
   static styles = [
     ...AuthUIElement.styles,
@@ -105,6 +113,10 @@ export class AuthUIUserButton extends AuthUIElement {
         width: 16px;
         height: 16px;
         color: var(--authui-muted-foreground);
+      }
+      a.menu-item {
+        text-decoration: none;
+        box-sizing: border-box;
       }
       .menu-section {
         border-top: 1px solid var(--authui-border);
@@ -354,6 +366,8 @@ export class AuthUIUserButton extends AuthUIElement {
                     </div>`
                   : nothing
               }
+              ${this.renderCustomMenuItems()}
+              <slot name="menu-items"></slot>
               <button
                 class="menu-item"
                 role="menuitem"
@@ -378,6 +392,47 @@ export class AuthUIUserButton extends AuthUIElement {
           : nothing
       }
     `;
+  }
+
+  private renderCustomMenuItems() {
+    if (!this.menuItems?.length) return nothing;
+    return this.menuItems.map((item) => {
+      if (item.href) {
+        const target = item.target;
+        return html`<a
+          class="menu-item"
+          role="menuitem"
+          href=${item.href}
+          target=${target || nothing}
+          rel=${target === "_blank" ? "noopener noreferrer" : nothing}
+          @click=${() => {
+            this.menuOpen = false;
+          }}
+        >
+          ${item.label}
+        </a>`;
+      }
+      const actionId = item.actionId;
+      return html`<button
+        class="menu-item"
+        role="menuitem"
+        type="button"
+        @click=${() => {
+          this.menuOpen = false;
+          if (actionId) {
+            this.dispatchEvent(
+              new CustomEvent("authui-menu-action", {
+                detail: { actionId },
+                bubbles: true,
+                composed: true,
+              })
+            );
+          }
+        }}
+      >
+        ${item.label}
+      </button>`;
+    });
   }
 }
 

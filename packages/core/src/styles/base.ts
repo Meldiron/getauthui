@@ -697,6 +697,34 @@ export const base = css`
   .legal a:hover {
     color: var(--authui-foreground);
   }
+  .legal-accept {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--authui-muted-foreground);
+    line-height: 1.5;
+    text-align: start;
+    cursor: pointer;
+    user-select: none;
+  }
+  .legal-accept input {
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    accent-color: var(--authui-brand);
+    cursor: pointer;
+  }
+  .legal-accept a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+  }
+  .legal-accept a:hover {
+    color: var(--authui-foreground);
+  }
   .links {
     display: flex;
     justify-content: center;
@@ -719,6 +747,32 @@ export const base = css`
   .providers .btn svg {
     width: 18px;
     height: 18px;
+  }
+  /* Compact icon-only OAuth row (oauthLayout: icon / horizontal). */
+  .providers.icon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .providers.icon .btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    position: relative;
+  }
+  .providers.icon .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .providers.icon .last-used-badge,
+  .providers.icon .oauth-last-used-pill {
+    display: none;
+  }
+  .providers.icon .oauth-last-used-dot {
+    top: 4px;
+    inset-inline-end: 4px;
   }
   /* OAuth accordion: last-used (or focused) expands; others stay icon-compact. */
   .providers.accordion {

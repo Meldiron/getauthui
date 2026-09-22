@@ -41,6 +41,10 @@ export class AuthUIConfigElement extends LitElement {
   @property({ type: String, attribute: "primary-foreground" }) primaryForeground = "";
   @property({ type: String, attribute: "terms-url" }) termsUrl = "";
   @property({ type: String, attribute: "privacy-url" }) privacyUrl = "";
+  /** When "true", sign-up requires accepting terms/privacy before submit or OAuth. */
+  @property({ type: String, attribute: "require-acceptance" }) requireAcceptance = "";
+  /** OAuth button layout: stack | accordion | icon | horizontal. */
+  @property({ type: String, attribute: "oauth-layout" }) oauthLayout = "";
   @property({ type: String }) preview = "";
 
   connectedCallback(): void {
@@ -80,6 +84,9 @@ export class AuthUIConfigElement extends LitElement {
     }
     // When methods is set, only enable email+password if it was listed. Empty attr keeps the default on.
     methods.emailPassword = tokens.length > 0 ? tokens.includes("email-password") : true;
+    if (this.oauthLayout) {
+      methods.oauthLayout = this.oauthLayout as AuthUIMethods["oauthLayout"];
+    }
 
     return {
       endpoint: this.endpoint,
@@ -102,6 +109,8 @@ export class AuthUIConfigElement extends LitElement {
       legal: {
         termsUrl: this.termsUrl || undefined,
         privacyUrl: this.privacyUrl || undefined,
+        requireAcceptance:
+          this.requireAcceptance !== "" && this.requireAcceptance !== "false" ? true : undefined,
       },
       preview: this.preview === "" || this.preview === "false" ? undefined : true,
     };

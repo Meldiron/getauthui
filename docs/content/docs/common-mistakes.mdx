@@ -29,18 +29,18 @@ Auth UI runs on your origin. Appwrite rejects requests from hosts that are not l
 
 ## ESM CDN vs IIFE / no `window.AuthUI`
 
-| Script                                                           | What you get                                                     |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `https://unpkg.com/@getauthui/core@0.1.9` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
-| `…/dist/authui.cdn.js` (IIFE, classic script)                    | Custom elements plus `window.AuthUI` for `init` / `on` / `open`. |
+| Script                                                            | What you get                                                     |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `https://unpkg.com/@getauthui/core@0.1.10` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
+| `…/dist/authui.cdn.js` (IIFE, classic script)                     | Custom elements plus `window.AuthUI` for `init` / `on` / `open`. |
 
 ```html
 <!-- ESM: elements only. Configure with <authui-config>. -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.9"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.10"></script>
 <authui-config endpoint="…" project="…"></authui-config>
 
 <!-- IIFE: use window.AuthUI from a classic script. -->
-<script src="https://unpkg.com/@getauthui/core@0.1.9/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.10/dist/authui.cdn.js"></script>
 <script>
   AuthUI.init({ endpoint: "…", project: "…" });
 </script>

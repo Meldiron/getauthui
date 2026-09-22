@@ -10,7 +10,7 @@ import {
 import { authStore } from "../store.js";
 import { openModal, closeModal } from "../modal-controller.js";
 import { matchesAuthStatus } from "../components/authui-show.js";
-import type { AuthUIConfig, AuthUIState, AuthUIView } from "../types.js";
+import type { AuthUIConfig, AuthUIMenuItem, AuthUIState, AuthUIView } from "../types.js";
 
 // Register the custom elements when this module loads.
 import "../components/authui-config.js";
@@ -126,8 +126,46 @@ export function AuthUIAccount(props: {
   return createElement("authui-account", { tab: props.tab });
 }
 
-export function AuthUIUserButton(props: { src?: string; children?: ReactNode }): ReactElement {
-  return createElement("authui-user-button", { src: props.src }, props.children);
+type AuthUIUserButtonElement = HTMLElement & {
+  showTeams: boolean;
+  menuItems: AuthUIMenuItem[];
+};
+
+export function AuthUIUserButton(props: {
+  src?: string;
+  showTeams?: boolean;
+  menuItems?: AuthUIMenuItem[];
+  onMenuAction?: (actionId: string) => void;
+  children?: ReactNode;
+}): ReactElement {
+  const [el, setEl] = useState<AuthUIUserButtonElement | null>(null);
+  useEffect(() => {
+    if (!el || props.showTeams === undefined) return;
+    el.showTeams = props.showTeams;
+  }, [el, props.showTeams]);
+  useEffect(() => {
+    if (!el) return;
+    el.menuItems = props.menuItems ?? [];
+  }, [el, props.menuItems]);
+  useEffect(() => {
+    if (!el || !props.onMenuAction) return;
+    const handler = (e: Event) => {
+      const actionId = (e as CustomEvent<{ actionId?: string }>).detail?.actionId;
+      if (actionId) props.onMenuAction?.(actionId);
+    };
+    el.addEventListener("authui-menu-action", handler);
+    return () => el.removeEventListener("authui-menu-action", handler);
+  }, [el, props.onMenuAction]);
+  return createElement(
+    "authui-user-button",
+    {
+      ref: setEl,
+      src: props.src,
+      // Lit boolean attrs treat presence as true; omit when false/undefined.
+      "show-teams": props.showTeams === true ? "" : undefined,
+    },
+    props.children
+  );
 }
 
 /**

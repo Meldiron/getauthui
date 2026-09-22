@@ -45,3 +45,18 @@ Sign-up, password reset and change-password show a live strength meter as the us
 ## Last used method
 
 After a successful sign-in, Auth UI stores the method key in `localStorage` (`authui:last-method`) and highlights it the next time the form opens (OAuth providers are sorted to the top, passwordless and email get a "Last used" badge). Nothing is sent to a server.
+
+## OAuth layout
+
+With three or more providers the default layout is an accordion of compact buttons. Set `methods.oauthLayout` to override:
+
+| Value                 | Behaviour                                     |
+| --------------------- | --------------------------------------------- |
+| (unset)               | `stack` for 1–2 providers, `accordion` for 3+ |
+| `stack`               | Full-width labeled buttons                    |
+| `accordion`           | Vibes-style expand-on-hover row               |
+| `icon` / `horizontal` | Compact icon-only row                         |
+
+## Legal acceptance
+
+When `legal.requireAcceptance` is true and at least one of `termsUrl` / `privacyUrl` is set, sign-up shows a required checkbox. Submit and OAuth stay blocked until it is checked. Other screens keep the passive legal footer.
