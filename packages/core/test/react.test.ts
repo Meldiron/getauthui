@@ -171,6 +171,92 @@ describe("React AuthUIProvider (D4+D5)", () => {
     expect(authStore.getConfig()?.methods?.magicUrl).toBe(true);
     expect(authStore.getConfig()?.methods?.oauth).toEqual(["github"]);
   });
+
+  it("does not reconfigure when config key order changes", async () => {
+    function Harness() {
+      const [cfg, setCfg] = useState({
+        endpoint: config.endpoint,
+        project: config.project,
+        branding: { name: "Acme" },
+      });
+      return createElement(
+        "div",
+        null,
+        createElement(AuthUIProvider, { config: cfg }, null),
+        createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () =>
+              setCfg({
+                branding: { name: "Acme" },
+                project: config.project,
+                endpoint: config.endpoint,
+              }),
+          },
+          "reorder"
+        )
+      );
+    }
+
+    render(createElement(Harness));
+    await tick();
+    const clientBefore = authStore.getClient();
+    expect(clientBefore).not.toBeNull();
+
+    await act(async () => {
+      container.querySelector("button")!.click();
+    });
+    expect(authStore.getClient()).toBe(clientBefore);
+    expect(authStore.getConfig()?.branding?.name).toBe("Acme");
+  });
+
+  it("skips configure and notifies incomplete when endpoint or project is empty", () => {
+    const configureSpy = vi.spyOn(authStore, "configure");
+    const incompleteSpy = vi.spyOn(authStore, "notifyConfigIncomplete");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(createElement(AuthUIProvider, { config: { endpoint: "", project: "proj" } }, null));
+    expect(configureSpy).not.toHaveBeenCalled();
+    expect(incompleteSpy).toHaveBeenCalled();
+    configureSpy.mockRestore();
+    incompleteSpy.mockRestore();
+    warn.mockRestore();
+  });
+});
+
+describe("React AuthUIModal controlled open", () => {
+  it("force-closes when open goes from true to false", async () => {
+    authStore.configure(config);
+    await tick();
+
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return createElement(
+        "div",
+        null,
+        createElement(AuthUIModal, { open }),
+        createElement("button", { type: "button", onClick: () => setOpen(false) }, "close")
+      );
+    }
+
+    render(createElement(Harness));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const modal = container.querySelector("authui-modal") as HTMLElement & { open: boolean };
+    expect(modal).not.toBeNull();
+    expect(modal.open).toBe(true);
+
+    await act(async () => {
+      container.querySelector("button")!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(modal.open).toBe(false);
+    const dialog = modal.shadowRoot?.querySelector("dialog");
+    if (dialog) expect(dialog.open).toBe(false);
+  });
 });
 
 describe("React AuthUIModal closeOnSuccess (D6)", () => {

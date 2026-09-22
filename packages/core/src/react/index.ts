@@ -34,9 +34,21 @@ export function useAuthUI() {
   };
 }
 
+/** Recursively sort object keys so equal values fingerprint the same. */
+function canonicalize(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(canonicalize);
+  const obj = value as Record<string, unknown>;
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = canonicalize(obj[key]);
+  }
+  return sorted;
+}
+
 /** Stable fingerprint so any relevant config change reconfigures the store. */
 function configFingerprint(config: AuthUIConfig): string {
-  return JSON.stringify(config);
+  return JSON.stringify(canonicalize(config));
 }
 
 /**
@@ -44,8 +56,12 @@ function configFingerprint(config: AuthUIConfig): string {
  *
  * Configuration runs during render (not in an effect) so the first paint already
  * sees `configured: true` and a non-null `getClient()` when `endpoint` and
- * `project` are present. Changing any config field reconfigures the store.
- * `configure()` is idempotent, so React Strict Mode double-invoke is safe.
+ * `project` are present. Incomplete config (empty endpoint or project) mirrors
+ * `<authui-config>`: it does not mark configured, and surfaces `configError`.
+ * Changing any config field reconfigures the store. Passing a new object with
+ * the same values is fine; the fingerprint sorts keys so insertion order does
+ * not matter. `configure()` is idempotent, so React Strict Mode double-invoke
+ * is safe.
  */
 export function AuthUIProvider({
   config,
@@ -58,7 +74,13 @@ export function AuthUIProvider({
   const lastFingerprint = useRef<string | null>(null);
   if (lastFingerprint.current !== fingerprint) {
     lastFingerprint.current = fingerprint;
-    authStore.configure(config);
+    const endpoint = config.endpoint?.trim() ?? "";
+    const project = config.project?.trim() ?? "";
+    if (!endpoint || !project) {
+      authStore.notifyConfigIncomplete();
+    } else {
+      authStore.configure(config);
+    }
   }
   return createElement(Fragment, null, children);
 }
@@ -75,10 +97,16 @@ export function AuthUIModal(props: {
     if (!el || props.closeOnSuccess === undefined) return;
     el.closeOnSuccess = props.closeOnSuccess;
   }, [el, props.closeOnSuccess]);
+  useEffect(() => {
+    if (!el || typeof props.open !== "boolean") return;
+    el.open = props.open;
+  }, [el, props.open]);
   return createElement("authui-modal", {
     ref: setEl,
     view: props.view,
-    open: props.open || undefined,
+    // Preserve boolean false; `props.open || undefined` would drop it and leave
+    // the dialog open. Controlled writes also go through the effect above.
+    open: props.open === undefined ? undefined : props.open,
     // Lit boolean attrs treat presence as true; write the string "false" so HTML
     // and React can turn the default off. Also set the JS property above.
     "close-on-success":

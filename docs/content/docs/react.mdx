@@ -52,17 +52,18 @@ function Header() {
 
 Returns the current state plus helpers, and re-renders on every change.
 
-| Field         | Type                                                            | Description                                         |
-| ------------- | --------------------------------------------------------------- | --------------------------------------------------- |
-| `status`      | `"loading"` / `"signed-out"` / `"signed-in"` / `"mfa-required"` | Current state.                                      |
-| `user`        | `Models.User \| null`                                           | The signed-in user.                                 |
-| `mfaFactors`  | `Models.MfaFactors \| null`                                     | Available factors while `status` is `mfa-required`. |
-| `pending`     | pending action or `null`                                        | A redirect flow waiting to be finished.             |
-| `configured`  | `boolean`                                                       | Whether `init` ran.                                 |
-| `open(view?)` | function                                                        | Open the modal.                                     |
-| `close()`     | function                                                        | Close the modal.                                    |
-| `signOut()`   | function                                                        | End the current session.                            |
-| `store`       | `AuthStore`                                                     | Full imperative API.                                |
+| Field         | Type                                                            | Description                                                   |
+| ------------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| `status`      | `"loading"` / `"signed-out"` / `"signed-in"` / `"mfa-required"` | Current state.                                                |
+| `user`        | `Models.User \| null`                                           | The signed-in user.                                           |
+| `mfaFactors`  | `Models.MfaFactors \| null`                                     | Available factors while `status` is `mfa-required`.           |
+| `pending`     | pending action or `null`                                        | A redirect flow waiting to be finished.                       |
+| `configured`  | `boolean`                                                       | Whether a complete config (endpoint and project) was applied. |
+| `configError` | `string \| null`                                                | Developer-facing config problem, or `null`.                   |
+| `open(view?)` | function                                                        | Open the modal.                                               |
+| `close()`     | function                                                        | Close the modal.                                              |
+| `signOut()`   | function                                                        | End the current session.                                      |
+| `store`       | `AuthStore`                                                     | Full imperative API.                                          |
 
 ## Components
 
@@ -84,7 +85,7 @@ The Lit `<authui-show>` element only skips its slot. Children stay in the DOM (h
 
 ## `AuthUIProvider` configuration timing
 
-`AuthUIProvider` calls `configure()` during render, so the first paint already sees `configured: true` and a non-null `getClient()` when `endpoint` and `project` are set. Changing any field on `config` (methods, branding, preview, strings, and so on) reconfigures the store. Passing a new object every render with the same values is fine; the provider fingerprints the config with `JSON.stringify`.
+`AuthUIProvider` calls `configure()` during render, so the first paint already sees `configured: true` and a non-null `getClient()` when `endpoint` and `project` are set. If either is empty, it mirrors `<authui-config>`: `configured` stays false and `configError` explains what is missing. Changing any field on `config` (methods, branding, preview, strings, and so on) reconfigures the store. Passing a new object every render with the same values is fine; the provider fingerprints a canonical (sorted-key) JSON of the config, so key insertion order does not matter.
 
 ## `closeOnSuccess={false}`
 

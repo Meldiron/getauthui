@@ -181,7 +181,7 @@ export interface AuthUIState {
   configured: boolean;
   /**
    * Developer-facing configuration problem (wrong project, origin, endpoint, or
-   * incomplete <authui-config>). When set, sign-in shows this instead of a form.
+   * incomplete config). When set, sign-in shows this instead of a form.
    */
   configError: string | null;
 }
