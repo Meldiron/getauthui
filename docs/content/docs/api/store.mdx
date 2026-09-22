@@ -21,6 +21,8 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 | `getStrings()`        | merged `AuthUIStrings`                                     |
 | `refresh()`           | `Promise<void>`. Re-fetches the user and derives `status`. |
 | `on(event, listener)` | unsubscribe function                                       |
+| `getActiveTeamId()`   | `string \| null`. Local active team id for the project.    |
+| `setActiveTeam(team)` | `void`. Remember `{ $id, name }` or `null`; emits `active-team`. Does not call Appwrite. |
 
 ## Sign in
 

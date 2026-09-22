@@ -7,12 +7,13 @@ description: Store events, window events and component events.
 
 Subscribe with `AuthUI.on(name, listener)`. Each is also dispatched on `window` as a `CustomEvent` named `authui:<name>` with the same `detail`.
 
-| Name         | Detail                    | When                                                            |
-| ------------ | ------------------------- | --------------------------------------------------------------- |
-| `change`     | `AuthUIState`             | Any state change: status, user, factors, pending action.        |
-| `signed-in`  | `Models.User`             | Status became `signed-in`.                                      |
-| `signed-out` | `undefined`               | The user signed out or the session ended.                       |
-| `error`      | `{ message, type, code }` | Any store operation failed. Emitted before the promise rejects. |
+| Name          | Detail                    | When                                                                              |
+| ------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `change`      | `AuthUIState`             | Any state change: status, user, factors, pending action.                          |
+| `signed-in`   | `Models.User`             | Status became `signed-in`.                                                        |
+| `signed-out`  | `undefined`               | The user signed out or the session ended.                                         |
+| `error`       | `{ message, type, code }` | Any store operation failed. Emitted before the promise rejects.                   |
+| `active-team` | `{ teamId, team }`        | Active team changed via `setActiveTeam` or the teams switcher on the user button. |
 
 ```ts
 window.addEventListener("authui:change", (e) => console.log((e as CustomEvent).detail.status));

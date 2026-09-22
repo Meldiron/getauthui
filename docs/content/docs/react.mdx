@@ -91,6 +91,22 @@ The Lit `<authui-show>` element only skips its slot. Children stay in the DOM (h
 
 Pass `closeOnSuccess={false}` to `AuthUIModal` to keep the modal open after sign in. In HTML use `close-on-success="false"` on `<authui-modal>` (the string `"false"` is required; a bare boolean attribute would stay on).
 
+## Controlled `open`
+
+Pass `open` as a boolean to drive the dialog from React state. `open={true}` opens it; `open={false}` force-closes it (including after the user opened it another way). Omit `open` to leave the modal uncontrolled.
+
+```tsx
+const [modalOpen, setModalOpen] = useState(false);
+
+<>
+  <button onClick={() => setModalOpen(true)}>Open</button>
+  <button onClick={() => setModalOpen(false)}>Force close</button>
+  <AuthUIModal open={modalOpen} />
+</>
+```
+
+Setting `open` to `false` writes through to the element so the dialog closes even when it was opened via `AuthUI.open()` or a button.
+
 ## Typing custom elements in JSX
 
 If you prefer to use the elements directly in TSX, add a declaration:
@@ -106,7 +122,11 @@ declare module "react" {
         HTMLElement
       >;
       "authui-modal": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView },
+        React.HTMLAttributes<HTMLElement> & {
+          view?: AuthUIView;
+          open?: boolean;
+          "close-on-success"?: boolean | string;
+        },
         HTMLElement
       >;
       "authui-sign-in": React.DetailedHTMLProps<
@@ -118,7 +138,10 @@ declare module "react" {
         HTMLElement
       >;
       "authui-user-button": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { src?: string },
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          "show-teams"?: boolean | string;
+        },
         HTMLElement
       >;
       "authui-show": React.DetailedHTMLProps<
@@ -133,6 +156,10 @@ declare module "react" {
   }
 }
 ```
+
+## FOUC CSS in React
+
+Prefer `authui-show:not([ready])` over `:defined` for FOUC CSS. React can define custom elements before Auth UI sets `ready`, so `[ready]` is the reliable gate. See [`<authui-show>`](/docs/components/show).
 
 ## Next.js
 
