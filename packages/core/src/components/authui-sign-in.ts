@@ -45,6 +45,7 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private error = "";
   @state() private notice: { tone: "success" | "info" | "error"; message: string } | null = null;
   @state() private showPassword = false;
+  @state() private showPasswordConfirm = false;
   /** Expanded OAuth provider in the accordion row (3+ providers). */
   @state() private expandedOAuth: OAuthProviderName | null = null;
   @state() private token: PendingToken | null = null;
@@ -64,6 +65,8 @@ export class AuthUISignIn extends AuthUIElement {
   private code = "";
   /** Sign-up legal checkbox when legal.requireAcceptance is set. */
   @state() private legalAccepted = false;
+  /** True when the legal-required error was raised by an OAuth click (show near providers). */
+  @state() private legalErrorFromOAuth = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -144,9 +147,11 @@ export class AuthUISignIn extends AuthUIElement {
     // Do not clear pending notices here — redirect notices stay until dismissNotice().
     this.busy = false;
     this.showPassword = false;
+    this.showPasswordConfirm = false;
     this.password = "";
     this.passwordConfirm = "";
     this.legalAccepted = false;
+    this.legalErrorFromOAuth = false;
     if (step !== "mfa") this.challenge = null;
     if (step !== "email-otp" && step !== "phone" && step !== "magic-url") this.token = null;
     this.fire("authui-view", { view: step });
@@ -188,6 +193,7 @@ export class AuthUISignIn extends AuthUIElement {
   private onSignUp = (e: Event) => {
     e.preventDefault();
     if (!this.requireValid(e)) return;
+    this.legalErrorFromOAuth = false;
     if (!this.ensureLegalAccepted()) return;
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
@@ -206,7 +212,11 @@ export class AuthUISignIn extends AuthUIElement {
   };
 
   private onOAuth = (provider: OAuthProviderName) => {
-    if (this.step === "sign-up" && !this.ensureLegalAccepted()) return;
+    if (this.step === "sign-up" && !this.ensureLegalAccepted()) {
+      this.legalErrorFromOAuth = true;
+      return;
+    }
+    this.legalErrorFromOAuth = false;
     void this.run(async () => {
       // Stash the provider; only persist Last used after a successful session
       // (preview completes in place; real OAuth remembers on redirect return).
@@ -278,6 +288,8 @@ export class AuthUISignIn extends AuthUIElement {
         phrase: token.phrase,
       };
       this.code = "";
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
     });
   };
 
@@ -288,6 +300,8 @@ export class AuthUISignIn extends AuthUIElement {
       const token = await authStore.sendPhoneOtp(this.phone);
       this.token = { userId: token.userId, kind: "phone", target: this.phone };
       this.code = "";
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
     });
   };
 
@@ -454,6 +468,7 @@ export class AuthUISignIn extends AuthUIElement {
     meter?: boolean;
   }): TemplateResult {
     const value = this[opts.field];
+    const visible = opts.field === "passwordConfirm" ? this.showPasswordConfirm : this.showPassword;
     const strength = opts.meter ? scorePassword(value) : null;
     return html`
       <div class="field">
@@ -475,7 +490,7 @@ export class AuthUISignIn extends AuthUIElement {
           <input
             class="input"
             id=${opts.id}
-            type=${this.showPassword ? "text" : "password"}
+            type=${visible ? "text" : "password"}
             autocomplete=${opts.autocomplete}
             required
             minlength="8"
@@ -485,10 +500,16 @@ export class AuthUISignIn extends AuthUIElement {
           <button
             type="button"
             class="btn btn-ghost btn-icon"
-            @click=${() => (this.showPassword = !this.showPassword)}
-            aria-label=${this.showPassword ? this.t("hidePassword") : this.t("showPassword")}
+            @click=${() => {
+              if (opts.field === "passwordConfirm") {
+                this.showPasswordConfirm = !this.showPasswordConfirm;
+              } else {
+                this.showPassword = !this.showPassword;
+              }
+            }}
+            aria-label=${visible ? this.t("hidePassword") : this.t("showPassword")}
           >
-            ${this.showPassword ? icons.eyeOff : icons.eye}
+            ${visible ? icons.eyeOff : icons.eye}
           </button>
         </div>
         ${
@@ -599,7 +620,10 @@ export class AuthUISignIn extends AuthUIElement {
         .checked=${this.legalAccepted}
         @change=${(e: Event) => {
           this.legalAccepted = (e.target as HTMLInputElement).checked;
-          if (this.legalAccepted && this.error === this.t("errorLegalRequired")) this.error = "";
+          if (this.legalAccepted && this.error === this.t("errorLegalRequired")) {
+            this.error = "";
+            this.legalErrorFromOAuth = false;
+          }
         }}
       />
       <span>${this.t("acceptLegal")} ${this.legalLinks()}.</span>
@@ -714,9 +738,14 @@ export class AuthUISignIn extends AuthUIElement {
             : "accordion";
 
     if (layout === "icon") {
+      const ordered = [...providers].sort((a, b) => {
+        const aLast = last === `oauth:${a}` ? 0 : 1;
+        const bLast = last === `oauth:${b}` ? 0 : 1;
+        return aLast - bLast;
+      });
       return html`
         <div class="providers icon">
-          ${providers.map((p) => {
+          ${ordered.map((p) => {
             const isLast = last === `oauth:${p}`;
             const label = this.t("continueWith", { provider: providerLabel(p) });
             return html`<button
@@ -870,6 +899,7 @@ export class AuthUISignIn extends AuthUIElement {
                     type="button"
                     class="btn btn-secondary btn-block ${isLast ? "last-used" : ""}"
                     @click=${() => this.go(p.step)}
+                    ?disabled=${this.busy}
                   >
                     ${p.icon} ${p.label}
                     ${isLast ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>` : nothing}
@@ -911,9 +941,10 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderSignUp(): TemplateResult {
+    const oauthLegalError = this.legalErrorFromOAuth && this.error === this.t("errorLegalRequired");
     return html`
       <div class="stack">
-        ${this.renderProviders()}
+        ${this.renderProviders()} ${oauthLegalError ? this.renderError() : nothing}
         ${(this.config?.methods?.oauth?.length ?? 0) > 0 ? html`<div class="separator-text">${this.t("or")}</div>` : nothing}
         <form class="form" @submit=${this.onSignUp} novalidate>
           ${
@@ -934,7 +965,7 @@ export class AuthUISignIn extends AuthUIElement {
           }
           ${this.emailField()}
           ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
-          ${this.legalAcceptField()} ${this.renderError()}
+          ${this.legalAcceptField()} ${oauthLegalError ? nothing : this.renderError()}
           ${this.submitButton(this.t("createAccount"))}
         </form>
         <div class="links">

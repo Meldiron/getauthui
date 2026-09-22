@@ -160,6 +160,8 @@ describe("AuthStore", () => {
   });
 
   it("redeems a magic URL token found in the page URL and cleans it", async () => {
+    const { clearLastMethod, getLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
     window.history.replaceState(
       null,
       "",
@@ -171,6 +173,7 @@ describe("AuthStore", () => {
     expect(account.createSession).toHaveBeenCalledWith("u9", "valid-secret");
     expect(authStore.getState().status).toBe("signed-in");
     expect(window.location.search).toBe("");
+    expect(getLastMethod()).toBe("magic-url");
   });
 
   it("stores a pending reset-password action from a recovery link", async () => {

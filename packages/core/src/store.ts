@@ -21,7 +21,7 @@ import { defaultStrings } from "./i18n.js";
 import { PreviewAccount } from "./preview.js";
 import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
-import { clearPendingOAuth, rememberPendingOAuth } from "./last-method.js";
+import { clearPendingOAuth, rememberLastMethod, rememberPendingOAuth } from "./last-method.js";
 import type {
   AuthUIConfig,
   AuthUIEventMap,
@@ -784,6 +784,7 @@ export class AuthStore {
           if (userId && secret) {
             await this.acct().createSession(userId, secret);
             if (action === "oauth") rememberPendingOAuth();
+            else rememberLastMethod("magic-url");
           } else {
             if (action === "oauth") clearPendingOAuth();
             incomplete();

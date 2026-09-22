@@ -887,3 +887,124 @@ describe("0.1.10 features", () => {
     expect(cfg.methods?.oauthLayout).toBe("stack");
   });
 });
+
+describe("0.1.11 sign-in fixes", () => {
+  it("disables passwordless entry buttons while busy", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, magicUrl: true, emailOtp: true, phone: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).busy = true;
+    await (el as any).updateComplete;
+    const buttons = [...el.shadowRoot!.querySelectorAll("button.btn-secondary")];
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    for (const b of buttons) {
+      expect((b as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it("starts OTP resend cooldown after the initial send", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: false, emailOtp: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("email-otp");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).token?.kind).toBe("email-otp");
+    expect((el as any).resendCooldownUntil).toBeGreaterThan(Date.now());
+    const resend = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /resend code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(resend).toBeTruthy();
+    expect(resend.disabled).toBe(true);
+  });
+
+  it("toggles show-password independently on reset confirm field", async () => {
+    authStore.configure(config);
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).recovery = { userId: "u9", secret: "s9" };
+    (el as any).go("reset-password");
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const pw = root.querySelector("#authui-password") as HTMLInputElement;
+    const confirm = root.querySelector("#authui-password-confirm") as HTMLInputElement;
+    expect(pw.type).toBe("password");
+    expect(confirm.type).toBe("password");
+    const toggles = [...root.querySelectorAll(".input-wrap .btn-icon")] as HTMLButtonElement[];
+    expect(toggles.length).toBe(2);
+    toggles[1].click();
+    await (el as any).updateComplete;
+    expect(pw.type).toBe("password");
+    expect(confirm.type).toBe("text");
+    toggles[0].click();
+    await (el as any).updateComplete;
+    expect(pw.type).toBe("text");
+    expect(confirm.type).toBe("text");
+  });
+
+  it("shows legal-required error near OAuth when OAuth is blocked", async () => {
+    authStore.configure({
+      ...config,
+      legal: { termsUrl: "/terms", privacyUrl: "/privacy", requireAcceptance: true },
+      methods: { emailPassword: true, oauth: ["google", "github"] },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in view="sign-up"></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const github = [...root.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").toLowerCase().includes("github")
+    )!;
+    github.click();
+    await (el as any).updateComplete;
+    expect((el as any).legalErrorFromOAuth).toBe(true);
+    expect((el as any).error).toMatch(/Accept the terms/i);
+    const stack = root.querySelector(".stack")!;
+    const children = [...stack.children];
+    const providersIdx = children.findIndex((c) => c.classList.contains("providers"));
+    const alertIdx = children.findIndex((c) => c.classList.contains("alert-error"));
+    expect(providersIdx).toBeGreaterThanOrEqual(0);
+    expect(alertIdx).toBe(providersIdx + 1);
+    // Form should not also render the same alert under the password field.
+    const formAlerts = root.querySelectorAll("form .alert-error");
+    expect(formAlerts.length).toBe(0);
+  });
+
+  it("reorders last-used OAuth provider first in icon layout", async () => {
+    const { clearLastMethod, rememberLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
+    rememberLastMethod("oauth:github");
+    authStore.configure({
+      ...config,
+      methods: {
+        emailPassword: true,
+        oauth: ["google", "github", "apple"],
+        oauthLayout: "icon",
+      },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const buttons = [...el.shadowRoot!.querySelectorAll(".providers.icon > button")];
+    expect(buttons.length).toBe(3);
+    expect(buttons[0].classList.contains("last-used")).toBe(true);
+    expect(buttons[0].getAttribute("aria-label")?.toLowerCase()).toMatch(/github/);
+  });
+});
