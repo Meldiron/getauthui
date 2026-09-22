@@ -205,6 +205,32 @@ export const base = css`
     justify-content: space-between;
     gap: 8px;
   }
+  /* Forgot after password in DOM (tab order); grid keeps it visually beside the label */
+  .field-with-forgot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label forgot"
+      "input input"
+      "meta meta";
+    column-gap: 8px;
+    row-gap: 6px;
+    align-items: center;
+  }
+  .field-with-forgot > .label {
+    grid-area: label;
+  }
+  .field-with-forgot > .field-forgot {
+    grid-area: forgot;
+    justify-self: end;
+  }
+  .field-with-forgot > .input-wrap {
+    grid-area: input;
+  }
+  .field-with-forgot > .hint,
+  .field-with-forgot > .strength {
+    grid-area: meta;
+  }
   .label {
     font-size: 14px;
     line-height: 1;

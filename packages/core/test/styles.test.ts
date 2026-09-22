@@ -37,6 +37,14 @@ describe("shared layout styles", () => {
     expect(cssText).toMatch(/\.field-header\s*\{[^}]*justify-content:\s*space-between/s);
   });
 
+  it("keeps Forgot visually in the header via field-with-forgot grid areas", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.field-with-forgot\s*\{[^}]*grid-template-areas:/s);
+    expect(cssText).toMatch(
+      /\.field-with-forgot\s*>\s*\.field-forgot\s*\{[^}]*grid-area:\s*forgot/s
+    );
+  });
+
   it("lays out 3+ OAuth providers as an accordion row", () => {
     const cssText = String(base);
     expect(cssText).toMatch(/\.providers\.accordion\s*\{[^}]*display:\s*flex/s);
@@ -66,5 +74,13 @@ describe("design tokens", () => {
   it("uses a dark enough light-theme error foreground for AA on the error bg", () => {
     const cssText = String(tokens);
     expect(cssText).toMatch(/--authui-error-foreground:\s*#b91c1c/);
+  });
+
+  it("raises the light focus ring for WCAG non-text contrast on white", () => {
+    const cssText = String(tokens);
+    // Light host block: ring must not stay near #e5e5e5 / oklch(0.898…)
+    expect(cssText).toMatch(/:host\s*\{[^}]*--authui-ring:\s*#71717a/s);
+    // Dark ring from 0.1.13 must not regress
+    expect(cssText).toMatch(/:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-ring:\s*#a1a1aa/s);
   });
 });

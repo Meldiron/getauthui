@@ -154,7 +154,47 @@ describe("<authui-sign-in>", () => {
     );
     expect(forgot).toBeTruthy();
     expect(forgot!.closest("label")).toBeNull();
-    expect(forgot!.closest(".field-header")).not.toBeNull();
+    expect(forgot!.closest(".field-with-forgot")).not.toBeNull();
+  });
+
+  it("places Forgot after the password input in DOM tab order", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const password = root.querySelector("#authui-password")!;
+    const forgot = [...root.querySelectorAll("button")].find((b) =>
+      /Forgot password/i.test(b.textContent ?? "")
+    )!;
+    const pos = password.compareDocumentPosition(forgot);
+    expect(pos & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("wires aria-invalid and aria-describedby when an auth error is shown", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    (el as any).error = "Invalid credentials. Check your email and password.";
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const alert = root.querySelector("#authui-error");
+    expect(alert?.getAttribute("role")).toBe("alert");
+    const email = root.querySelector("#authui-email")!;
+    const password = root.querySelector("#authui-password")!;
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(email.getAttribute("aria-describedby")).toBe("authui-error");
+    expect(password.getAttribute("aria-invalid")).toBe("true");
+    expect(password.getAttribute("aria-describedby")).toBe("authui-error");
+    (el as any).error = "";
+    await (el as any).updateComplete;
+    expect(email.hasAttribute("aria-invalid")).toBe(false);
+    expect(email.hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("makes the show/hide password toggle keyboard-focusable", async () => {

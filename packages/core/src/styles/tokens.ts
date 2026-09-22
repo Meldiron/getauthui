@@ -26,7 +26,8 @@ export const tokens = css`
     --authui-destructive-foreground: oklch(0.577 0.245 27.325);
     --authui-border: oklch(0.93 0.0035 286.32);
     --authui-input: oklch(0.93 0.0035 286.32);
-    --authui-ring: oklch(0.898 0.004 286.286);
+    /* Raised on white for WCAG 1.4.11 / 2.4.7 (~3:1+) UI contrast; zinc-500 */
+    --authui-ring: #71717a;
     --authui-brand: #fd366e;
     --authui-brand-foreground: #ffffff;
     --authui-success: oklch(0.696 0.17 162.48);

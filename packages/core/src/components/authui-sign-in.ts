@@ -19,6 +19,9 @@ import {
 
 type Step = Exclude<AuthUIView, "account">;
 
+/** Stable id for the auth error alert; fields point aria-describedby here. */
+const ERROR_ALERT_ID = "authui-error";
+
 interface PendingToken {
   userId: string;
   kind: "email-otp" | "phone" | "magic-url";
@@ -444,7 +447,7 @@ export class AuthUISignIn extends AuthUIElement {
 
   private renderError(): TemplateResult | typeof nothing {
     return this.error
-      ? html`<div class="alert alert-error" role="alert">
+      ? html`<div class="alert alert-error" role="alert" id=${ERROR_ALERT_ID}>
           ${icons.alert}
           <div class="alert-body">${this.error}</div>
         </div>`
@@ -471,21 +474,8 @@ export class AuthUISignIn extends AuthUIElement {
     const visible = opts.field === "passwordConfirm" ? this.showPasswordConfirm : this.showPassword;
     const strength = opts.meter ? scorePassword(value) : null;
     return html`
-      <div class="field">
-        <div class="field-header">
-          <label class="label" for=${opts.id}>${opts.label}</label>
-          ${
-            opts.forgot
-              ? html`<button
-                  type="button"
-                  class="btn btn-link small"
-                  @click=${() => this.go("forgot-password")}
-                >
-                  ${this.t("forgotPassword")}
-                </button>`
-              : nothing
-          }
-        </div>
+      <div class="field${opts.forgot ? " field-with-forgot" : ""}">
+        <label class="label" for=${opts.id}>${opts.label}</label>
         <div class="input-wrap">
           <input
             class="input"
@@ -496,6 +486,8 @@ export class AuthUISignIn extends AuthUIElement {
             minlength="8"
             .value=${value}
             @input=${this.bind(opts.field)}
+            aria-invalid=${this.error ? "true" : nothing}
+            aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
           />
           <button
             type="button"
@@ -512,6 +504,17 @@ export class AuthUISignIn extends AuthUIElement {
             ${visible ? icons.eyeOff : icons.eye}
           </button>
         </div>
+        ${
+          opts.forgot
+            ? html`<button
+                type="button"
+                class="btn btn-link small field-forgot"
+                @click=${() => this.go("forgot-password")}
+              >
+                ${this.t("forgotPassword")}
+              </button>`
+            : nothing
+        }
         ${
           strength && value
             ? html`<div class="strength" aria-live="polite">
@@ -550,6 +553,8 @@ export class AuthUISignIn extends AuthUIElement {
           inputmode="email"
           .value=${this.email}
           @input=${this.bind("email")}
+          aria-invalid=${this.error ? "true" : nothing}
+          aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
         />
       </div>
     `;
@@ -570,6 +575,8 @@ export class AuthUISignIn extends AuthUIElement {
           required
           .value=${this.code}
           @input=${this.bind("code")}
+          aria-invalid=${this.error ? "true" : nothing}
+          aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
         />
       </div>
     `;
@@ -614,10 +621,13 @@ export class AuthUISignIn extends AuthUIElement {
   /** Required acceptance checkbox on sign-up when legal.requireAcceptance is set. */
   private legalAcceptField(): TemplateResult | typeof nothing {
     if (!this.needsLegalAcceptance()) return nothing;
+    const legalInvalid = this.error === this.t("errorLegalRequired");
     return html`<label class="legal-accept">
       <input
         type="checkbox"
         .checked=${this.legalAccepted}
+        aria-invalid=${legalInvalid ? "true" : nothing}
+        aria-describedby=${legalInvalid ? ERROR_ALERT_ID : nothing}
         @change=${(e: Event) => {
           this.legalAccepted = (e.target as HTMLInputElement).checked;
           if (this.legalAccepted && this.error === this.t("errorLegalRequired")) {
@@ -959,6 +969,8 @@ export class AuthUISignIn extends AuthUIElement {
                     required
                     .value=${this.name}
                     @input=${this.bind("name")}
+                    aria-invalid=${this.error ? "true" : nothing}
+                    aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
                   />
                 </div>`
               : nothing
@@ -1153,6 +1165,8 @@ export class AuthUISignIn extends AuthUIElement {
               required
               .value=${this.phone}
               @input=${this.bind("phone")}
+              aria-invalid=${this.error ? "true" : nothing}
+              aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
             />
           </div>
           ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
@@ -1238,6 +1252,8 @@ export class AuthUISignIn extends AuthUIElement {
                     required
                     .value=${this.code}
                     @input=${this.bind("code")}
+                    aria-invalid=${this.error ? "true" : nothing}
+                    aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
                   />
                 </div>`
               : this.codeField()
