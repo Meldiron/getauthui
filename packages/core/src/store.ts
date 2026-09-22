@@ -92,13 +92,14 @@ export class AuthStore {
     if (this.config) return;
     const message = this.getStrings().errorConfigIncomplete;
     console.warn(`[authui] ${message}`);
+    // configError alone drives the sticky banner; do not also push a pending
+    // notice with the same text (that stacked a dismissible alert on top).
     this.setState({
       status: "signed-out",
       user: null,
       mfaFactors: null,
       configured: false,
       configError: message,
-      pending: { type: "notice", tone: "error", message },
     });
   }
 
@@ -273,12 +274,12 @@ export class AuthStore {
           );
           const e = toAuthUIError(err);
           this.emit("error", { message: hint, type: e.type, code: e.code });
+          // Single source of truth: sticky configError banner only (no duplicate notice).
           this.setState({
             status: "signed-out",
             user: null,
             mfaFactors: null,
             configError: hint,
-            pending: { type: "notice", tone: "error", message: hint },
           });
         } else {
           this.setState({ status: "signed-out", user: null, mfaFactors: null, configError: null });

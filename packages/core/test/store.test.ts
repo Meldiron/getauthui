@@ -34,6 +34,7 @@ describe("AuthStore", () => {
     await tick();
     expect(authStore.getState().status).toBe("signed-out");
     expect(authStore.getState().configError).toMatch(/project|endpoint|platform/i);
+    expect(authStore.getState().pending).toBeNull();
     expect(warn).toHaveBeenCalled();
     expect(errorListener).toHaveBeenCalled();
     warn.mockRestore();
@@ -52,6 +53,7 @@ describe("AuthStore", () => {
     expect(authStore.getState().status).toBe("signed-out");
     expect(authStore.getState().configured).toBe(false);
     expect(authStore.getState().configError).toMatch(/endpoint|project/i);
+    expect(authStore.getState().pending).toBeNull();
     warn.mockRestore();
   });
 

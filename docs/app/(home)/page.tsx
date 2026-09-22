@@ -117,18 +117,28 @@ const steps = [
   {
     n: "02",
     title: "Drop in the elements",
-    desc: "A button opens the modal. The user button shows the avatar and account menu once signed in.",
+    desc: "Wrap the sign-in button and user button in authui-show so only one shows at a time. The user button is the avatar and account menu once signed in.",
     code: (
       <>
+        {T.tag("<authui-show")} {T.attr("when")}={T.str('"signed-out"')}
+        {T.tag(">")}
+        {"\n  "}
         {T.tag("<authui-button>")}
         {T.pl("Sign in")}
         {T.tag("</authui-button>")}
         {"\n"}
+        {T.tag("</authui-show>")}
+        {"\n"}
+        {T.tag("<authui-show")} {T.attr("when")}={T.str('"signed-in"')}
+        {T.tag(">")}
+        {"\n  "}
         {T.tag("<authui-user-button>")}
         {T.tag("</authui-user-button>")}
+        {"\n"}
+        {T.tag("</authui-show>")}
       </>
     ),
-    raw: `<authui-button>Sign in</authui-button>\n<authui-user-button></authui-user-button>`,
+    raw: `<authui-show when="signed-out">\n  <authui-button>Sign in</authui-button>\n</authui-show>\n<authui-show when="signed-in">\n  <authui-user-button></authui-user-button>\n</authui-show>`,
   },
   {
     n: "03",

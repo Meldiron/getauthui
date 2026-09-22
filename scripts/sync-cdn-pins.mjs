@@ -20,27 +20,9 @@ if (!/^\d+\.\d+\.\d+(-[\w.-]+)?$/.test(version)) {
   process.exit(1);
 }
 
-const SKIP_DIRS = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  "out",
-  ".next",
-  "coverage",
-  ".source",
-]);
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "out", ".next", "coverage", ".source"]);
 
-const TEXT_EXT = new Set([
-  ".md",
-  ".mdx",
-  ".ts",
-  ".tsx",
-  ".js",
-  ".mjs",
-  ".jsx",
-  ".html",
-  ".json",
-]);
+const TEXT_EXT = new Set([".md", ".mdx", ".ts", ".tsx", ".js", ".mjs", ".jsx", ".html", ".json"]);
 
 /** Paths we never rewrite (audit notes, lockfiles, package manifests' own version field handled separately). */
 function shouldSkipFile(abs) {
@@ -81,7 +63,7 @@ for (const abs of walk(root)) {
   if (relative(root, abs).replace(/\\/g, "/") === "docs/lib/shared.ts") {
     text = text.replace(
       cdnUrlRe,
-      `export const cdnUrl = "https://unpkg.com/@getauthui/core@${version}";`,
+      `export const cdnUrl = "https://unpkg.com/@getauthui/core@${version}";`
     );
   }
 
@@ -95,5 +77,5 @@ for (const abs of walk(root)) {
 console.log(
   changed === 0
     ? `CDN pins already at @${version}`
-    : `Synced ${changed} file(s) to @getauthui/core@${version}`,
+    : `Synced ${changed} file(s) to @getauthui/core@${version}`
 );

@@ -5,20 +5,20 @@ description: How Auth UI compares to Clerk Components, Auth0 Universal Login, Su
 
 ## Feature comparison
 
-| Feature | Auth UI | Clerk Components | Auth0 Universal Login | Supabase Auth UI | Hand-rolled Appwrite forms |
-| --- | --- | --- | --- | --- | --- |
-| Works with Appwrite | Yes | No | No | No | Yes |
-| Hosted IdP / auth backend | No (uses your Appwrite) | Yes | Yes | Yes (Supabase Auth) | No |
-| Session on your origin | Yes | Depends on setup | Hosted login domain | Yes (your Supabase project) | Yes |
-| Drop-in Lit web components | Yes | React-first components | Hosted pages | React / framework packages | You build them |
-| One script tag / CDN | Yes | No | Embed / redirect | Limited | N/A |
-| Email / password, OAuth, passwordless | Via Appwrite | Yes | Yes | Yes | You wire Appwrite SDK |
-| MFA UI | Yes | Yes | Yes | Partial | You build it |
-| Account / sessions UI | Yes | Yes | Dashboard / APIs | Limited | You build it |
-| Framework agnostic | Yes | React-centric | Hosted | Framework packages | Whatever you choose |
-| Bundle (CDN, gzipped) | ~101 KB ESM / ~87 KB IIFE | Larger app SDK | Hosted (no local UI bundle) | Smaller UI kit | Your code |
+| Feature                               | Auth UI                   | Clerk Components       | Auth0 Universal Login       | Supabase Auth UI            | Hand-rolled Appwrite forms |
+| ------------------------------------- | ------------------------- | ---------------------- | --------------------------- | --------------------------- | -------------------------- |
+| Works with Appwrite                   | Yes                       | No                     | No                          | No                          | Yes                        |
+| Hosted IdP / auth backend             | No (uses your Appwrite)   | Yes                    | Yes                         | Yes (Supabase Auth)         | No                         |
+| Session on your origin                | Yes                       | Depends on setup       | Hosted login domain         | Yes (your Supabase project) | Yes                        |
+| Drop-in Lit web components            | Yes                       | React-first components | Hosted pages                | React / framework packages  | You build them             |
+| One script tag / CDN                  | Yes                       | No                     | Embed / redirect            | Limited                     | N/A                        |
+| Email / password, OAuth, passwordless | Via Appwrite              | Yes                    | Yes                         | Yes                         | You wire Appwrite SDK      |
+| MFA UI                                | Yes                       | Yes                    | Yes                         | Partial                     | You build it               |
+| Account / sessions UI                 | Yes                       | Yes                    | Dashboard / APIs            | Limited                     | You build it               |
+| Framework agnostic                    | Yes                       | React-centric          | Hosted                      | Framework packages          | Whatever you choose        |
+| Bundle (CDN, gzipped)                 | ~101 KB ESM / ~87 KB IIFE | Larger app SDK         | Hosted (no local UI bundle) | Smaller UI kit              | Your code                  |
 
-Sizes for Auth UI are the published `@getauthui/core@0.1.16` CDN builds (Lit and the Appwrite Web SDK included).
+Sizes for Auth UI are the published `@getauthui/core@0.1.17` CDN builds (Lit and the Appwrite Web SDK included).
 
 ## Honest framing
 

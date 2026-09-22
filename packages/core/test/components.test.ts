@@ -674,6 +674,32 @@ describe("auth notice and last-method bugs", () => {
     expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "error" });
   });
 
+  it("shows configError once without a stacked pending notice", async () => {
+    account.get.mockRejectedValueOnce({
+      type: "project_not_found",
+      message: "Project with the requested ID could not be found.",
+      code: 404,
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const hint = authStore.getState().configError;
+    expect(hint).toBeTruthy();
+    expect(authStore.getState().pending).toBeNull();
+
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const text = shadowText(el);
+    expect(text).toContain(hint!);
+    // Message appears once (sticky configError), not twice (notice + banner).
+    const first = text.indexOf(hint!);
+    const second = text.indexOf(hint!, first + hint!.length);
+    expect(second).toBe(-1);
+    warn.mockRestore();
+  });
+
   it("does not pin Last used on OAuth click before a successful session", async () => {
     const { clearLastMethod, getLastMethod } = await import("../src/last-method.js");
     clearLastMethod();

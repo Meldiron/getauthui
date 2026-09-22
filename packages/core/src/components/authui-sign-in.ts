@@ -146,11 +146,14 @@ export class AuthUISignIn extends AuthUIElement {
       // Do not clear pending here; clearing triggered a signed-out sync that wiped the notice.
     }
     if (pending?.type === "notice" && !this.notice) {
-      this.notice = {
-        tone: pending.tone === "error" ? "error" : pending.tone,
-        message: pending.message,
-      };
-      // Leave pending so other surfaces (modal) can also show it until dismissed.
+      // configError already renders a sticky banner; do not stack the same text.
+      if (!(this.auth.configError && pending.message === this.auth.configError)) {
+        this.notice = {
+          tone: pending.tone === "error" ? "error" : pending.tone,
+          message: pending.message,
+        };
+        // Leave pending so other surfaces (modal) can also show it until dismissed.
+      }
     }
   }
 
@@ -395,7 +398,7 @@ export class AuthUISignIn extends AuthUIElement {
       <div class="panel ${this.embedded ? "embedded" : ""}" part="panel">
         ${this.renderHeader()}
         ${
-          this.notice
+          this.notice && !(this.auth.configError && this.notice.message === this.auth.configError)
             ? html`<div class="alert alert-${this.notice.tone}" role="status">
                 ${this.notice.tone === "success" ? icons.checkCircle : this.notice.tone === "error" ? icons.alert : icons.info}
                 <div class="alert-body">${this.notice.message}</div>

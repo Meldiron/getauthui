@@ -17,7 +17,7 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
 
     ```html
     <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style>
-    <script src="https://unpkg.com/@getauthui/core@0.1.16/dist/authui.cdn.js"></script>
+    <script src="https://unpkg.com/@getauthui/core@0.1.17/dist/authui.cdn.js"></script>
     ```
 
     The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg ESM entry (`type="module"`) only defines the elements; it does not set a global. Pin a version in production.
@@ -70,10 +70,15 @@ Configuration is global. Every Auth UI element on the page reads from the same s
 ## 4. Add a trigger and the modal
 
 ```html
-<authui-button>Sign in</authui-button> <authui-user-button></authui-user-button>
+<authui-show when="signed-out">
+  <authui-button>Sign in</authui-button>
+</authui-show>
+<authui-show when="signed-in">
+  <authui-user-button></authui-user-button>
+</authui-show>
 ```
 
-`<authui-button>` opens the modal. `<authui-user-button>` shows a sign-in button while signed out and the user's avatar with an account menu while signed in. The modal element is created automatically the first time it is needed, or you can place `<authui-modal>` yourself.
+Wrap each control in [`<authui-show>`](/docs/components/show) so only one appears at a time. Without it, `<authui-button>` and `<authui-user-button>` both render "Sign in" while signed out. `<authui-button>` opens the modal. `<authui-user-button>` shows the avatar and account menu once signed in. The modal element is created automatically the first time it is needed, or you can place `<authui-modal>` yourself.
 
 ## 5. React to sign in
 
@@ -85,7 +90,11 @@ AuthUI.on("signed-in", (user) => {
 });
 ```
 
-With the IIFE CDN script above, `AuthUI` is already on `window`, so you can omit the import.
+Pick the matching path:
+
+- **IIFE CDN** (the `<script src=".../authui.cdn.js">` tab above): `AuthUI` is already on `window`, so omit the import and call `AuthUI.on(...)` from a classic script.
+- **ESM CDN** (`<script type="module" src="https://unpkg.com/@getauthui/core@…">`): there is no `window.AuthUI`. Prefer `<authui-config>` for setup, or `import { AuthUI } from "@getauthui/core"` with a bundler.
+- **npm**: keep the import as shown.
 
 Or let Auth UI navigate for you by passing `successUrl` in the configuration.
 

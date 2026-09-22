@@ -25,11 +25,12 @@ Auth UI is a set of framework-agnostic web components built with [Lit](https://l
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.16"></script>
+<!-- ESM CDN: defines custom elements only (no window.AuthUI). -->
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.17"></script>
 
 <authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>
-<authui-button>Sign in</authui-button>
-<authui-user-button></authui-user-button>
+<authui-show when="signed-out"><authui-button>Sign in</authui-button></authui-show>
+<authui-show when="signed-in"><authui-user-button></authui-user-button></authui-show>
 ```
 
 ## Why it runs on your domain
