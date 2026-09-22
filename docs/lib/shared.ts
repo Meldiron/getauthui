@@ -11,7 +11,7 @@ export const gitConfig = {
   branch: "main",
 };
 
-export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.11";
+export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.12";
 
 /** Critical CSS for the page <head> so <authui-show> stays hidden before the CDN module runs. */
 export const criticalCss =

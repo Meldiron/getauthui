@@ -1008,3 +1008,149 @@ describe("0.1.11 sign-in fixes", () => {
     expect(buttons[0].getAttribute("aria-label")?.toLowerCase()).toMatch(/github/);
   });
 });
+
+describe("0.1.12 account UX fixes", () => {
+  it("shows phone verify Resend with cooldown after Send code", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /send code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(send).toBeTruthy();
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).phoneCodeSent).toBe(true);
+    expect((el as any).verifyPhoneCooldownUntil).toBeGreaterThan(Date.now());
+    expect(shadowText(el)).toMatch(/Sent\. You can resend in \d+ s/);
+    expect(shadowText(el)).toMatch(/Verify code/i);
+    const resend = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /resend in|resend code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(resend).toBeTruthy();
+    expect(resend.disabled).toBe(true);
+  });
+
+  it("toggles change-password reveal independently per field", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const root = el.shadowRoot!;
+    const oldPw = root.querySelector("#acc-old-password") as HTMLInputElement;
+    const newPw = root.querySelector("#acc-new-password") as HTMLInputElement;
+    const confirm = root.querySelector("#acc-new-password-confirm") as HTMLInputElement;
+    expect(oldPw?.type).toBe("password");
+    expect(newPw?.type).toBe("password");
+    expect(confirm?.type).toBe("password");
+    const toggles = [...root.querySelectorAll(".input-wrap .btn-icon")] as HTMLButtonElement[];
+    expect(toggles.length).toBe(3);
+    toggles[2].click();
+    await (el as any).updateComplete;
+    expect(oldPw.type).toBe("password");
+    expect(newPw.type).toBe("password");
+    expect(confirm.type).toBe("text");
+    toggles[0].click();
+    await (el as any).updateComplete;
+    expect(oldPw.type).toBe("text");
+    expect(confirm.type).toBe("text");
+  });
+
+  it("warns about MFA with no factors without saying before enabling", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: true,
+      emailVerification: false,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    account.listMFAFactors.mockResolvedValueOnce({
+      totp: false,
+      email: false,
+      phone: false,
+      recoveryCode: false,
+    });
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    const text = shadowText(el);
+    expect(text).toMatch(/no factors are set up yet/i);
+    expect(text).not.toMatch(/before enabling/i);
+  });
+
+  it("autofocuses Cancel on regenerate recovery and remove authenticator confirms", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: true,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    account.listMFAFactors.mockResolvedValue({
+      totp: true,
+      email: true,
+      phone: false,
+      recoveryCode: true,
+    });
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    (el as any).confirmRegenerate = true;
+    await (el as any).updateComplete;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const regenCancel = el.shadowRoot!.querySelector(
+      ".inline [autofocus]"
+    ) as HTMLButtonElement | null;
+    expect(regenCancel?.textContent?.trim()).toMatch(/cancel/i);
+
+    (el as any).confirmRegenerate = false;
+    (el as any).confirmRemoveAuthenticator = true;
+    await (el as any).updateComplete;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const removeCancel = el.shadowRoot!.querySelector(
+      ".inline [autofocus]"
+    ) as HTMLButtonElement | null;
+    expect(removeCancel?.textContent?.trim()).toMatch(/cancel/i);
+  });
+});

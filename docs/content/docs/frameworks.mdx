@@ -17,7 +17,7 @@ Auth UI ships standard custom elements, so every framework can render them. Impo
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.11"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.12"></script>
 <authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>
 <authui-button>Sign in</authui-button>
 ```
@@ -25,7 +25,7 @@ Auth UI ships standard custom elements, so every framework can render them. Impo
 The default unpkg ESM entry (`type="module"`) registers the custom elements only. It does not set `window.AuthUI`. For classic scripts that call `AuthUI.init` / `AuthUI.on` / `AuthUI.open`, load the IIFE build instead:
 
 ```html
-<script src="https://unpkg.com/@getauthui/core@0.1.11/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.12/dist/authui.cdn.js"></script>
 ```
 
 In Vue, Svelte, Angular and other bundlers, use `import { AuthUI } from "@getauthui/core"` as shown below.

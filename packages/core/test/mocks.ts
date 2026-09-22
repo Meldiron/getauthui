@@ -99,6 +99,8 @@ export function createAccountMock() {
     updateMFARecoveryCodes: vi.fn(async () => ({ recoveryCodes: ["eeee-ffff", "gggg-hhhh"] })),
     createEmailVerification: vi.fn(async () => ({})),
     createVerification: vi.fn(async () => ({})),
+    createPhoneVerification: vi.fn(async () => ({})),
+    updatePhoneVerification: vi.fn(async () => ({})),
     updatePassword: vi.fn(async () => ({})),
   };
   return mock;
