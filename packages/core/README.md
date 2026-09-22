@@ -49,7 +49,7 @@ v2 runs inside your page. Its requests to Appwrite are indistinguishable from yo
 - **Account management**: profile, email and phone verification, password change, active sessions, connected identities, security log when the server exposes it, account deletion
 - **Modal, inline or headless** usage, `<authui-show when="signed-in">` conditionals, React wrappers
 - **Themeable**: Appwrite Console design system, dark mode that follows your page, CSS custom properties for everything, string overrides
-- **Framework agnostic**: standard web components built with Lit, ~96 KB gzipped ESM on the CDN (~83 KB IIFE), including Lit and the full Appwrite SDK
+- **Framework agnostic**: standard web components built with Lit, ~99 KB gzipped ESM on the CDN (~86 KB IIFE), including Lit and the full Appwrite SDK
 
 ## Install
 
