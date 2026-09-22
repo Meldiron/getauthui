@@ -11,17 +11,17 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 
 ## State
 
-| Method                | Returns                                                    |
-| --------------------- | ---------------------------------------------------------- |
-| `configure(config)`   | `void`. Also runs `handleRedirect()` then `refresh()`.     |
-| `getState()`          | `AuthUIState`                                              |
-| `getConfig()`         | `AuthUIConfig \| null`                                     |
-| `getClient()`         | `Client \| null`                                           |
-| `getAccount()`        | `Account \| null`, the service every method above calls    |
-| `getStrings()`        | merged `AuthUIStrings`                                     |
-| `refresh()`           | `Promise<void>`. Re-fetches the user and derives `status`. |
-| `on(event, listener)` | unsubscribe function                                       |
-| `getActiveTeamId()`   | `string \| null`. Local active team id for the project.    |
+| Method                | Returns                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `configure(config)`   | `void`. Also runs `handleRedirect()` then `refresh()`.                                   |
+| `getState()`          | `AuthUIState`                                                                            |
+| `getConfig()`         | `AuthUIConfig \| null`                                                                   |
+| `getClient()`         | `Client \| null`                                                                         |
+| `getAccount()`        | `Account \| null`, the service every method above calls                                  |
+| `getStrings()`        | merged `AuthUIStrings`                                                                   |
+| `refresh()`           | `Promise<void>`. Re-fetches the user and derives `status`.                               |
+| `on(event, listener)` | unsubscribe function                                                                     |
+| `getActiveTeamId()`   | `string \| null`. Local active team id for the project.                                  |
 | `setActiveTeam(team)` | `void`. Remember `{ $id, name }` or `null`; emits `active-team`. Does not call Appwrite. |
 
 ## Sign in

@@ -294,6 +294,94 @@ export const base = css`
     font-size: 18px;
     height: 44px;
   }
+
+  /* Vibes-style segmented OTP (3 + sep + 3) */
+  .otp {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+  }
+  .otp-group {
+    display: flex;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+  }
+  .otp-slot {
+    flex: 1;
+    min-width: 0;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--authui-input);
+    border-radius: var(--authui-radius-md);
+    background: var(--authui-background);
+    color: var(--authui-foreground);
+    font-family: var(--authui-font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: var(--authui-shadow-xs);
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      background-color 120ms ease;
+  }
+  .otp-slot-active {
+    border-color: var(--authui-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--authui-ring) 40%, transparent);
+  }
+  .otp-invalid .otp-slot {
+    border-color: var(--authui-destructive);
+  }
+  .otp-invalid .otp-slot-active {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--authui-destructive) 35%, transparent);
+  }
+  .otp-sep {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 12px;
+  }
+  .otp-sep span {
+    display: block;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--authui-muted-foreground);
+    opacity: 0.7;
+  }
+  .otp-native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    caret-color: transparent;
+    color: transparent;
+    background: transparent;
+    cursor: text;
+    z-index: 1;
+  }
+  .otp-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  @media (max-width: 380px) {
+    .otp-slot {
+      height: 44px;
+      font-size: 18px;
+    }
+  }
   .hint {
     font-size: 12px;
     color: var(--authui-muted-foreground);

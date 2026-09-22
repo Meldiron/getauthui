@@ -102,7 +102,7 @@ const [modalOpen, setModalOpen] = useState(false);
   <button onClick={() => setModalOpen(true)}>Open</button>
   <button onClick={() => setModalOpen(false)}>Force close</button>
   <AuthUIModal open={modalOpen} />
-</>
+</>;
 ```
 
 Setting `open` to `false` writes through to the element so the dialog closes even when it was opened via `AuthUI.open()` or a button.

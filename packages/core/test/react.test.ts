@@ -31,6 +31,12 @@ vi.mock("appwrite", async () => {
       getQR(text: string) {
         return `https://example.com/qr?text=${encodeURIComponent(text)}`;
       }
+      getBrowser(code: string) {
+        return `https://example.com/browser/${code}.png`;
+      }
+      getFlag(code: string) {
+        return `https://example.com/flag/${code}.png`;
+      }
     },
     ID: { unique: () => "unique()" },
   };

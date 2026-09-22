@@ -8,6 +8,7 @@ import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import { scorePassword } from "../password-strength.js";
+import { otpInput } from "../otp-input.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "activity";
 
@@ -96,6 +97,7 @@ export class AuthUIAccount extends AuthUIElement {
         gap: 16px;
       }
       .device {
+        position: relative;
         width: 36px;
         height: 36px;
         border-radius: var(--authui-radius-md);
@@ -105,10 +107,78 @@ export class AuthUIAccount extends AuthUIElement {
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        overflow: visible;
+        box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--authui-border) 70%, transparent);
       }
       .device svg {
         width: 18px;
         height: 18px;
+      }
+      .device-img {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        padding: 4px;
+        border-radius: var(--authui-radius-md);
+        display: block;
+      }
+      .device-badge {
+        position: absolute;
+        inset-inline-end: -3px;
+        bottom: -3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--authui-card);
+        color: var(--authui-muted-foreground);
+        box-shadow: 0 0 0 2px var(--authui-card);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .device-badge svg {
+        width: 10px;
+        height: 10px;
+      }
+      .flag {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        object-fit: cover;
+        box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--authui-border) 50%, transparent);
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+      .row-sub-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+      .row-sub-meta .flag {
+        margin-inline-end: 2px;
+      }
+      .session-badges {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+      }
+      .session-badges .badge {
+        font-size: 10px;
+        padding: 0 6px;
+        height: 18px;
+        gap: 3px;
+      }
+      .session-badges .badge svg {
+        width: 10px;
+        height: 10px;
+      }
+      .session-dates {
+        display: block;
+        font-size: 11px;
+        color: var(--authui-muted-foreground);
+        margin-top: 2px;
       }
       .log-time {
         font-size: 12px;
@@ -160,6 +230,8 @@ export class AuthUIAccount extends AuthUIElement {
 
   // sessions / identities / logs
   @state() private sessions: Models.Session[] | null = null;
+  /** Session ids whose browser avatar failed to load. */
+  @state() private browserIconFailed: Record<string, boolean> = {};
   @state() private identities: Models.Identity[] | null = null;
   @state() private logs: Models.Log[] | null = null;
   /** null = probing, true = show Activity, false = hide. */
@@ -1106,23 +1178,18 @@ export class AuthUIAccount extends AuthUIElement {
             this.phoneCodeSent
               ? html`<div class="field">
                   <label class="label" for="acc-phone-code">${this.t("code")}</label>
-                  <input
-                    class="input input-otp"
-                    id="acc-phone-code"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    maxlength="6"
-                    pattern="[0-9]*"
-                    required
-                    .value=${this.phoneCode}
-                    @input=${this.bind("phoneCode")}
-                    @keydown=${(e: KeyboardEvent) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        this.onConfirmPhoneVerification(e);
-                      }
-                    }}
-                  />
+
+                  ${otpInput({
+                    id: "acc-phone-code",
+
+                    value: this.phoneCode,
+
+                    disabled: !!this.busy,
+
+                    onChange: (v) => {
+                      this.phoneCode = v;
+                    },
+                  })}
                 </div>`
               : nothing
           }
@@ -1471,17 +1538,18 @@ export class AuthUIAccount extends AuthUIElement {
                 </div>
                 <div class="field">
                   <label class="label" for="acc-totp">${this.t("code")}</label>
-                  <input
-                    class="input input-otp"
-                    id="acc-totp"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    maxlength="6"
-                    pattern="[0-9]*"
-                    required
-                    .value=${this.authenticatorCode}
-                    @input=${this.bind("authenticatorCode")}
-                  />
+
+                  ${otpInput({
+                    id: "acc-totp",
+
+                    value: this.authenticatorCode,
+
+                    disabled: !!this.busy,
+
+                    onChange: (v) => {
+                      this.authenticatorCode = v;
+                    },
+                  })}
                 </div>
                 ${this.error("authenticator-code")}
                 <div class="inline">
@@ -1636,17 +1704,27 @@ export class AuthUIAccount extends AuthUIElement {
                   <label class="label" for="acc-stepup"
                     >${s.challenge.factor === "recoverycode" ? this.t("recoveryCode") : this.t("code")}</label
                   >
-                  <input
-                    class="input ${s.challenge.factor === "recoverycode" ? "mono" : "input-otp"}"
-                    id="acc-stepup"
-                    inputmode=${s.challenge.factor === "recoverycode" ? "text" : "numeric"}
-                    maxlength=${s.challenge.factor === "recoverycode" ? "64" : "6"}
-                    pattern=${s.challenge.factor === "recoverycode" ? ".*" : "[0-9]*"}
-                    autocomplete="one-time-code"
-                    required
-                    .value=${this.stepUpCode}
-                    @input=${this.bind("stepUpCode")}
-                  />
+                  ${
+                    s.challenge.factor === "recoverycode"
+                      ? html`<input
+                          class="input mono"
+                          id="acc-stepup"
+                          inputmode="text"
+                          maxlength="64"
+                          autocomplete="one-time-code"
+                          required
+                          .value=${this.stepUpCode}
+                          @input=${this.bind("stepUpCode")}
+                        />`
+                      : otpInput({
+                          id: "acc-stepup",
+                          value: this.stepUpCode,
+                          disabled: !!this.busy,
+                          onChange: (v) => {
+                            this.stepUpCode = v;
+                          },
+                        })
+                  }
                 </div>
                 <button class="btn btn-primary btn-sm" type="submit" ?disabled=${!!this.busy}>
                   ${this.spinner("stepup-code")} ${this.t("verifyCode")}
@@ -1663,7 +1741,40 @@ export class AuthUIAccount extends AuthUIElement {
 
   // ── Sessions ──
 
-  private deviceIcon(s: Models.Session): TemplateResult {
+  private formatSessionDate(iso: string | undefined): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  private browserIconUrl(s: Models.Session): string | null {
+    const code = (s.clientCode || "").trim();
+    if (!code || code === "-") return null;
+    const client = authStore.getClient();
+    if (!client) return null;
+    try {
+      const url = new Avatars(client).getBrowser(code as never, 64, 64);
+      return typeof url === "string" ? url : String(url);
+    } catch {
+      return null;
+    }
+  }
+
+  private flagUrl(s: Models.Session): string | null {
+    const code = (s.countryCode || "").trim().toLowerCase();
+    if (!code || code === "--") return null;
+    const client = authStore.getClient();
+    if (!client) return null;
+    try {
+      const url = new Avatars(client).getFlag(code as never, 32, 32);
+      return typeof url === "string" ? url : String(url);
+    } catch {
+      return null;
+    }
+  }
+
+  private deviceKindIcon(s: Models.Session): TemplateResult {
     const device = (s.deviceName || "").toLowerCase();
     const os = (s.osName || s.osCode || "").toLowerCase();
     if (/phone|tablet|mobile/.test(device) || /ios|android|ipados/.test(os))
@@ -1671,6 +1782,26 @@ export class AuthUIAccount extends AuthUIElement {
     if (/desktop|browser/.test(device) || /mac|windows|linux|chrome os/.test(os))
       return icons.monitor;
     return icons.globe;
+  }
+
+  private deviceIcon(s: Models.Session): TemplateResult {
+    const url = this.browserIconUrl(s);
+    const failed = !!this.browserIconFailed[s.$id];
+    const kind = this.deviceKindIcon(s);
+    if (!url || failed) {
+      return html`<span class="device">${kind}</span>`;
+    }
+    return html`<span class="device">
+      <img
+        class="device-img"
+        src=${url}
+        alt=""
+        @error=${() => {
+          this.browserIconFailed = { ...this.browserIconFailed, [s.$id]: true };
+        }}
+      />
+      <span class="device-badge" aria-hidden="true">${kind}</span>
+    </span>`;
   }
 
   private renderSessions(): TemplateResult {
@@ -1689,35 +1820,75 @@ export class AuthUIAccount extends AuthUIElement {
                   this.t("noSessions"),
                   this.t("noSessionsDescription")
                 )
-              : list.map(
-                  (s) =>
-                    html`<div class="row">
-                      <div class="inline">
-                        <span class="device">${this.deviceIcon(s)}</span>
-                        <div class="row-main">
-                          <span class="row-title">
-                            ${s.clientName || s.provider}
-                            ${s.clientVersion ? html`<span class="muted small">${s.clientVersion}</span>` : nothing}
+              : list.map((s) => {
+                  const flag = this.flagUrl(s);
+                  const hasMfa = Array.isArray(s.factors) && s.factors.length > 0;
+                  const provider = (s.provider || "").trim();
+                  const showProvider =
+                    !!provider && provider !== "email" && provider !== "anonymous";
+                  const created = this.formatSessionDate(s.$createdAt);
+                  const expires = this.formatSessionDate(s.expire);
+                  const location = s.countryName || s.countryCode || "";
+                  return html`<div class="row">
+                    <div class="inline">
+                      ${this.deviceIcon(s)}
+                      <div class="row-main">
+                        <span class="row-title">
+                          ${s.clientName || provider || this.t("sessions")}
+                          ${s.clientVersion ? html`<span class="muted small">${s.clientVersion}</span>` : nothing}
+                          <span class="session-badges">
                             ${s.current ? html`<span class="badge badge-info">${this.t("currentSession")}</span>` : nothing}
+                            ${
+                              hasMfa
+                                ? html`<span
+                                    class="badge badge-info"
+                                    title=${this.t("sessionMfaFactors", { factors: s.factors.join(", ") })}
+                                    >${icons.shield} ${this.t("mfaBadge")}</span
+                                  >`
+                                : nothing
+                            }
+                            ${
+                              showProvider
+                                ? html`<span class="badge badge-outline"
+                                    >${providerIcon(provider)} ${providerLabel(provider)}</span
+                                  >`
+                                : nothing
+                            }
                           </span>
-                          <span class="row-sub"
-                            >${[s.osName, s.countryName || s.countryCode, s.ip].filter(Boolean).join(" · ")}</span
-                          >
-                        </div>
+                        </span>
+                        <span class="row-sub row-sub-meta">
+                          ${s.osName ? html`<span>${s.osName}</span>` : nothing}
+                          ${
+                            location
+                              ? html`<span
+                                  >${flag ? html`<img class="flag" src=${flag} alt="" />` : nothing}${location}</span
+                                >`
+                              : nothing
+                          }
+                          ${s.ip ? html`<span>${s.ip}</span>` : nothing}
+                        </span>
+                        ${
+                          created || expires
+                            ? html`<span class="session-dates"
+                                >${created ? this.t("sessionCreated", { date: created }) : nothing}${created && expires ? " · " : ""}${expires ? this.t("sessionExpires", { date: expires }) : nothing}</span
+                              >`
+                            : nothing
+                        }
                       </div>
-                      <div class="row-actions">
-                        ${this.busy === `session-${s.$id}` ? html`<span class="spinner"></span>` : nothing}
-                        <button
-                          class="btn btn-ghost btn-sm"
-                          @click=${() => this.onDeleteSession(s.$id)}
-                          ?disabled=${!!this.busy}
-                          aria-label=${this.t("signOutSession")}
-                        >
-                          ${icons.logOut}
-                        </button>
-                      </div>
-                    </div>`
-                )
+                    </div>
+                    <div class="row-actions">
+                      ${this.busy === `session-${s.$id}` ? html`<span class="spinner"></span>` : nothing}
+                      <button
+                        class="btn btn-ghost btn-sm"
+                        @click=${() => this.onDeleteSession(s.$id)}
+                        ?disabled=${!!this.busy}
+                        aria-label=${this.t("signOutSession")}
+                      >
+                        ${icons.logOut}
+                      </button>
+                    </div>
+                  </div>`;
+                })
         }`
       )}
       ${this.card(

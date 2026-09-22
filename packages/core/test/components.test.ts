@@ -24,6 +24,12 @@ vi.mock("appwrite", async () => {
       getQR(text: string) {
         return `https://example.com/qr?text=${encodeURIComponent(text)}`;
       }
+      getBrowser(code: string) {
+        return `https://example.com/browser/${code}.png`;
+      }
+      getFlag(code: string) {
+        return `https://example.com/flag/${code}.png`;
+      }
     },
     ID: { unique: () => "unique()" },
   };
@@ -216,11 +222,15 @@ describe("<authui-sign-in>", () => {
     await tick();
     const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
     await tick();
+    await tick();
     await (el as any).updateComplete;
     const text = shadowText(el);
     expect(text).toContain("Two-factor authentication");
-    expect(text).toContain("Use authenticator app");
-    expect(text).toContain("Use a recovery code");
+    // Default factor (totp) auto-starts; code entry is shown, not the phantom chooser.
+    expect(text).toContain("Verify code");
+    expect(el.shadowRoot!.querySelector("#authui-code")).toBeTruthy();
+    expect(el.shadowRoot!.querySelector("[data-otp]")).toBeTruthy();
+    expect(account.createMFAChallenge).toHaveBeenCalled();
     expect(text).not.toContain("Send code by SMS");
   });
 
@@ -241,17 +251,12 @@ describe("<authui-sign-in>", () => {
     expect(authStore.getState().status).toBe("mfa-required");
     const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
     await tick();
-    await (el as any).updateComplete;
-    expect(shadowText(el)).toContain("Two-factor authentication");
-
-    const authenticator = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
-      (b.textContent ?? "").includes("authenticator")
-    )!;
-    authenticator.click();
     await tick();
     await (el as any).updateComplete;
-
+    expect(shadowText(el)).toContain("Two-factor authentication");
+    // totp auto-started; enter the code directly.
     const code = el.shadowRoot!.querySelector<HTMLInputElement>("#authui-code")!;
+    expect(code).toBeTruthy();
     code.value = "123456";
     code.dispatchEvent(new Event("input"));
     el.shadowRoot!.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
@@ -535,8 +540,12 @@ describe("<authui-account>", () => {
     await tick();
     await tick();
     await (el as any).updateComplete;
-    expect(shadowText(el)).toContain("Chrome");
-    expect(shadowText(el)).toContain("This device");
+    const text = shadowText(el);
+    expect(text).toContain("Chrome");
+    expect(text).toContain("This device");
+    expect(text).toMatch(/Expires|Created/);
+    expect(text).toContain("MFA");
+    expect(el.shadowRoot!.querySelector("img.device-img, img.flag")).toBeTruthy();
   });
 
   it("shows the guest upgrade form for anonymous users", async () => {

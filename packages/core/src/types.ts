@@ -293,6 +293,12 @@ export interface AuthUIStrings {
   regenerateRecoveryCodes: string;
   recoveryCodesWarning: string;
   currentSession: string;
+  /** Session expiry label, `{date}` = formatted expire time. */
+  sessionExpires: string;
+  /** Session created label, `{date}` = formatted created time. */
+  sessionCreated: string;
+  /** Tooltip / accessible label for MFA factors on a session. */
+  sessionMfaFactors: string;
   signOutSession: string;
   signOutAllSessions: string;
   signOutAllSessionsDescription: string;

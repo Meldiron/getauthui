@@ -77,7 +77,23 @@ export function createAccountMock() {
     }),
     listSessions: vi.fn(async () => ({
       sessions: [
-        { $id: "s1", current: true, clientName: "Chrome", osName: "macOS", provider: "email" },
+        {
+          $id: "s1",
+          current: true,
+          clientName: "Chrome",
+          clientCode: "ch",
+          clientVersion: "120.0",
+          osName: "macOS",
+          osCode: "mac",
+          deviceName: "desktop",
+          countryName: "Canada",
+          countryCode: "ca",
+          ip: "1.2.3.4",
+          provider: "email",
+          factors: ["password", "totp"],
+          $createdAt: "2026-01-01T00:00:00.000Z",
+          expire: "2027-01-01T00:00:00.000Z",
+        },
       ],
     })),
     listIdentities: vi.fn(async () => ({ identities: [] })),
@@ -131,6 +147,12 @@ export function mockAppwrite() {
     Avatars: class {
       getQR(text: string) {
         return `https://example.com/qr?text=${encodeURIComponent(text)}`;
+      }
+      getBrowser(code: string) {
+        return `https://example.com/browser/${code}.png`;
+      }
+      getFlag(code: string) {
+        return `https://example.com/flag/${code}.png`;
       }
     },
     ID: { unique: () => "unique()" },

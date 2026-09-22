@@ -16,6 +16,8 @@ import {
   rememberPendingOAuth,
   stashPendingOAuth,
 } from "../last-method.js";
+import { otpInput } from "../otp-input.js";
+import { availableMfaFactors, defaultMfaFactor } from "../mfa.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -56,6 +58,8 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private resendCooldownUntil = 0;
 
   @state() private challenge: { id: string; factor: MfaFactor } | null = null;
+  /** Prevents duplicate auto-start challenges on re-render. */
+  private mfaAutoStarted = false;
   @state() private recovery: { userId: string; secret: string } | null = null;
 
   @query("form input:not([type=hidden])") private firstInput?: HTMLInputElement;
@@ -87,6 +91,21 @@ export class AuthUISignIn extends AuthUIElement {
       this.focusOnStep = false;
       requestAnimationFrame(() => this.firstInput?.focus());
     }
+    this.maybeAutoStartMfa();
+  }
+
+  /** Vibes-style: pick a default factor once and create its challenge. */
+  private maybeAutoStartMfa(): void {
+    if (this.step !== "mfa" || this.challenge || this.mfaAutoStarted || this.busy) return;
+    const factors = this.auth.mfaFactors;
+    if (!factors) return;
+    const def = defaultMfaFactor(factors);
+    if (!def) return;
+    this.mfaAutoStarted = true;
+    // Defer so we do not schedule another update from inside `updated()`.
+    queueMicrotask(() => {
+      if (!this.challenge && this.step === "mfa") this.onChooseFactor(def);
+    });
   }
 
   /** React to store transitions: MFA pending, redirect results, sign in. */
@@ -155,7 +174,10 @@ export class AuthUISignIn extends AuthUIElement {
     this.passwordConfirm = "";
     this.legalAccepted = false;
     this.legalErrorFromOAuth = false;
-    if (step !== "mfa") this.challenge = null;
+    if (step !== "mfa") {
+      this.challenge = null;
+      this.mfaAutoStarted = false;
+    }
     if (step !== "email-otp" && step !== "phone" && step !== "magic-url") this.token = null;
     this.fire("authui-view", { view: step });
   }
@@ -564,20 +586,17 @@ export class AuthUISignIn extends AuthUIElement {
     return html`
       <div class="field">
         <label class="label" for="authui-code">${this.t("code")}</label>
-        <input
-          class="input input-otp"
-          id="authui-code"
-          type="text"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          maxlength="6"
-          pattern="[0-9]*"
-          required
-          .value=${this.code}
-          @input=${this.bind("code")}
-          aria-invalid=${this.error ? "true" : nothing}
-          aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
-        />
+        ${otpInput({
+          id: "authui-code",
+          value: this.code,
+          invalid: !!this.error,
+          describedBy: this.error ? ERROR_ALERT_ID : null,
+          disabled: this.busy,
+          onChange: (v) => {
+            this.code = v;
+            this.requestUpdate();
+          },
+        })}
       </div>
     `;
   }
@@ -1178,54 +1197,55 @@ export class AuthUISignIn extends AuthUIElement {
 
   private renderMfa(): TemplateResult {
     const factors: Models.MfaFactors | null = this.auth.mfaFactors;
+
+    // Factors still loading: never show phantom "all available" choices.
+    if (!factors) {
+      return html`
+        <div class="stack">
+          <div class="empty"><span class="spinner" aria-label=${this.t("loading")}></span></div>
+          ${this.renderError()}
+          <div class="links">
+            <button type="button" class="btn btn-link" @click=${this.onCancelMfa}>
+              ${this.t("cancel")}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     if (!this.challenge) {
       const choices: {
         factor: MfaFactor;
         icon: TemplateResult;
         label: string;
-        available: boolean;
       }[] = [
-        {
-          factor: "totp",
-          icon: icons.smartphone,
-          label: this.t("mfaUseAuthenticator"),
-          available: factors?.totp ?? true,
-        },
-        {
-          factor: "email",
-          icon: icons.mail,
-          label: this.t("mfaUseEmail"),
-          available: factors?.email ?? true,
-        },
-        {
-          factor: "phone",
-          icon: icons.phone,
-          label: this.t("mfaUsePhone"),
-          available: factors?.phone ?? true,
-        },
-        {
-          factor: "recoverycode",
-          icon: icons.key,
-          label: this.t("mfaUseRecoveryCode"),
-          available: factors?.recoveryCode ?? true,
-        },
+        { factor: "totp", icon: icons.smartphone, label: this.t("mfaUseAuthenticator") },
+        { factor: "email", icon: icons.mail, label: this.t("mfaUseEmail") },
+        { factor: "phone", icon: icons.phone, label: this.t("mfaUsePhone") },
+        { factor: "recoverycode", icon: icons.key, label: this.t("mfaUseRecoveryCode") },
       ];
+      const available = new Set(availableMfaFactors(factors));
+      const visible = choices.filter((c) => available.has(c.factor));
       return html`
         <div class="stack">
           <div class="stack-sm">
-            ${choices
-              .filter((c) => c.available)
-              .map(
-                (c) =>
-                  html`<button
-                    type="button"
-                    class="choice"
-                    @click=${() => this.onChooseFactor(c.factor)}
-                    ?disabled=${this.busy}
-                  >
-                    ${c.icon}<span class="choice-title">${c.label}</span>
-                  </button>`
-              )}
+            ${
+              visible.length === 0
+                ? html`<div class="empty">
+                    <span class="spinner" aria-label=${this.t("loading")}></span>
+                  </div>`
+                : visible.map(
+                    (c) =>
+                      html`<button
+                        type="button"
+                        class="choice"
+                        @click=${() => this.onChooseFactor(c.factor)}
+                        ?disabled=${this.busy}
+                      >
+                        ${c.icon}<span class="choice-title">${c.label}</span>
+                      </button>`
+                  )
+            }
           </div>
           ${this.renderError()}
           <div class="links">
