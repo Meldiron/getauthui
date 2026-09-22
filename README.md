@@ -15,7 +15,7 @@
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.12"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.13"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -65,7 +65,7 @@ CDN:
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.12"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.13"></script>
 ```
 
 The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
@@ -73,7 +73,7 @@ The `<style>` keeps `<authui-show>` and the buttons hidden until the module defi
 The default CDN URL is an ESM module: it defines the elements but does **not** set `window.AuthUI`. For `AuthUI.init` / `AuthUI.on` from a classic script, use the IIFE build:
 
 ```html
-<script src="https://unpkg.com/@getauthui/core@0.1.12/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.13/dist/authui.cdn.js"></script>
 ```
 
 npm:

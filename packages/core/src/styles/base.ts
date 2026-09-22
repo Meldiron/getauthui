@@ -213,7 +213,8 @@ export const base = css`
   }
   .input {
     font: inherit;
-    font-size: 14px;
+    /* 16px avoids iOS Safari auto-zoom on focus */
+    font-size: 16px;
     height: 36px;
     width: 100%;
     min-width: 0;
@@ -288,8 +289,9 @@ export const base = css`
     background: var(--authui-muted);
     transition: background-color 120ms ease;
   }
+  /* destructive-foreground matches light destructive and stays visible on dark card */
   .strength-meter[data-level="1"] span:nth-child(-n + 1) {
-    background: var(--authui-destructive);
+    background: var(--authui-destructive-foreground);
   }
   .strength-meter[data-level="2"] span:nth-child(-n + 2) {
     background: var(--authui-warning-foreground);
@@ -304,6 +306,19 @@ export const base = css`
     font-size: 12px;
     color: var(--authui-muted-foreground);
     margin: 0;
+  }
+  :host([data-theme="dark"]) .strength-meter span {
+    background: var(--authui-border);
+  }
+  :host([data-theme="dark"]) .strength-meter[data-level="1"] span:nth-child(-n + 1) {
+    background: var(--authui-destructive-foreground);
+  }
+  :host([data-theme="dark"]) .strength-meter[data-level="2"] span:nth-child(-n + 2),
+  :host([data-theme="dark"]) .strength-meter[data-level="3"] span:nth-child(-n + 3) {
+    background: var(--authui-warning-foreground);
+  }
+  :host([data-theme="dark"]) .strength-meter[data-level="4"] span {
+    background: var(--authui-success);
   }
 
   .btn.last-used {
@@ -455,7 +470,7 @@ export const base = css`
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    height: 36px;
+    height: 44px;
     width: fit-content;
     max-width: 100%;
     overflow-x: auto;
@@ -466,6 +481,14 @@ export const base = css`
     gap: 2px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /* Subtle right-edge fade as overflow cue at narrow widths */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 28px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
   }
   :host([data-theme="dark"]) .tabs {
     background: color-mix(in oklab, var(--authui-muted) 80%, transparent);
@@ -476,8 +499,9 @@ export const base = css`
     justify-content: center;
     gap: 6px;
     height: 100%;
+    min-height: 38px;
     flex: 0 0 auto;
-    padding: 4px 10px;
+    padding: 8px 12px;
     border-radius: var(--authui-radius-md);
     border: 1px solid transparent;
     background: transparent;

@@ -72,9 +72,10 @@ export const tokens = css`
     --authui-accent-foreground: oklch(0.985 0 0);
     --authui-destructive: oklch(0.396 0.141 25.723);
     --authui-destructive-foreground: oklch(0.637 0.237 25.331);
-    --authui-border: oklch(0.252 0.005 286.32);
-    --authui-input: #2d2d31;
-    --authui-ring: oklch(0.448 0.015 285.786);
+    /* Raised vs card (#1d1d21) for WCAG 1.4.11 (~3:1) UI contrast */
+    --authui-border: #71717a;
+    --authui-input: #71717a;
+    --authui-ring: #a1a1aa;
     --authui-success-foreground: #34d399;
     --authui-warning-foreground: #fbbf24;
     --authui-error-foreground: #f87171;

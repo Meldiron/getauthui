@@ -29,9 +29,11 @@ export class AuthUIModal extends AuthUIElement {
         background: var(--authui-background);
         color: var(--authui-foreground);
         padding: 0;
-        width: calc(100% - 2rem);
+        width: calc(100% - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
         max-width: 440px;
-        max-height: calc(100dvh - 2rem);
+        max-height: calc(
+          100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+        );
         box-shadow: var(--authui-shadow-lg);
         overflow: hidden;
         z-index: var(--authui-z);
@@ -59,7 +61,9 @@ export class AuthUIModal extends AuthUIElement {
       .frame {
         display: flex;
         flex-direction: column;
-        max-height: calc(100dvh - 2rem);
+        max-height: calc(
+          100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+        );
         min-height: 0;
         position: relative;
       }
@@ -68,11 +72,13 @@ export class AuthUIModal extends AuthUIElement {
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        padding: 8px 8px 0;
+        padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) 0
+          max(8px, env(safe-area-inset-left, 0px));
         background: var(--authui-background);
       }
       .body {
-        padding: 4px 24px 28px;
+        padding: 4px max(24px, env(safe-area-inset-right, 0px))
+          max(28px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
         overflow-y: auto;
         flex: 1 1 auto;
         min-height: 0;
