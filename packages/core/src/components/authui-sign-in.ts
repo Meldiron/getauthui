@@ -10,6 +10,15 @@ import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
 import { scorePassword } from "../password-strength.js";
+import { PwnedPasswordChecker } from "../pwned-password.js";
+import {
+  PHONE_COUNTRIES,
+  defaultPhoneCountryIso,
+  flagEmoji,
+  getPhoneCountry,
+  parsePhone,
+  toE164,
+} from "../phone-countries.js";
 import {
   getLastMethod,
   rememberLastMethod,
@@ -71,12 +80,28 @@ export class AuthUISignIn extends AuthUIElement {
 
   @query("form input:not([type=hidden])") private firstInput?: HTMLInputElement;
 
-  private email = "";
+  /**
+   * Prefill the email field (also via the `email` HTML attribute).
+   * Does not override after the user edits the field.
+   */
+  @property({ type: String }) email = "";
+  /**
+   * Alternate email prefill (WorkOS-style). Attribute: `login-hint`.
+   * Applied once when `email` is empty and the user has not typed yet.
+   */
+  @property({ type: String, attribute: "login-hint" }) loginHint = "";
   @state() private password = "";
   @state() private passwordConfirm = "";
   private name = "";
+  /** Full E.164 phone sent to Appwrite. */
   private phone = "";
+  @state() private phoneCountryIso = defaultPhoneCountryIso();
+  @state() private phoneNational = "";
   private code = "";
+  /** True after the user edits the email field; blocks further prefills. */
+  private emailTouched = false;
+  private didApplyEmailPrefill = false;
+  private readonly pwnedChecker = new PwnedPasswordChecker(() => this.requestUpdate());
   /** Sign-up legal checkbox when legal.requireAcceptance is set. */
   @state() private legalAccepted = false;
   /** True when the legal-required error was raised by an OAuth click (show near providers). */
@@ -85,6 +110,7 @@ export class AuthUISignIn extends AuthUIElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.step = this.view;
+    this.applyEmailPrefillOnce();
     this.applyLastPasswordlessStepOnce();
     this.syncFromStore();
   }
@@ -95,6 +121,14 @@ export class AuthUISignIn extends AuthUIElement {
       this.applyLastPasswordlessStepOnce();
       this.syncFromStore();
     }
+    if (
+      (changed.has("loginHint") || changed.has("email")) &&
+      !this.emailTouched &&
+      !this.email.trim()
+    ) {
+      const hint = (this.loginHint || "").trim();
+      if (hint) this.email = hint;
+    }
   }
 
   protected updated(changed: Map<string, unknown>): void {
@@ -103,6 +137,26 @@ export class AuthUISignIn extends AuthUIElement {
       requestAnimationFrame(() => this.firstInput?.focus());
     }
     this.maybeAutoStartMfa();
+  }
+
+  /** Apply email / login_hint attribute and ?login_hint= / ?email= once. */
+  private applyEmailPrefillOnce(): void {
+    if (this.didApplyEmailPrefill) return;
+    this.didApplyEmailPrefill = true;
+    if (this.emailTouched) return;
+    if (this.email.trim()) return;
+    const fromProp = (this.loginHint || "").trim();
+    if (fromProp) {
+      this.email = fromProp;
+      return;
+    }
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = (params.get("login_hint") || params.get("email") || "").trim();
+      if (fromUrl) this.email = fromUrl;
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Vibes-style: pick a default factor once and create its challenge. */
@@ -269,6 +323,10 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.requireValid(e)) return;
     this.legalErrorFromOAuth = false;
     if (!this.ensureLegalAccepted()) return;
+    if (this.isPasswordBreached()) {
+      this.error = this.t("passwordBreached");
+      return;
+    }
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
       this.password = "";
@@ -320,6 +378,10 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.requireValid(e)) return;
     if (this.password !== this.passwordConfirm) {
       this.error = this.t("errorPasswordMismatch");
+      return;
+    }
+    if (this.isPasswordBreached()) {
+      this.error = this.t("passwordBreached");
       return;
     }
     const recovery = this.recovery;
@@ -434,8 +496,36 @@ export class AuthUISignIn extends AuthUIElement {
 
   private bind(field: "email" | "password" | "passwordConfirm" | "name" | "phone" | "code") {
     return (e: Event) => {
-      this[field] = (e.target as HTMLInputElement).value;
+      const value = (e.target as HTMLInputElement).value;
+      this[field] = value;
+      if (field === "email") this.emailTouched = true;
+      if (field === "password") this.pwnedChecker.schedule(value);
+      if (field === "phone") {
+        // Legacy full-number path (tests / paste). Re-parse into picker state.
+        const parsed = parsePhone(value, this.phoneCountryIso);
+        this.phoneCountryIso = parsed.iso;
+        this.phoneNational = parsed.national;
+        this.phone = parsed.e164;
+      }
     };
+  }
+
+  private onPhoneCountryChange = (e: Event) => {
+    this.phoneCountryIso = (e.target as HTMLSelectElement).value;
+    this.syncPhoneE164();
+  };
+
+  private onPhoneNationalInput = (e: Event) => {
+    this.phoneNational = (e.target as HTMLInputElement).value;
+    this.syncPhoneE164();
+  };
+
+  private syncPhoneE164(): void {
+    this.phone = toE164(this.phoneCountryIso, this.phoneNational);
+  }
+
+  private isPasswordBreached(): boolean {
+    return this.pwnedChecker.pwned;
   }
 
   // ───────────────────────────── render ─────────────────────────────
@@ -533,8 +623,12 @@ export class AuthUISignIn extends AuthUIElement {
       : nothing;
   }
 
-  private submitButton(label: string, variant = "btn-primary"): TemplateResult {
-    return html`<button class="btn ${variant} btn-block" type="submit" ?disabled=${this.busy}>
+  private submitButton(label: string, variant = "btn-primary", disabled = false): TemplateResult {
+    return html`<button
+      class="btn ${variant} btn-block"
+      type="submit"
+      ?disabled=${this.busy || disabled}
+    >
       ${this.busy ? html`<span class="spinner" aria-hidden="true"></span>` : nothing} ${label}
     </button>`;
   }
@@ -610,6 +704,11 @@ export class AuthUISignIn extends AuthUIElement {
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <p class="strength-label">${this.t(strength.labelKey)}</p>
+                ${
+                  this.pwnedChecker.pwned
+                    ? html`<p class="strength-breached">${this.t("passwordBreached")}</p>`
+                    : nothing
+                }
               </div>`
             : opts.hint
               ? html`<p class="hint">${opts.hint}</p>`
@@ -1056,7 +1155,7 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.emailField()}
           ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.legalAcceptField()} ${oauthLegalError ? nothing : this.renderError()}
-          ${this.submitButton(this.t("createAccount"))}
+          ${this.submitButton(this.t("createAccount"), "btn-primary", this.isPasswordBreached())}
         </form>
         <div class="links">
           <span>${this.t("haveAccount")}</span>
@@ -1105,7 +1204,8 @@ export class AuthUISignIn extends AuthUIElement {
         <form class="form" @submit=${this.onReset} novalidate>
           ${this.passwordField({ label: this.t("newPassword"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.passwordField({ label: this.t("confirmPassword"), autocomplete: "new-password", id: "authui-password-confirm", field: "passwordConfirm" })}
-          ${this.renderError()} ${this.submitButton(this.t("resetPassword"))}
+          ${this.renderError()}
+          ${this.submitButton(this.t("resetPassword"), "btn-primary", this.isPasswordBreached())}
         </form>
         <div class="links">
           <button
@@ -1260,23 +1360,43 @@ export class AuthUISignIn extends AuthUIElement {
 
   private renderPhone(): TemplateResult {
     if (this.token) return html`<div class="stack">${this.renderCodeEntry()}</div>`;
+    const country = getPhoneCountry(this.phoneCountryIso);
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onPhoneOtp} novalidate>
           <div class="field">
             <label class="label" for="authui-phone">${this.t("phone")}</label>
-            <input
-              class="input"
-              id="authui-phone"
-              type="tel"
-              autocomplete="tel"
-              placeholder="+1 555 000 0000"
-              required
-              .value=${this.phone}
-              @input=${this.bind("phone")}
-              aria-invalid=${this.error ? "true" : nothing}
-              aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
-            />
+            <div class="phone-row">
+              <label class="sr-only" for="authui-phone-country">${this.t("phoneCountry")}</label>
+              <select
+                class="input phone-country"
+                id="authui-phone-country"
+                aria-label=${this.t("phoneCountry")}
+                .value=${this.phoneCountryIso}
+                @change=${this.onPhoneCountryChange}
+              >
+                ${PHONE_COUNTRIES.map(
+                  (c) =>
+                    html`<option value=${c.iso} ?selected=${c.iso === this.phoneCountryIso}>
+                      ${flagEmoji(c.iso)} ${c.dial} ${c.name}
+                    </option>`
+                )}
+              </select>
+              <input
+                class="input phone-national"
+                id="authui-phone"
+                type="tel"
+                autocomplete="tel-national"
+                inputmode="tel"
+                placeholder=${this.t("phoneNationalPlaceholder")}
+                required
+                .value=${this.phoneNational}
+                @input=${this.onPhoneNationalInput}
+                aria-invalid=${this.error ? "true" : nothing}
+                aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
+              />
+            </div>
+            <p class="hint">${country ? `${flagEmoji(country.iso)} ${country.dial}` : nothing}</p>
           </div>
           ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>

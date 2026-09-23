@@ -154,6 +154,10 @@ export function AuthUIButton(props: {
 
 export function AuthUISignIn(props: {
   view?: Exclude<AuthUIView, "account">;
+  /** Prefill the email field. */
+  email?: string;
+  /** Alternate email prefill (WorkOS-style login_hint). */
+  loginHint?: string;
   onSuccess?: () => void;
 }): ReactElement {
   return createElement(SignInBridge, props);
@@ -161,6 +165,8 @@ export function AuthUISignIn(props: {
 
 function SignInBridge(props: {
   view?: Exclude<AuthUIView, "account">;
+  email?: string;
+  loginHint?: string;
   onSuccess?: () => void;
 }): ReactElement {
   const [el, setEl] = useState<HTMLElement | null>(null);
@@ -170,7 +176,12 @@ function SignInBridge(props: {
     el.addEventListener("authui-success", handler);
     return () => el.removeEventListener("authui-success", handler);
   }, [el, props.onSuccess]);
-  return createElement("authui-sign-in", { ref: setEl, view: props.view });
+  return createElement("authui-sign-in", {
+    ref: setEl,
+    view: props.view,
+    email: props.email,
+    "login-hint": props.loginHint,
+  });
 }
 
 export function AuthUIAccount(props: {

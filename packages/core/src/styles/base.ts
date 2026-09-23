@@ -421,6 +421,28 @@ export const base = css`
     color: var(--authui-muted-foreground);
     margin: 0;
   }
+  .strength-breached {
+    font-size: 12px;
+    color: var(--authui-error-foreground);
+    margin: 0;
+  }
+  .phone-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .phone-country {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 42%;
+    min-width: 7.5rem;
+    padding-inline-end: 28px;
+  }
+  .phone-national {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
   :host([data-theme="dark"]) .strength-meter span {
     background: var(--authui-border);
   }

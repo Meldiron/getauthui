@@ -73,7 +73,7 @@ Returns the current state plus helpers, and re-renders on every change.
 | `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`, `onOpenChange`, `onSignedIn`, `onClose` |
 | `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children`                                     |
 | `AuthUIUserButton` | `<authui-user-button>`             | `src`, `showTeams`, `menuItems`, `onMenuAction`, `children`               |
-| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                                                       |
+| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `email`, `loginHint`, `onSuccess`                                 |
 | `AuthUIAccount`    | `<authui-account>`                 | `tab`                                                                     |
 | `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`                                              |
 
@@ -146,7 +146,11 @@ declare module "react" {
         HTMLElement
       >;
       "authui-sign-in": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView },
+        React.HTMLAttributes<HTMLElement> & {
+          view?: AuthUIView;
+          email?: string;
+          "login-hint"?: string;
+        },
         HTMLElement
       >;
       "authui-account": React.DetailedHTMLProps<

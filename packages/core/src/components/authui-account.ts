@@ -8,6 +8,14 @@ import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import { scorePassword } from "../password-strength.js";
+import { PwnedPasswordChecker } from "../pwned-password.js";
+import {
+  PHONE_COUNTRIES,
+  defaultPhoneCountryIso,
+  flagEmoji,
+  parsePhone,
+  toE164,
+} from "../phone-countries.js";
 import { otpInput } from "../otp-input.js";
 import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
 import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
@@ -229,6 +237,8 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private emailInput = "";
   @state() private emailPassword = "";
   @state() private phoneInput = "";
+  @state() private phoneCountryIso = defaultPhoneCountryIso();
+  @state() private phoneNational = "";
   @state() private phonePassword = "";
   @state() private phoneCode = "";
   @state() private phoneCodeSent = false;
@@ -243,6 +253,7 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private showOldPassword = false;
   @state() private showNewPassword = false;
   @state() private showNewPasswordConfirm = false;
+  private readonly pwnedChecker = new PwnedPasswordChecker(() => this.requestUpdate());
   @state() private authenticator: Models.MfaType | null = null;
   @state() private authenticatorCode = "";
   @state() private factors: Models.MfaFactors | null = null;
@@ -314,7 +325,15 @@ export class AuthUIAccount extends AuthUIElement {
     if (!user) return;
     if (!this.nameInput) this.nameInput = user.name ?? "";
     if (!this.emailInput) this.emailInput = user.email ?? "";
-    if (!this.phoneInput) this.phoneInput = user.phone ?? "";
+    if (!this.phoneInput) {
+      const raw = user.phone ?? "";
+      this.phoneInput = raw;
+      if (raw) {
+        const parsed = parsePhone(raw, this.phoneCountryIso);
+        this.phoneCountryIso = parsed.iso;
+        this.phoneNational = parsed.national;
+      }
+    }
   }
 
   private get user(): Models.User<Models.Preferences> | null {
@@ -609,6 +628,10 @@ export class AuthUIAccount extends AuthUIElement {
       this.errors = { ...this.errors, password: this.t("errorPasswordMismatch") };
       return;
     }
+    if (this.pwnedChecker.pwned) {
+      this.errors = { ...this.errors, password: this.t("passwordBreached") };
+      return;
+    }
     void this.run(
       "password",
       async () => {
@@ -826,8 +849,25 @@ export class AuthUIAccount extends AuthUIElement {
 
   private bind(field: string) {
     return (e: Event) => {
-      (this as any)[field] = (e.target as HTMLInputElement).value;
+      const value = (e.target as HTMLInputElement).value;
+      (this as any)[field] = value;
+      if (field === "newPassword") this.pwnedChecker.schedule(value);
+      if (field === "emailPassword") this.pwnedChecker.schedule(value);
     };
+  }
+
+  private onPhoneCountryChange = (e: Event) => {
+    this.phoneCountryIso = (e.target as HTMLSelectElement).value;
+    this.syncPhoneE164();
+  };
+
+  private onPhoneNationalInput = (e: Event) => {
+    this.phoneNational = (e.target as HTMLInputElement).value;
+    this.syncPhoneE164();
+  };
+
+  private syncPhoneE164(): void {
+    this.phoneInput = toE164(this.phoneCountryIso, this.phoneNational);
   }
 
   // ─────────────────────────── render ───────────────────────────
@@ -1233,15 +1273,33 @@ export class AuthUIAccount extends AuthUIElement {
               >${this.t("phone")}
               ${u.phone ? this.verifiedBadge(u.phoneVerification) : nothing}</label
             >
-            <input
-              class="input"
-              id="acc-phone"
-              type="tel"
-              placeholder="+1 555 000 0000"
-              .value=${this.phoneInput}
-              @input=${this.bind("phoneInput")}
-              autocomplete="tel"
-            />
+            <div class="phone-row">
+              <label class="sr-only" for="acc-phone-country">${this.t("phoneCountry")}</label>
+              <select
+                class="input phone-country"
+                id="acc-phone-country"
+                aria-label=${this.t("phoneCountry")}
+                .value=${this.phoneCountryIso}
+                @change=${this.onPhoneCountryChange}
+              >
+                ${PHONE_COUNTRIES.map(
+                  (c) =>
+                    html`<option value=${c.iso} ?selected=${c.iso === this.phoneCountryIso}>
+                      ${flagEmoji(c.iso)} ${c.dial} ${c.name}
+                    </option>`
+                )}
+              </select>
+              <input
+                class="input phone-national"
+                id="acc-phone"
+                type="tel"
+                placeholder=${this.t("phoneNationalPlaceholder")}
+                .value=${this.phoneNational}
+                @input=${this.onPhoneNationalInput}
+                autocomplete="tel-national"
+                inputmode="tel"
+              />
+            </div>
           </div>
           ${
             this.phoneInput !== u.phone
@@ -1477,6 +1535,13 @@ export class AuthUIAccount extends AuthUIElement {
                               <span></span><span></span><span></span><span></span>
                             </div>
                             <p class="strength-label">${this.t(strength.labelKey)}</p>
+                            ${
+                              this.pwnedChecker.pwned
+                                ? html`<p class="strength-breached">
+                                    ${this.t("passwordBreached")}
+                                  </p>`
+                                : nothing
+                            }
                           </div>`;
                         })()
                       : html`<p class="hint">${this.t("passwordHint")}</p>`
@@ -1517,7 +1582,7 @@ export class AuthUIAccount extends AuthUIElement {
                 class="btn btn-primary btn-sm"
                 type="submit"
                 form="password-form"
-                ?disabled=${!!this.busy || !this.newPassword}
+                ?disabled=${!!this.busy || !this.newPassword || this.pwnedChecker.pwned}
               >
                 ${this.spinner("password")} ${this.t("update")}
               </button>`

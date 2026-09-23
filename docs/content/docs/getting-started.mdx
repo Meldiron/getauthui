@@ -82,6 +82,10 @@ Configuration is global. Every Auth UI element on the page reads from the same s
 
 Wrap each control in [`<authui-show>`](/docs/components/show) so only one appears at a time. Without it, `<authui-button>` and `<authui-user-button>` both render "Sign in" while signed out. `<authui-button>` opens the modal. `<authui-user-button>` shows the avatar and account menu once signed in. The modal element is created automatically the first time it is needed, or you can place `<authui-modal>` yourself.
 
+## Prefill email
+
+Pass `email` or `login-hint` on `<authui-sign-in>`, or open the page with `?login_hint=user@example.com`. The field is filled once and stays editable.
+
 ## 5. React to sign in
 
 ```ts

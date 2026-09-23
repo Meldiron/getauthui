@@ -31,12 +31,12 @@ Auth UI runs on your origin. Appwrite rejects requests from hosts that are not l
 
 Bare unpkg / jsDelivr package URLs and the dedicated CDN files are safe in a `<script>` tag. The package `main` / `module` file (`dist/authui.js`) is a **bundler** entry: it has a bare `import "appwrite"`, so loading it from a CDN fails with `Failed to resolve module specifier "appwrite"` and custom elements never upgrade.
 
-| URL | Use |
-| --- | --- |
-| `https://unpkg.com/@getauthui/core@0.1.22` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`. |
-| `…/dist/authui.cdn.mjs` | Same CDN ESM entry, explicit path. |
-| `…/dist/authui.cdn.js` | CDN IIFE. Elements plus `window.AuthUI` for `init` / `on` / `open`. |
-| `…/dist/authui.js` | **Not for CDN.** Bundler / npm import only. |
+| URL                                                                 | Use                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `https://unpkg.com/@getauthui/core@0.1.22` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`.                         |
+| `…/dist/authui.cdn.mjs`                                             | Same CDN ESM entry, explicit path.                                  |
+| `…/dist/authui.cdn.js`                                              | CDN IIFE. Elements plus `window.AuthUI` for `init` / `on` / `open`. |
+| `…/dist/authui.js`                                                  | **Not for CDN.** Bundler / npm import only.                         |
 
 ```html
 <!-- Safe ESM CDN: elements only. Configure with <authui-config>. -->

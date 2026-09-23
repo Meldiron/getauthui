@@ -11,10 +11,12 @@ Use it on a dedicated login page or anywhere you would rather not use a modal. I
 
 ## Attributes and properties
 
-| Name       | Type                                                                                        | Default     | Description                                                       |
-| ---------- | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------- |
-| `view`     | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"magic-url"` / `"email-otp"` / `"phone"` | `"sign-in"` | Initial screen.                                                   |
-| `embedded` | `boolean`                                                                                   | `false`     | Removes the card border, shadow and padding. The modal sets this. |
+| Name         | Type                                                                                        | Default     | Description                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `view`       | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"magic-url"` / `"email-otp"` / `"phone"` | `"sign-in"` | Initial screen.                                                                                                               |
+| `embedded`   | `boolean`                                                                                   | `false`     | Removes the card border, shadow and padding. The modal sets this.                                                             |
+| `email`      | `string`                                                                                    |             | Prefills the email field. Not overwritten after the user types.                                                               |
+| `login-hint` | `string`                                                                                    |             | Alternate email prefill (WorkOS-style). Applied when `email` is empty. Also reads `?login_hint=` / `?email=` once on connect. |
 
 ## Methods
 
@@ -41,6 +43,16 @@ The host is `display: block` with `max-width: 420px`. Override `max-width` on th
 ## Password strength
 
 Sign-up, password reset and change-password show a live strength meter as the user types. Scoring is client-only (length and character classes). Override the labels with `strings.passwordStrengthTooWeak` through `strings.passwordStrengthVeryStrong`.
+
+While the meter is visible, Auth UI also checks Have I Been Pwned with the [range k-anonymity API](https://haveibeenpwned.com/API/v3#PwnedPasswords) (only the first 5 characters of the SHA-1 hash leave the browser). Breached passwords show a warning and block submit. If the check cannot reach the network, the form stays usable and Appwrite can still reject with `password_pwned`.
+
+## Phone country picker
+
+The phone step includes a country dial-code picker and a national number field. Auth UI composes an E.164 value for Appwrite. The default country follows `navigator.language` when possible, otherwise `+1`.
+
+## Email prefill
+
+Set the `email` or `login-hint` attribute, or open the page with `?login_hint=` / `?email=`. The value fills the email field once and is not overwritten after the user edits it.
 
 ## Last used method
 

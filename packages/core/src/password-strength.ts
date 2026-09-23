@@ -1,4 +1,4 @@
-/** Client-only password strength. No network, no dictionary API. */
+/** Client-only password strength (length and character classes). Breach checks live in `pwned-password.ts`. */
 
 export type PasswordStrengthLevel = 0 | 1 | 2 | 3 | 4;
 

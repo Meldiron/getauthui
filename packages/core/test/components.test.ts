@@ -1795,3 +1795,34 @@ describe("0.1.21 Vibes design polish", () => {
     expect(timeEl!.dateTime).toBeTruthy();
   });
 });
+
+describe("email prefill / login-hint", () => {
+  it("prefills from the email attribute", async () => {
+    authStore.configure(config);
+    const el = await mount<any>(`<authui-sign-in email="hint@example.com"></authui-sign-in>`);
+    await tick();
+    expect(el.email).toBe("hint@example.com");
+    const input = el.shadowRoot!.querySelector<HTMLInputElement>("input[type=email]")!;
+    expect(input.value).toBe("hint@example.com");
+  });
+
+  it("prefills from ?login_hint= when unset", async () => {
+    window.history.replaceState(null, "", "/app?login_hint=url@example.com");
+    authStore.configure(config);
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    expect(el.email).toBe("url@example.com");
+  });
+
+  it("does not override after the user types", async () => {
+    authStore.configure(config);
+    const el = await mount<any>(`<authui-sign-in email="hint@example.com"></authui-sign-in>`);
+    await tick();
+    const input = el.shadowRoot!.querySelector<HTMLInputElement>("input[type=email]")!;
+    input.value = "typed@example.com";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    el.loginHint = "other@example.com";
+    await el.updateComplete;
+    expect(el.email).toBe("typed@example.com");
+  });
+});
