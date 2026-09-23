@@ -50,7 +50,7 @@ With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version
 
 ## Protected content flashes (FOUC)
 
-The in-module FOUC guard cannot run until the script loads. Put this critical CSS in `<head>` before the Auth UI script so `<authui-show>` children stay hidden:
+The in-module FOUC guard cannot run until the script loads. Put this critical CSS in `<head>` before the Auth UI script so `<authui-show>` children stay hidden (exported as `CRITICAL_FOUC_CSS` from `@getauthui/core`):
 
 ```html
 <style>

@@ -69,6 +69,14 @@ import {
   ErrorTypes,
   providerLabel,
   defaultStrings,
+  FOUC_CSS,
+  CRITICAL_FOUC_CSS,
+  scorePassword,
+  getLastMethod,
+  rememberLastMethod,
+  clearLastMethod,
+  getStoredActiveTeamId,
+  setStoredActiveTeamId,
 } from "@getauthui/core";
 ```
 
@@ -76,3 +84,7 @@ import {
 - `toAuthUIError(err)` normalises anything thrown into `{ message, type, code }`.
 - `ErrorTypes` lists the Appwrite error `type` strings the UI reacts to.
 - `providerLabel(slug)` returns the display name of an OAuth provider.
+- `FOUC_CSS` / `CRITICAL_FOUC_CSS` are the critical CSS strings the in-module FOUC guard uses. Prefer putting `CRITICAL_FOUC_CSS` in your page `<head>` before the Auth UI script (see [`<authui-show>`](/docs/components/show)).
+- `scorePassword(password)` returns `{ level, percent, labelKey, checks }` for the live strength meter (client-only).
+- `getLastMethod()` / `rememberLastMethod(method)` / `clearLastMethod()` read and write `localStorage` key `authui:last-method` (what the sign-in form highlights as last used).
+- `getStoredActiveTeamId(project)` / `setStoredActiveTeamId(project, teamId)` read and write `localStorage` key `authui:active-team:<projectId>`. Prefer `AuthUI.store.getActiveTeamId()` / `setActiveTeam()` in app code; these are the underlying helpers.

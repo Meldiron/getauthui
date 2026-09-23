@@ -23,6 +23,10 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 | `on(event, listener)` | unsubscribe function                                                                     |
 | `getActiveTeamId()`   | `string \| null`. Local active team id for the project.                                  |
 | `setActiveTeam(team)` | `void`. Remember `{ $id, name }` or `null`; emits `active-team`. Does not call Appwrite. |
+| `listTeams()`         | `Promise<Models.Team[]>`. Teams the signed-in user belongs to; empty when signed out or in preview. What `show-teams` on the user button uses. |
+| `previewSignIn()`     | `Promise<void>`. Preview mode only: sign the sample user in without a form. Also on `AuthUI`. |
+| `notifyConfigIncomplete()` | `void`. Called by `<authui-config>` when endpoint or project is missing; clears loading and sets `configError`. |
+| `reset()`             | `void`. Test helper: clear client, config, state and listeners.                          |
 
 ## Sign in
 

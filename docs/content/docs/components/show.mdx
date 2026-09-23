@@ -49,7 +49,7 @@ Both accept a single value or a comma separated list. Valid values:
 
 - Children stay hidden until the initial status is known. Only `when="loading"` renders during that window.
 - The in-module FOUC guard uses a constructable stylesheet (`document.adoptedStyleSheets`) so it still works under CSP `style-src 'self'`. It cannot run until the script loads.
-- **CDN users:** put this critical CSS in your page `<head>` so protected content stays hidden before the module executes:
+- **CDN users:** put this critical CSS in your page `<head>` so protected content stays hidden before the module executes (same string as the exported `CRITICAL_FOUC_CSS` from `@getauthui/core`):
 
 ```html
 <style>

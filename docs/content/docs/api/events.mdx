@@ -32,10 +32,14 @@ Dispatch these to control the modal without a reference to it. `AuthUI.open()` a
 
 All bubble and are composed.
 
-| Element            | Event              | Detail                |
-| ------------------ | ------------------ | --------------------- |
-| `<authui-sign-in>` | `authui-success`   | `{ method }`          |
-| `<authui-sign-in>` | `authui-view`      | `{ view }`            |
-| `<authui-sign-in>` | `authui-open`      | `{ view: "account" }` |
-| `<authui-modal>`   | `authui-signed-in` | `Models.User`         |
-| `<authui-modal>`   | `authui-close`     | none                  |
+| Element                 | Event                | Detail                |
+| ----------------------- | -------------------- | --------------------- |
+| `<authui-sign-in>`      | `authui-success`     | `{ method }`          |
+| `<authui-sign-in>`      | `authui-view`        | `{ view }`            |
+| `<authui-sign-in>`      | `authui-open`        | `{ view: "account" }` |
+| `<authui-modal>`        | `authui-signed-in`   | `Models.User`         |
+| `<authui-modal>`        | `authui-close`       | none                  |
+| `<authui-user-button>`  | `authui-menu-action` | `{ actionId }`        |
+| `<authui-user-button>`  | `authui-active-team` | `{ teamId, team }`    |
+
+`authui-menu-action` fires when a custom `menuItems` row with `actionId` is clicked. `authui-active-team` fires on the element when the teams switcher picks a team (with `show-teams`). The store also emits `active-team` (and `authui:active-team` on `window`) for the same change; subscribe with `AuthUI.on("active-team", ...)` for the store-level event, or listen on the element for the component event.
