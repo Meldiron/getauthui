@@ -23,6 +23,7 @@ import {
   getLastMethod,
   rememberLastMethod,
   rememberPendingOAuth,
+  showLastUsedBadge,
   stashPendingOAuth,
 } from "../last-method.js";
 import { otpInput } from "../otp-input.js";
@@ -911,6 +912,7 @@ export class AuthUISignIn extends AuthUIElement {
     const providers = [...(this.config?.methods?.oauth ?? [])];
     if (providers.length === 0) return nothing;
     const last = getLastMethod();
+    const markLast = showLastUsedBadge(this.config?.methods) ? last : null;
     const lastOAuth = providers.find((p) => last === `oauth:${p}`) ?? null;
 
     // Resolve layout: explicit config wins; otherwise stack for 1–2, accordion for 3+.
@@ -933,7 +935,7 @@ export class AuthUISignIn extends AuthUIElement {
       return html`
         <div class="providers icon">
           ${ordered.map((p) => {
-            const isLast = last === `oauth:${p}`;
+            const isLast = markLast === `oauth:${p}`;
             const label = this.t("continueWith", { provider: providerLabel(p) });
             return html`<button
               type="button"
@@ -964,7 +966,7 @@ export class AuthUISignIn extends AuthUIElement {
       return html`
         <div class="providers">
           ${ordered.map((p) => {
-            const isLast = last === `oauth:${p}`;
+            const isLast = markLast === `oauth:${p}`;
             const label = this.t("continueWith", { provider: providerLabel(p) });
             return html`<button
               type="button"
@@ -995,7 +997,7 @@ export class AuthUISignIn extends AuthUIElement {
         }}
       >
         ${providers.map((p) => {
-          const isLast = last === `oauth:${p}`;
+          const isLast = markLast === `oauth:${p}`;
           const isExpanded = expanded === p;
           const label = this.t("continueWith", { provider: providerLabel(p) });
           return html`<div
@@ -1037,6 +1039,7 @@ export class AuthUISignIn extends AuthUIElement {
     const m = this.config?.methods ?? {};
     const emailPassword = m.emailPassword !== false;
     const hasProviders = (m.oauth?.length ?? 0) > 0;
+    const markLast = showLastUsedBadge(m) ? getLastMethod() : null;
     const passwordless = [
       m.magicUrl
         ? { step: "magic-url" as Step, icon: icons.link, label: this.t("sendMagicLink") }
@@ -1060,12 +1063,12 @@ export class AuthUISignIn extends AuthUIElement {
         ${
           emailPassword
             ? html`<form
-                class="form ${getLastMethod() === "email-password" ? "last-used-form" : ""}"
+                class="form ${markLast === "email-password" ? "last-used-form" : ""}"
                 @submit=${this.onSignIn}
                 novalidate
               >
                 ${
-                  getLastMethod() === "email-password"
+                  markLast === "email-password"
                     ? html`<p class="hint">
                         <span class="last-used-badge">${this.t("lastUsed")}</span>
                       </p>`
@@ -1081,7 +1084,7 @@ export class AuthUISignIn extends AuthUIElement {
           passwordless.length > 0
             ? html`<div class="stack-sm">
                 ${passwordless.map((p) => {
-                  const isLast = getLastMethod() === p.step;
+                  const isLast = markLast === p.step;
                   return html`<button
                     type="button"
                     class="btn btn-secondary btn-block ${isLast ? "last-used" : ""}"
@@ -1099,13 +1102,13 @@ export class AuthUISignIn extends AuthUIElement {
           m.anonymous
             ? html`<button
                 type="button"
-                class="btn btn-ghost btn-block ${getLastMethod() === "anonymous" ? "last-used" : ""}"
+                class="btn btn-ghost btn-block ${markLast === "anonymous" ? "last-used" : ""}"
                 @click=${this.onGuest}
                 ?disabled=${this.busy}
               >
                 ${icons.ghost} ${this.t("continueAsGuest")}
                 ${
-                  getLastMethod() === "anonymous"
+                  markLast === "anonymous"
                     ? html`<span class="last-used-badge">${this.t("lastUsed")}</span>`
                     : nothing
                 }

@@ -823,7 +823,7 @@ describe("account step-up and cooldown", () => {
 });
 
 describe("user-button menu placement", () => {
-  it("flips the menu above the trigger when space below is tight", async () => {
+  async function openUserMenu() {
     authStore.configure(config);
     await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
     const el = await mount<HTMLElement>(`<authui-user-button></authui-user-button>`);
@@ -836,24 +836,33 @@ describe("user-button menu placement", () => {
     const trigger = el.shadowRoot!.querySelector(".trigger") as HTMLElement;
     const menu = el.shadowRoot!.querySelector(".menu") as HTMLElement;
     expect(menu).not.toBeNull();
+    return { el, trigger, menu };
+  }
 
-    // Near the bottom: almost no room below, plenty above.
+  function mockTriggerRect(
+    trigger: HTMLElement,
+    rect: { top: number; bottom: number; left: number; right: number }
+  ) {
     Object.defineProperty(trigger, "getBoundingClientRect", {
       configurable: true,
       value: () => ({
-        top: 500,
-        bottom: 532,
-        left: 200,
-        right: 232,
-        width: 32,
-        height: 32,
-        x: 200,
-        y: 500,
+        ...rect,
+        width: rect.right - rect.left,
+        height: rect.bottom - rect.top,
+        x: rect.left,
+        y: rect.top,
         toJSON() {
           return this;
         },
       }),
     });
+  }
+
+  it("flips the menu above the trigger when space below is tight", async () => {
+    const { el, trigger, menu } = await openUserMenu();
+
+    // Near the bottom: almost no room below, plenty above.
+    mockTriggerRect(trigger, { top: 500, bottom: 532, left: 200, right: 232 });
     Object.defineProperty(menu, "offsetHeight", { configurable: true, get: () => 180 });
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 540 });
 
@@ -862,6 +871,41 @@ describe("user-button menu placement", () => {
 
     expect((el as any).menuAbove).toBe(true);
     expect(el.shadowRoot!.querySelector(".menu")!.classList.contains("above")).toBe(true);
+  });
+
+  it("flips the menu to inline-start when the trigger is near the left edge", async () => {
+    const { el, trigger, menu } = await openUserMenu();
+
+    // Near the left: end-aligned 220px menu would overflow left of the viewport.
+    mockTriggerRect(trigger, { top: 40, bottom: 72, left: 8, right: 40 });
+    Object.defineProperty(menu, "offsetHeight", { configurable: true, get: () => 120 });
+    Object.defineProperty(menu, "offsetWidth", { configurable: true, get: () => 220 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+
+    (el as any).placeMenu();
+    await (el as any).updateComplete;
+
+    expect((el as any).menuStart).toBe(true);
+    expect(el.shadowRoot!.querySelector(".menu")!.classList.contains("start")).toBe(true);
+    expect((el as any).menuAbove).toBe(false);
+  });
+
+  it("keeps end alignment when the trigger is near the right edge", async () => {
+    const { el, trigger, menu } = await openUserMenu();
+
+    // Near the right: default end alignment keeps the menu on screen.
+    mockTriggerRect(trigger, { top: 40, bottom: 72, left: 980, right: 1012 });
+    Object.defineProperty(menu, "offsetHeight", { configurable: true, get: () => 120 });
+    Object.defineProperty(menu, "offsetWidth", { configurable: true, get: () => 220 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+
+    (el as any).placeMenu();
+    await (el as any).updateComplete;
+
+    expect((el as any).menuStart).toBe(false);
+    expect(el.shadowRoot!.querySelector(".menu")!.classList.contains("start")).toBe(false);
   });
 });
 
@@ -1356,6 +1400,30 @@ describe("0.1.18 sign-in fixes", () => {
     await (el as any).updateComplete;
     expect((el as any).step).toBe("sign-in");
     expect(shadowText(el)).toMatch(/Last used/i);
+  });
+
+  it("hides Last used when only email-password is configured", async () => {
+    const { clearLastMethod, rememberLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
+    rememberLastMethod("email-password");
+    authStore.configure({
+      ...config,
+      methods: {
+        emailPassword: true,
+        emailOtp: false,
+        magicUrl: false,
+        phone: false,
+        anonymous: false,
+        oauth: [],
+      },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("sign-in");
+    expect(shadowText(el)).not.toMatch(/Last used/i);
+    expect(el.shadowRoot!.querySelector(".last-used-badge")).toBeNull();
   });
 
   it("shows Resend link and Use different email after magic-url send", async () => {

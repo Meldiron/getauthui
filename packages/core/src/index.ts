@@ -32,6 +32,8 @@ export {
   stashPendingOAuth,
   rememberPendingOAuth,
   clearPendingOAuth,
+  countSignInMethods,
+  showLastUsedBadge,
 } from "./last-method.js";
 export { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 export type { PasswordStrength, PasswordStrengthLevel } from "./password-strength.js";

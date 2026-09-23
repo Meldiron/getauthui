@@ -1,5 +1,7 @@
 /** Persist the last successful sign-in method so the next visit can highlight it. */
 
+import type { AuthUIMethods } from "./types.js";
+
 const STORAGE_KEY = "authui:last-method";
 
 export type LastMethodKey =
@@ -70,4 +72,22 @@ export function clearPendingOAuth(): void {
   } catch {
     /* ignore */
   }
+}
+
+/** How many distinct sign-in options are configured (each OAuth provider counts). */
+export function countSignInMethods(methods?: AuthUIMethods | null): number {
+  const m = methods ?? {};
+  let n = 0;
+  if (m.emailPassword !== false) n += 1;
+  if (m.magicUrl) n += 1;
+  if (m.emailOtp) n += 1;
+  if (m.phone) n += 1;
+  if (m.anonymous) n += 1;
+  n += m.oauth?.length ?? 0;
+  return n;
+}
+
+/** Last-used badges only help when the user can choose among multiple methods. */
+export function showLastUsedBadge(methods?: AuthUIMethods | null): boolean {
+  return countSignInMethods(methods) > 1;
 }

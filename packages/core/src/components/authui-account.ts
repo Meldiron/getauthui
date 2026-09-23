@@ -60,6 +60,8 @@ export class AuthUIAccount extends AuthUIElement {
         box-shadow: none;
         padding: 0;
         background: transparent;
+        /* Let input focus rings paint outside the panel (modal body supplies padding). */
+        overflow: visible;
       }
       .identity {
         display: flex;

@@ -71,6 +71,10 @@ export class AuthUIUserButton extends AuthUIElement {
         top: auto;
         bottom: calc(100% + 6px);
       }
+      .menu.start {
+        inset-inline-end: auto;
+        inset-inline-start: 0;
+      }
       .menu-header {
         min-width: 0;
         overflow: hidden;
@@ -151,6 +155,8 @@ export class AuthUIUserButton extends AuthUIElement {
 
   @state() private menuOpen = false;
   @state() private menuAbove = false;
+  /** Align menu to inline-start when end-aligned would overflow the viewport. */
+  @state() private menuStart = false;
   @state() private teams: Models.Team<Models.Preferences>[] = [];
   @state() private teamsLoading = false;
   @state() private activeTeamId: string | null = null;
@@ -177,7 +183,10 @@ export class AuthUIUserButton extends AuthUIElement {
     if (this.menuOpen) this.placeMenu();
   };
 
-  /** Flip the menu above the trigger when there is not enough space below. */
+  /**
+   * Place the menu so it stays in the viewport: flip above/below and
+   * start/end-align based on available space around the trigger.
+   */
   private placeMenu(): void {
     const trigger = this.renderRoot?.querySelector(".trigger") as HTMLElement | null;
     const menu = this.renderRoot?.querySelector(".menu") as HTMLElement | null;
@@ -185,7 +194,7 @@ export class AuthUIUserButton extends AuthUIElement {
     const tr = trigger.getBoundingClientRect();
     const gap = 6;
     const margin = 8;
-    // Measure natural height without the previous max-height clamp.
+    // Measure natural size without the previous max-height clamp.
     menu.style.maxHeight = "";
     const needed = menu.offsetHeight + gap;
     const spaceBelow = window.innerHeight - tr.bottom;
@@ -194,6 +203,24 @@ export class AuthUIUserButton extends AuthUIElement {
     if (above !== this.menuAbove) this.menuAbove = above;
     const available = Math.max(80, (above ? spaceAbove : spaceBelow) - gap - margin);
     menu.style.maxHeight = `${available}px`;
+
+    // Horizontal: default is inline-end (menu grows toward inline-start). Flip to
+    // inline-start when that would clip the opposite viewport edge.
+    const menuWidth = menu.offsetWidth;
+    const vw = window.innerWidth;
+    const rtl = getComputedStyle(this).direction === "rtl";
+    // End-aligned occupies [tr.right - w, tr.right] in LTR, [tr.left, tr.left + w] in RTL.
+    const endLeft = rtl ? tr.left : tr.right - menuWidth;
+    const endRight = rtl ? tr.left + menuWidth : tr.right;
+    const startLeft = rtl ? tr.right - menuWidth : tr.left;
+    const startRight = rtl ? tr.right : tr.left + menuWidth;
+    const overflow = (left: number, right: number) =>
+      Math.max(0, margin - left) + Math.max(0, right - (vw - margin));
+    const endOverflow = overflow(endLeft, endRight);
+    const startOverflow = overflow(startLeft, startRight);
+    // Prefer end alignment; flip only when start keeps more of the menu on screen.
+    const start = endOverflow > 0 && startOverflow < endOverflow;
+    if (start !== this.menuStart) this.menuStart = start;
   }
 
   private onDocumentClick = (e: Event) => {
@@ -258,6 +285,7 @@ export class AuthUIUserButton extends AuthUIElement {
         });
       } else {
         this.menuAbove = false;
+        this.menuStart = false;
       }
     }
     if (this.menuOpen && (changed.has("teams") || changed.has("teamsLoading"))) {
@@ -325,7 +353,10 @@ export class AuthUIUserButton extends AuthUIElement {
       </button>
       ${
         this.menuOpen
-          ? html`<div class="menu ${this.menuAbove ? "above" : ""}" role="menu">
+          ? html`<div
+              class="menu ${this.menuAbove ? "above" : ""} ${this.menuStart ? "start" : ""}"
+              role="menu"
+            >
               <div class="menu-header">
                 <span class="row-title" title=${label}>${label}</span>
                 ${

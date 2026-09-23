@@ -84,3 +84,11 @@ describe("design tokens", () => {
     expect(cssText).toMatch(/:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-ring:\s*#a1a1aa/s);
   });
 });
+
+describe("sign-in panel overflow", () => {
+  it("lets embedded panel overflow so input focus rings are not clipped", async () => {
+    const { signInStyles } = await import("../src/components/sign-in.styles.js");
+    const cssText = String(signInStyles);
+    expect(cssText).toMatch(/\.panel\.embedded\s*\{[^}]*overflow:\s*visible/s);
+  });
+});

@@ -25,6 +25,8 @@ export const signInStyles = css`
     box-shadow: none;
     padding: 0;
     background: transparent;
+    /* Let input focus rings paint outside the panel (modal body supplies padding). */
+    overflow: visible;
   }
   .header {
     text-align: center;
