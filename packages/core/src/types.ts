@@ -222,6 +222,7 @@ export interface AuthUIStrings {
   sendMagicLink: string;
   sendCode: string;
   resendCode: string;
+  resendMagicLink: string;
   useDifferentEmail: string;
   useDifferentPhone: string;
   verifyCode: string;

@@ -26,6 +26,7 @@ export const defaultStrings: AuthUIStrings = {
   sendMagicLink: "Send magic link",
   sendCode: "Send code",
   resendCode: "Resend code",
+  resendMagicLink: "Resend link",
   useDifferentEmail: "Use a different email",
   useDifferentPhone: "Use a different phone number",
   verifyCode: "Verify code",

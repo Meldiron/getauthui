@@ -44,7 +44,7 @@ Sign-up, password reset and change-password show a live strength meter as the us
 
 ## Last used method
 
-After a successful sign-in, Auth UI stores the method key in `localStorage` (`authui:last-method`) and highlights it the next time the form opens (OAuth providers are sorted to the top, passwordless and email get a "Last used" badge). Nothing is sent to a server.
+After a successful sign-in, Auth UI stores the method key in `localStorage` (`authui:last-method`) and highlights it the next time the form opens (OAuth providers are sorted to the top; magic URL, email OTP and phone open as the initial step; email/password, anonymous and passwordless CTAs keep a "Last used" badge). Nothing is sent to a server.
 
 ## OAuth layout
 

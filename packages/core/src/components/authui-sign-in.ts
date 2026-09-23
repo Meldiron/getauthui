@@ -60,6 +60,8 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private challenge: { id: string; factor: MfaFactor } | null = null;
   /** Prevents duplicate auto-start challenges on re-render. */
   private mfaAutoStarted = false;
+  /** Open last-used passwordless step only once on initial unsigned render. */
+  private didApplyLastPasswordless = false;
   @state() private recovery: { userId: string; secret: string } | null = null;
 
   @query("form input:not([type=hidden])") private firstInput?: HTMLInputElement;
@@ -78,12 +80,16 @@ export class AuthUISignIn extends AuthUIElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.step = this.view;
+    this.applyLastPasswordlessStepOnce();
     this.syncFromStore();
   }
 
   protected willUpdate(changed: Map<string, unknown>): void {
     if (changed.has("view") && changed.get("view") !== undefined) this.go(this.view);
-    if (changed.has("auth")) this.syncFromStore();
+    if (changed.has("auth")) {
+      this.applyLastPasswordlessStepOnce();
+      this.syncFromStore();
+    }
   }
 
   protected updated(changed: Map<string, unknown>): void {
@@ -108,6 +114,35 @@ export class AuthUISignIn extends AuthUIElement {
     });
   }
 
+  /**
+   * Open the last-used passwordless method as the initial step (same spirit as
+   * OAuth last-used reorder). Email/password last-used stays on the main form.
+   */
+  private applyLastPasswordlessStepOnce(): void {
+    if (this.didApplyLastPasswordless) return;
+    if (this.view !== "sign-in" || this.step !== "sign-in") {
+      this.didApplyLastPasswordless = true;
+      return;
+    }
+    // Wait until config and auth status are known.
+    if (!this.config || this.auth.status === "loading") return;
+    if (this.auth.status === "signed-in") {
+      this.didApplyLastPasswordless = true;
+      return;
+    }
+    // Optional config gate if added later; treat undefined as enabled.
+    if ((this.config as { rememberLastMethod?: boolean }).rememberLastMethod === false) {
+      this.didApplyLastPasswordless = true;
+      return;
+    }
+    const last = getLastMethod();
+    const m = this.config.methods ?? {};
+    if (last === "magic-url" && m.magicUrl) this.step = "magic-url";
+    else if (last === "email-otp" && m.emailOtp) this.step = "email-otp";
+    else if (last === "phone" && m.phone) this.step = "phone";
+    this.didApplyLastPasswordless = true;
+  }
+
   /** React to store transitions: MFA pending, redirect results, sign in. */
   private syncFromStore(): void {
     const { status, pending } = this.auth;
@@ -118,22 +153,28 @@ export class AuthUISignIn extends AuthUIElement {
       this.step === "reset-password" ||
       pending?.type === "reset-password" ||
       this.recovery !== null;
+    const passwordlessMidFlow =
+      this.step === "phone" ||
+      this.step === "email-otp" ||
+      this.step === "magic-url" ||
+      this.token !== null;
     if ((status === "signed-in" || status === "signed-out") && !holdingRecovery) {
-      const stuck =
-        this.step === "mfa" ||
-        this.step === "phone" ||
-        this.step === "email-otp" ||
-        this.step === "magic-url" ||
-        this.step === "forgot-password" ||
-        this.token !== null ||
-        this.challenge !== null;
-      if (stuck || status === "signed-out") {
-        this.token = null;
-        this.challenge = null;
-        this.code = "";
-        this.password = "";
-        this.notice = null;
-        this.go(this.view === "sign-up" ? "sign-up" : "sign-in");
+      // Keep passwordless mid-flow across signed-out store updates (e.g. setPending
+      // notices). User-initiated Back / Use different email still clear via go().
+      if (!(status === "signed-out" && passwordlessMidFlow)) {
+        const stuck =
+          this.step === "mfa" ||
+          passwordlessMidFlow ||
+          this.step === "forgot-password" ||
+          this.challenge !== null;
+        if (stuck || status === "signed-out") {
+          this.token = null;
+          this.challenge = null;
+          this.code = "";
+          this.password = "";
+          this.notice = null;
+          this.go(this.view === "sign-up" ? "sign-up" : "sign-in");
+        }
       }
     }
     if (pending?.type === "reset-password" && this.step !== "reset-password") {
@@ -301,6 +342,8 @@ export class AuthUISignIn extends AuthUIElement {
         target: this.email,
         phrase: token.phrase,
       };
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
     });
   };
 
@@ -1083,12 +1126,35 @@ export class AuthUISignIn extends AuthUIElement {
 
   private renderMagicUrl(): TemplateResult {
     if (this.token) {
+      const cooling = Date.now() < this.resendCooldownUntil;
       return html`<div class="stack">
         <div class="alert alert-success" role="status">
           ${icons.mail}
           <div class="alert-body">${this.t("magicLinkSent", { email: this.token.target })}</div>
         </div>
-        ${this.phraseBox(this.token.phrase)} ${this.backLink()}
+        ${this.phraseBox(this.token.phrase)}
+        <div class="links">
+          <button
+            type="button"
+            class="btn btn-link"
+            ?disabled=${cooling || this.busy}
+            @click=${() => void this.onResendCode()}
+          >
+            ${this.t("resendMagicLink")}
+          </button>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            class="btn btn-link"
+            @click=${() => {
+              this.token = null;
+              this.error = "";
+            }}
+          >
+            ${this.t("useDifferentEmail")}
+          </button>
+        </div>
+        ${this.backLink()}
       </div>`;
     }
     return html`
@@ -1109,6 +1175,14 @@ export class AuthUISignIn extends AuthUIElement {
       if (token.kind === "phone") {
         const next = await authStore.sendPhoneOtp(token.target);
         this.token = { userId: next.userId, kind: "phone", target: token.target };
+      } else if (token.kind === "magic-url") {
+        const next = await authStore.sendMagicUrl(token.target);
+        this.token = {
+          userId: next.userId,
+          kind: "magic-url",
+          target: token.target,
+          phrase: next.phrase,
+        };
       } else {
         const next = await authStore.sendEmailOtp(token.target);
         this.token = {

@@ -31,16 +31,16 @@ Auth UI runs on your origin. Appwrite rejects requests from hosts that are not l
 
 | Script                                                            | What you get                                                     |
 | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `https://unpkg.com/@getauthui/core@0.1.17` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
+| `https://unpkg.com/@getauthui/core@0.1.18` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
 | `…/dist/authui.cdn.js` (IIFE, classic script)                     | Custom elements plus `window.AuthUI` for `init` / `on` / `open`. |
 
 ```html
 <!-- ESM: elements only. Configure with <authui-config>. -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.17"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.18"></script>
 <authui-config endpoint="…" project="…"></authui-config>
 
 <!-- IIFE: use window.AuthUI from a classic script. -->
-<script src="https://unpkg.com/@getauthui/core@0.1.17/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.18/dist/authui.cdn.js"></script>
 <script>
   AuthUI.init({ endpoint: "…", project: "…" });
 </script>

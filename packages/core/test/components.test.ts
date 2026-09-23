@@ -1229,3 +1229,161 @@ describe("0.1.12 account UX fixes", () => {
     expect(removeCancel?.textContent?.trim()).toMatch(/cancel/i);
   });
 });
+
+describe("0.1.18 sign-in fixes", () => {
+  it("keeps magic-url sent UI when setPending notice arrives while signed-out", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("magic-url");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("magic-url");
+    expect((el as any).token?.kind).toBe("magic-url");
+    expect(shadowText(el)).toMatch(/sign-in link/i);
+
+    authStore.setPending({
+      type: "notice",
+      tone: "info",
+      message: "Redirect notice for QA",
+    });
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("magic-url");
+    expect((el as any).token?.kind).toBe("magic-url");
+    expect(shadowText(el)).toMatch(/sign-in link/i);
+    expect(shadowText(el)).toContain("Redirect notice for QA");
+    expect(shadowText(el)).toMatch(/Resend link/i);
+    expect(shadowText(el)).toMatch(/Use a different email/i);
+  });
+
+  it("keeps email-otp code entry when setPending notice arrives while signed-out", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, emailOtp: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("email-otp");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).token?.kind).toBe("email-otp");
+
+    authStore.setPending({
+      type: "notice",
+      tone: "info",
+      message: "OTP notice should not wipe",
+    });
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("email-otp");
+    expect((el as any).token?.kind).toBe("email-otp");
+    expect(shadowText(el)).toMatch(/We sent a code/i);
+    expect(shadowText(el)).toContain("OTP notice should not wipe");
+  });
+
+  it("opens last-used email-otp as the initial sign-in step", async () => {
+    const { clearLastMethod, rememberLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
+    rememberLastMethod("email-otp");
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, emailOtp: true, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("email-otp");
+    expect(shadowText(el)).toMatch(/Send code/i);
+    // Back returns to main form with Last used badge still present.
+    const back = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /back/i.test(b.textContent ?? "")
+    )!;
+    back.click();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("sign-in");
+    expect(shadowText(el)).toMatch(/Last used/i);
+  });
+
+  it("keeps email-password as the initial step when it was last used", async () => {
+    const { clearLastMethod, rememberLastMethod } = await import("../src/last-method.js");
+    clearLastMethod();
+    rememberLastMethod("email-password");
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, emailOtp: true, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("sign-in");
+    expect(shadowText(el)).toMatch(/Last used/i);
+  });
+
+  it("shows Resend link and Use different email after magic-url send", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: false, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    // last-method may open magic-url; force the entry form.
+    (el as any).token = null;
+    (el as any).step = "magic-url";
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).token?.kind).toBe("magic-url");
+    expect((el as any).resendCooldownUntil).toBeGreaterThan(Date.now());
+    const text = shadowText(el);
+    expect(text).toMatch(/Resend link/i);
+    expect(text).toMatch(/Use a different email/i);
+    const resend = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /resend link/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(resend).toBeTruthy();
+    expect(resend.disabled).toBe(true);
+
+    const useDifferent = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /use a different email/i.test(b.textContent ?? "")
+    )!;
+    useDifferent.click();
+    await (el as any).updateComplete;
+    expect((el as any).token).toBeNull();
+    expect((el as any).step).toBe("magic-url");
+    expect(el.shadowRoot!.querySelector("#authui-email")).toBeTruthy();
+  });
+});
