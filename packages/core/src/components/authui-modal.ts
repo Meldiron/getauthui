@@ -206,19 +206,25 @@ export class AuthUIModal extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("open") && this.dialog) {
-      if (this.open && !this.dialog.open) {
-        this.dialog.showModal();
-        requestAnimationFrame(() => {
-          this.focusPrimary();
-          this.observeBody();
-        });
+    if (changed.has("open")) {
+      // Notify React / hosts when Esc, backdrop, X, or hide() closes the dialog.
+      if (changed.get("open") === true && !this.open) {
+        this.fire("authui-close");
       }
-      if (!this.open && this.dialog.open) this.dialog.close();
-      if (!this.open) {
-        this.scrollCue = false;
-        this.bodyResizeObserver?.disconnect();
-        this.bodyResizeObserver = null;
+      if (this.dialog) {
+        if (this.open && !this.dialog.open) {
+          this.dialog.showModal();
+          requestAnimationFrame(() => {
+            this.focusPrimary();
+            this.observeBody();
+          });
+        }
+        if (!this.open && this.dialog.open) this.dialog.close();
+        if (!this.open) {
+          this.scrollCue = false;
+          this.bodyResizeObserver?.disconnect();
+          this.bodyResizeObserver = null;
+        }
       }
     }
     if (changed.has("auth")) {

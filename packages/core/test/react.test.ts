@@ -265,6 +265,112 @@ describe("React AuthUIModal controlled open", () => {
   });
 });
 
+describe("React AuthUIModal onOpenChange / onClose / onSignedIn", () => {
+  it("calls onOpenChange(false) and onClose when Lit hides", async () => {
+    authStore.configure(config);
+    await tick();
+
+    const onOpenChange = vi.fn();
+    const onClose = vi.fn();
+
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return createElement(AuthUIModal, {
+        open,
+        onOpenChange: (next) => {
+          onOpenChange(next);
+          setOpen(next);
+        },
+        onClose,
+      });
+    }
+
+    render(createElement(Harness));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const modal = container.querySelector("authui-modal") as HTMLElement & {
+      open: boolean;
+      hide: () => void;
+    };
+    expect(modal.open).toBe(true);
+
+    await act(async () => {
+      modal.hide();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onClose).toHaveBeenCalled();
+    expect(modal.open).toBe(false);
+  });
+
+  it("re-opens after Lit close when parent uses onOpenChange", async () => {
+    authStore.configure(config);
+    await tick();
+
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return createElement(
+        "div",
+        null,
+        createElement(AuthUIModal, { open, onOpenChange: setOpen }),
+        createElement("button", { type: "button", onClick: () => setOpen(true) }, "reopen")
+      );
+    }
+
+    render(createElement(Harness));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const modal = container.querySelector("authui-modal") as HTMLElement & {
+      open: boolean;
+      hide: () => void;
+    };
+    expect(modal.open).toBe(true);
+
+    await act(async () => {
+      modal.hide();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(modal.open).toBe(false);
+
+    await act(async () => {
+      container.querySelector("button")!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(modal.open).toBe(true);
+  });
+
+  it("bridges authui-signed-in to onSignedIn", async () => {
+    authStore.configure(config);
+    await tick();
+
+    const onSignedIn = vi.fn();
+    render(createElement(AuthUIModal, { onSignedIn }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const modal = container.querySelector("authui-modal") as HTMLElement;
+    const user = { $id: "u1", name: "Ada", email: "a@b.co" };
+
+    await act(async () => {
+      modal.dispatchEvent(
+        new CustomEvent("authui-signed-in", { detail: user, bubbles: true, composed: true })
+      );
+    });
+    expect(onSignedIn).toHaveBeenCalledWith(user);
+  });
+});
+
 describe("React AuthUIModal closeOnSuccess (D6)", () => {
   it('maps closeOnSuccess={false} to the string attribute "false" and the JS property', async () => {
     authStore.configure(config);

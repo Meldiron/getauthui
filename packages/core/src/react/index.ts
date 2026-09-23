@@ -10,6 +10,7 @@ import {
 import { authStore } from "../store.js";
 import { openModal, closeModal } from "../modal-controller.js";
 import { matchesAuthStatus } from "../components/authui-show.js";
+import type { Models } from "appwrite";
 import type { AuthUIConfig, AuthUIMenuItem, AuthUIState, AuthUIView } from "../types.js";
 
 // Register the custom elements when this module loads.
@@ -91,6 +92,12 @@ export function AuthUIModal(props: {
   view?: AuthUIView;
   open?: boolean;
   closeOnSuccess?: boolean;
+  /** Called when the dialog wants to change open state (e.g. Esc, backdrop, X). */
+  onOpenChange?: (open: boolean) => void;
+  /** Fired when a sign-in flow inside the modal completes. */
+  onSignedIn?: (user: Models.User<Models.Preferences>) => void;
+  /** Fired when the modal closes (Esc, backdrop, X, hide, or closeOnSuccess). */
+  onClose?: () => void;
 }): ReactElement {
   const [el, setEl] = useState<AuthUIModalElement | null>(null);
   useEffect(() => {
@@ -101,6 +108,24 @@ export function AuthUIModal(props: {
     if (!el || typeof props.open !== "boolean") return;
     el.open = props.open;
   }, [el, props.open]);
+  useEffect(() => {
+    if (!el || (!props.onOpenChange && !props.onClose)) return;
+    const onCloseEvt = () => {
+      props.onOpenChange?.(false);
+      props.onClose?.();
+    };
+    el.addEventListener("authui-close", onCloseEvt);
+    return () => el.removeEventListener("authui-close", onCloseEvt);
+  }, [el, props.onOpenChange, props.onClose]);
+  useEffect(() => {
+    if (!el || !props.onSignedIn) return;
+    const handler = (e: Event) => {
+      const user = (e as CustomEvent<Models.User<Models.Preferences>>).detail;
+      if (user) props.onSignedIn?.(user);
+    };
+    el.addEventListener("authui-signed-in", handler);
+    return () => el.removeEventListener("authui-signed-in", handler);
+  }, [el, props.onSignedIn]);
   return createElement("authui-modal", {
     ref: setEl,
     view: props.view,

@@ -67,15 +67,15 @@ Returns the current state plus helpers, and re-renders on every change.
 
 ## Components
 
-| Component          | Wraps                              | Props                                                       |
-| ------------------ | ---------------------------------- | ----------------------------------------------------------- |
-| `AuthUIProvider`   | configures the store synchronously | `config`                                                    |
-| `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`                            |
-| `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children`                       |
-| `AuthUIUserButton` | `<authui-user-button>`             | `src`, `showTeams`, `menuItems`, `onMenuAction`, `children` |
-| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                                         |
-| `AuthUIAccount`    | `<authui-account>`                 | `tab`                                                       |
-| `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`                                |
+| Component          | Wraps                              | Props                                                                     |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------------- |
+| `AuthUIProvider`   | configures the store synchronously | `config`                                                                  |
+| `AuthUIModal`      | `<authui-modal>`                   | `view`, `open`, `closeOnSuccess`, `onOpenChange`, `onSignedIn`, `onClose` |
+| `AuthUIButton`     | `<authui-button>`                  | `view`, `variant`, `size`, `children`                                     |
+| `AuthUIUserButton` | `<authui-user-button>`             | `src`, `showTeams`, `menuItems`, `onMenuAction`, `children`               |
+| `AuthUISignIn`     | `<authui-sign-in>`                 | `view`, `onSuccess`                                                       |
+| `AuthUIAccount`    | `<authui-account>`                 | `tab`                                                                     |
+| `Show`             | conditional render (not Lit slot)  | `when`, `unless`, `children`                                              |
 
 ## `Show` vs `<authui-show>`
 
@@ -95,14 +95,26 @@ Pass `closeOnSuccess={false}` to `AuthUIModal` to keep the modal open after sign
 
 Pass `open` as a boolean to drive the dialog from React state. `open={true}` opens it; `open={false}` force-closes it (including after the user opened it another way). Omit `open` to leave the modal uncontrolled.
 
+When the user closes via Escape, backdrop click, or the X button, Lit hides the dialog. Wire `onOpenChange` so parent state stays in sync; otherwise the next `setOpen(true)` is a no-op because React still thinks the dialog is open.
+
 ```tsx
 const [modalOpen, setModalOpen] = useState(false);
 
 <>
   <button onClick={() => setModalOpen(true)}>Open</button>
-  <button onClick={() => setModalOpen(false)}>Force close</button>
-  <AuthUIModal open={modalOpen} />
+  <AuthUIModal open={modalOpen} onOpenChange={setModalOpen} />
 </>;
+```
+
+`onOpenChange(false)` runs when the dialog closes. `onClose` is a convenience alias for that case. `onSignedIn` bridges the Lit `authui-signed-in` event so Modal + Button apps do not need to subscribe to the store by hand.
+
+```tsx
+<AuthUIModal
+  open={modalOpen}
+  onOpenChange={setModalOpen}
+  onSignedIn={(user) => console.log(user.$id)}
+  onClose={() => console.log("closed")}
+/>
 ```
 
 Setting `open` to `false` writes through to the element so the dialog closes even when it was opened via `AuthUI.open()` or a button.
@@ -118,7 +130,11 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "authui-button": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { view?: AuthUIView; variant?: string },
+        React.HTMLAttributes<HTMLElement> & {
+          view?: AuthUIView;
+          variant?: string;
+          size?: "sm" | "md" | "lg";
+        },
         HTMLElement
       >;
       "authui-modal": React.DetailedHTMLProps<
