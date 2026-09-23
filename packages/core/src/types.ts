@@ -257,6 +257,16 @@ export interface AuthUIStrings {
   mfaUseEmail: string;
   mfaUsePhone: string;
   mfaUseRecoveryCode: string;
+  /** In-challenge link to switch to a recovery code without going Back. */
+  mfaUseRecoveryCodeInstead: string;
+  /** Factor-specific hint under the MFA code field (authenticator). */
+  mfaHintTotp: string;
+  /** Factor-specific hint under the MFA code field (email). */
+  mfaHintEmail: string;
+  /** Factor-specific hint under the MFA code field (phone). */
+  mfaHintPhone: string;
+  /** Factor-specific hint under the MFA code field (recovery code). */
+  mfaHintRecoveryCode: string;
   recoveryCode: string;
   account: string;
   profile: string;
@@ -302,6 +312,30 @@ export interface AuthUIStrings {
   sessionExpires: string;
   /** Session created label, `{date}` = formatted created time. */
   sessionCreated: string;
+  /** Identity / OAuth connection created label, `{date}` = formatted time. */
+  identityCreated: string;
+  /** OAuth access-token expiry label, `{date}` = formatted time. */
+  identityExpires: string;
+  /** Shown when an identity has no access-token expiry. */
+  identityExpiresNone: string;
+  /** Relative time: under a minute from now. */
+  relativeJustNow: string;
+  /** Relative past, `{count}` + `{unit}` e.g. "5 minutes ago". */
+  relativePast: string;
+  /** Relative future, `{count}` + `{unit}` e.g. "in 3 days". */
+  relativeFuture: string;
+  relativeUnitMinute: string;
+  relativeUnitMinutes: string;
+  relativeUnitHour: string;
+  relativeUnitHours: string;
+  relativeUnitDay: string;
+  relativeUnitDays: string;
+  relativeUnitWeek: string;
+  relativeUnitWeeks: string;
+  relativeUnitMonth: string;
+  relativeUnitMonths: string;
+  relativeUnitYear: string;
+  relativeUnitYears: string;
   /** Tooltip / accessible label for MFA factors on a session. */
   sessionMfaFactors: string;
   signOutSession: string;

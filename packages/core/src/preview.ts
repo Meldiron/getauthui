@@ -169,7 +169,7 @@ export class PreviewAccount {
         providerUid: "8675309",
         providerEmail: this.seed.email,
         providerAccessToken: "",
-        providerAccessTokenExpiry: "",
+        providerAccessTokenExpiry: new Date(Date.now() + 30 * 86_400_000).toISOString(),
         providerRefreshToken: "",
       } as Models.Identity,
     ];

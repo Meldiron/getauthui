@@ -17,7 +17,12 @@ import {
   stashPendingOAuth,
 } from "../last-method.js";
 import { otpInput } from "../otp-input.js";
-import { availableMfaFactors, defaultMfaFactor } from "../mfa.js";
+import {
+  alternateMfaFactors,
+  availableMfaFactors,
+  defaultMfaFactor,
+  mfaFactorHintKey,
+} from "../mfa.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -488,6 +493,7 @@ export class AuthUISignIn extends AuthUIElement {
           break;
         case "mfa":
           title = this.t("mfaTitle");
+          // Factor-specific copy lives under the code field (Vibes MFAChallenge).
           description = this.t("mfaDescription");
           break;
       }
@@ -628,21 +634,23 @@ export class AuthUISignIn extends AuthUIElement {
     `;
   }
 
-  private codeField(): TemplateResult {
+  private codeField(opts: { bare?: boolean } = {}): TemplateResult {
+    const input = otpInput({
+      id: "authui-code",
+      value: this.code,
+      invalid: !!this.error,
+      describedBy: this.error ? ERROR_ALERT_ID : null,
+      disabled: this.busy,
+      onChange: (v) => {
+        this.code = v;
+        this.requestUpdate();
+      },
+    });
+    if (opts.bare) return input;
     return html`
       <div class="field">
         <label class="label" for="authui-code">${this.t("code")}</label>
-        ${otpInput({
-          id: "authui-code",
-          value: this.code,
-          invalid: !!this.error,
-          describedBy: this.error ? ERROR_ALERT_ID : null,
-          disabled: this.busy,
-          onChange: (v) => {
-            this.code = v;
-            this.requestUpdate();
-          },
-        })}
+        ${input}
       </div>
     `;
   }
@@ -1334,6 +1342,7 @@ export class AuthUISignIn extends AuthUIElement {
       `;
     }
     const isRecovery = this.challenge.factor === "recoverycode";
+    const hint = this.t(mfaFactorHintKey(this.challenge.factor));
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onVerifyFactor} novalidate>
@@ -1341,6 +1350,7 @@ export class AuthUISignIn extends AuthUIElement {
             isRecovery
               ? html`<div class="field">
                   <label class="label" for="authui-code">${this.t("recoveryCode")}</label>
+                  <p class="hint">${hint}</p>
                   <input
                     class="input mono"
                     id="authui-code"
@@ -1353,10 +1363,15 @@ export class AuthUISignIn extends AuthUIElement {
                     aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
                   />
                 </div>`
-              : this.codeField()
+              : html`<div class="field">
+                  <label class="label" for="authui-code">${this.t("code")}</label>
+                  <p class="hint">${hint}</p>
+                  ${this.codeField({ bare: true })}
+                </div>`
           }
           ${this.renderError()} ${this.submitButton(this.t("verifyCode"))}
         </form>
+        ${this.renderMfaAlternates(factors, this.challenge.factor)}
         <div class="links">
           <button type="button" class="btn btn-link" @click=${() => (this.challenge = null)}>
             ${icons.arrowLeft} ${this.t("back")}
@@ -1366,6 +1381,43 @@ export class AuthUISignIn extends AuthUIElement {
             ${this.t("cancel")}
           </button>
         </div>
+      </div>
+    `;
+  }
+
+  /** In-challenge switcher for other available factors (Vibes MFAChallenge / MfaReauthForm). */
+  private renderMfaAlternates(
+    factors: Models.MfaFactors,
+    current: MfaFactor
+  ): TemplateResult | typeof nothing {
+    const alts = alternateMfaFactors(factors, current);
+    if (alts.length === 0) return nothing;
+    const labels: Record<MfaFactor, string> = {
+      totp: this.t("mfaUseAuthenticator"),
+      email: this.t("mfaUseEmail"),
+      phone: this.t("mfaUsePhone"),
+      recoverycode: this.t("mfaUseRecoveryCodeInstead"),
+    };
+    const iconsFor: Record<MfaFactor, TemplateResult> = {
+      totp: icons.smartphone,
+      email: icons.mail,
+      phone: icons.phone,
+      recoverycode: icons.key,
+    };
+    return html`
+      <div class="separator-text">${this.t("or")}</div>
+      <div class="stack-sm">
+        ${alts.map(
+          (factor) =>
+            html`<button
+              type="button"
+              class="btn btn-outline btn-sm"
+              @click=${() => this.onChooseFactor(factor)}
+              ?disabled=${this.busy}
+            >
+              ${iconsFor[factor]}<span>${labels[factor]}</span>
+            </button>`
+        )}
       </div>
     `;
   }

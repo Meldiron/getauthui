@@ -1567,3 +1567,218 @@ describe("0.1.19 account UX fixes", () => {
     expect(shadowText(el)).not.toMatch(/Use a different phone number/i);
   });
 });
+
+describe("0.1.21 Vibes design polish", () => {
+  it("shows a factor-specific MFA hint and in-challenge alternates without Back", async () => {
+    account.state.mfaPending = true;
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toContain("Two-factor authentication");
+    expect(text).toMatch(/Enter a 6-digit one-time code from your authenticator app/);
+    expect(text).toMatch(/Use a recovery code instead/i);
+    expect(text).toMatch(/Send code to email/i);
+    expect(text).toMatch(/\bor\b/i);
+    expect(el.shadowRoot!.querySelector(".hint")).toBeTruthy();
+
+    const recovery = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /recovery code instead/i.test(b.textContent ?? "")
+    );
+    expect(recovery).toBeTruthy();
+    recovery!.click();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect(account.createMFAChallenge).toHaveBeenCalled();
+    expect(shadowText(el)).toMatch(/Enter one of the recovery codes/);
+    expect(shadowText(el)).toMatch(/Use authenticator app|Send code to email/i);
+    // Still on challenge; Back/Cancel remain available.
+    expect(shadowText(el)).toMatch(/Back/i);
+    expect(shadowText(el)).toMatch(/Cancel/i);
+  });
+
+  it("shows factor hints and alternates on account step-up MFA", async () => {
+    const err = (type: string, code = 401) => Object.assign(new Error(type), { type, code });
+    account.createMFARecoveryCodes.mockImplementation(async () => {
+      throw err("user_challenge_required");
+    });
+    account.listMFAFactors.mockResolvedValue({
+      totp: true,
+      email: true,
+      phone: false,
+      recoveryCode: true,
+    });
+
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const viewBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /view recovery|generate recovery/i.test(b.textContent ?? "")
+    );
+    expect(viewBtn).toBeTruthy();
+    viewBtn!.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const factorBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /authenticator/i.test(b.textContent ?? "")
+    );
+    expect(factorBtn).toBeTruthy();
+    factorBtn!.click();
+    await tick();
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toMatch(/Enter a 6-digit one-time code from your authenticator app/);
+    expect(text).toMatch(/Use a recovery code instead/i);
+    expect(text).toMatch(/Send code to email/i);
+
+    const emailAlt = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /send code to email/i.test(b.textContent ?? "")
+    );
+    expect(emailAlt).toBeTruthy();
+    emailAlt!.click();
+    await tick();
+    await (el as any).updateComplete;
+    expect(shadowText(el)).toMatch(/verification code was sent to your email/i);
+  });
+
+  it("shows Created and OAuth token expiry on identity connections", async () => {
+    account.listIdentities.mockResolvedValue({
+      identities: [
+        {
+          $id: "id1",
+          $createdAt: "2026-01-01T00:00:00.000Z",
+          $updatedAt: "2026-01-01T00:00:00.000Z",
+          userId: "u1",
+          provider: "github",
+          providerUid: "42",
+          providerEmail: "a@b.co",
+          providerAccessToken: "",
+          providerAccessTokenExpiry: "2027-01-01T00:00:00.000Z",
+          providerRefreshToken: "",
+        },
+      ],
+    });
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="connections"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toMatch(/GitHub/i);
+    expect(text).toMatch(/Created /);
+    expect(text).toMatch(/Expires /);
+    const times = el.shadowRoot!.querySelectorAll(".connection-dates time");
+    expect(times.length).toBeGreaterThanOrEqual(2);
+    expect(times[0]!.getAttribute("title")).toBeTruthy();
+  });
+
+  it("shows relative Created/Expires on sessions with absolute title detail", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="sessions"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toMatch(/Created /);
+    expect(text).toMatch(/Expires /);
+    // Relative wording (ago / in) rather than only absolute locale string.
+    expect(text).toMatch(/ago|in \d|Just now/i);
+    const times = el.shadowRoot!.querySelectorAll(".session-dates time");
+    expect(times.length).toBeGreaterThanOrEqual(2);
+    for (const t of times) {
+      expect(t.getAttribute("title")).toBeTruthy();
+      expect(t.getAttribute("datetime")).toBeTruthy();
+    }
+  });
+
+  it("shows relative activity timestamps with absolute title detail", async () => {
+    account.listLogs.mockResolvedValue({
+      logs: [
+        {
+          event: "session.create",
+          time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          clientName: "Chrome",
+          osName: "macOS",
+          countryName: "Germany",
+          ip: "1.2.3.4",
+        },
+      ],
+    });
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="activity"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    // Activity tab may be hidden until logsSupported; force if needed.
+    if (!(el as any).logsSupported) {
+      (el as any).logsSupported = true;
+      (el as any).logs = [
+        {
+          event: "session.create",
+          time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          clientName: "Chrome",
+          osName: "macOS",
+          countryName: "Germany",
+          ip: "1.2.3.4",
+        },
+      ];
+      (el as any).active = "activity";
+      await (el as any).updateComplete;
+    }
+
+    const timeEl = el.shadowRoot!.querySelector("time.log-time") as HTMLTimeElement | null;
+    expect(timeEl).toBeTruthy();
+    expect(timeEl!.textContent ?? "").toMatch(/ago|Just now|in /i);
+    expect(timeEl!.title).toBeTruthy();
+    expect(timeEl!.dateTime).toBeTruthy();
+  });
+});

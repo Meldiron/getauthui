@@ -25,4 +25,4 @@ Content-Security-Policy:
 
 Replace the `connect-src` hosts with your Appwrite endpoint's origin. The in-module FOUC guard uses `document.adoptedStyleSheets` (CSP-exempt). Browsers without constructable stylesheets fall back to an inline `<style>` tag and need `style-src 'unsafe-inline'` for that fallback and for Lit's own fallback. Prefer the documented critical CSS in your page `<head>` (see [`<authui-show>`](/docs/components/show)); put that CSS in a static file and drop `'unsafe-inline'` from `style-src` if you can.
 
-- **Pin versions in production.** Use `@getauthui/core@0.1.20` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.
+- **Pin versions in production.** Use `@getauthui/core@0.1.21` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.

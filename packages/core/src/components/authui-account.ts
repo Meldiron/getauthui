@@ -9,6 +9,8 @@ import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import { scorePassword } from "../password-strength.js";
 import { otpInput } from "../otp-input.js";
+import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
+import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "activity";
 
@@ -180,10 +182,32 @@ export class AuthUIAccount extends AuthUIElement {
         color: var(--authui-muted-foreground);
         margin-top: 2px;
       }
+      .session-dates time,
+      .log-time {
+        cursor: default;
+        border-bottom: 1px dotted
+          color-mix(in oklab, var(--authui-muted-foreground) 50%, transparent);
+      }
       .log-time {
         font-size: 12px;
         color: var(--authui-muted-foreground);
         white-space: nowrap;
+      }
+      .connection-dates {
+        display: block;
+        font-size: 11px;
+        color: var(--authui-muted-foreground);
+        margin-top: 2px;
+      }
+      .connection-dates time {
+        cursor: default;
+        border-bottom: 1px dotted
+          color-mix(in oklab, var(--authui-muted-foreground) 50%, transparent);
+      }
+      .mfa-alts {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
       .warn {
         color: var(--authui-destructive-foreground);
@@ -1815,36 +1839,38 @@ export class AuthUIAccount extends AuthUIElement {
                   )}
               </div>`
             : html`<form class="form" @submit=${this.onStepUpVerify} novalidate>
-                <div class="field">
-                  <label class="label" for="acc-stepup"
-                    >${s.challenge.factor === "recoverycode" ? this.t("recoveryCode") : this.t("code")}</label
-                  >
-                  ${
-                    s.challenge.factor === "recoverycode"
-                      ? html`<input
-                          class="input mono"
-                          id="acc-stepup"
-                          inputmode="text"
-                          maxlength="64"
-                          autocomplete="one-time-code"
-                          required
-                          .value=${this.stepUpCode}
-                          @input=${this.bind("stepUpCode")}
-                        />`
-                      : otpInput({
-                          id: "acc-stepup",
-                          value: this.stepUpCode,
-                          disabled: !!this.busy,
-                          onChange: (v) => {
-                            this.stepUpCode = v;
-                          },
-                        })
-                  }
-                </div>
-                <button class="btn btn-primary btn-sm" type="submit" ?disabled=${!!this.busy}>
-                  ${this.spinner("stepup-code")} ${this.t("verifyCode")}
-                </button>
-              </form>`
+                  <div class="field">
+                    <label class="label" for="acc-stepup"
+                      >${s.challenge.factor === "recoverycode" ? this.t("recoveryCode") : this.t("code")}</label
+                    >
+                    <p class="hint">${this.t(mfaFactorHintKey(s.challenge.factor))}</p>
+                    ${
+                      s.challenge.factor === "recoverycode"
+                        ? html`<input
+                            class="input mono"
+                            id="acc-stepup"
+                            inputmode="text"
+                            maxlength="64"
+                            autocomplete="one-time-code"
+                            required
+                            .value=${this.stepUpCode}
+                            @input=${this.bind("stepUpCode")}
+                          />`
+                        : otpInput({
+                            id: "acc-stepup",
+                            value: this.stepUpCode,
+                            disabled: !!this.busy,
+                            onChange: (v) => {
+                              this.stepUpCode = v;
+                            },
+                          })
+                    }
+                  </div>
+                  <button class="btn btn-primary btn-sm" type="submit" ?disabled=${!!this.busy}>
+                    ${this.spinner("stepup-code")} ${this.t("verifyCode")}
+                  </button>
+                </form>
+                ${this.renderStepUpAlternates(s.challenge.factor)}`
         }
         ${this.error("stepup")} ${this.error("stepup-code")}
       </div>`,
@@ -1854,13 +1880,81 @@ export class AuthUIAccount extends AuthUIElement {
     );
   }
 
+  private renderStepUpAlternates(current: MfaFactor): TemplateResult | typeof nothing {
+    const factors = this.factors;
+    if (!factors) return nothing;
+    const alts = alternateMfaFactors(factors, current);
+    if (alts.length === 0) return nothing;
+    const labels: Record<MfaFactor, string> = {
+      totp: this.t("mfaUseAuthenticator"),
+      email: this.t("mfaUseEmail"),
+      phone: this.t("mfaUsePhone"),
+      recoverycode: this.t("mfaUseRecoveryCodeInstead"),
+    };
+    const iconsFor: Record<MfaFactor, TemplateResult> = {
+      totp: icons.smartphone,
+      email: icons.mail,
+      phone: icons.phone,
+      recoverycode: icons.key,
+    };
+    return html`
+      <div class="separator-text">${this.t("or")}</div>
+      <div class="mfa-alts">
+        ${alts.map(
+          (factor) =>
+            html`<button
+              type="button"
+              class="btn btn-outline btn-sm"
+              @click=${() => this.onStepUpFactor(factor)}
+              ?disabled=${!!this.busy}
+            >
+              ${iconsFor[factor]}<span>${labels[factor]}</span>
+            </button>`
+        )}
+      </div>
+    `;
+  }
+
   // ── Sessions ──
 
-  private formatSessionDate(iso: string | undefined): string {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  /** Relative primary label with absolute detail for title tooltips (Vibes DateTooltip). */
+  private formatRelativeLabel(
+    iso: string | undefined
+  ): { label: string; absolute: string; iso: string } | null {
+    const parts = relativeTimeParts(iso);
+    if (!parts) return null;
+    if (parts.justNow) {
+      return { label: this.t("relativeJustNow"), absolute: parts.absolute, iso: parts.iso };
+    }
+    const unitKey = (
+      {
+        minute: parts.count === 1 ? "relativeUnitMinute" : "relativeUnitMinutes",
+        hour: parts.count === 1 ? "relativeUnitHour" : "relativeUnitHours",
+        day: parts.count === 1 ? "relativeUnitDay" : "relativeUnitDays",
+        week: parts.count === 1 ? "relativeUnitWeek" : "relativeUnitWeeks",
+        month: parts.count === 1 ? "relativeUnitMonth" : "relativeUnitMonths",
+        year: parts.count === 1 ? "relativeUnitYear" : "relativeUnitYears",
+      } as Record<
+        RelativeUnit,
+        | "relativeUnitMinute"
+        | "relativeUnitMinutes"
+        | "relativeUnitHour"
+        | "relativeUnitHours"
+        | "relativeUnitDay"
+        | "relativeUnitDays"
+        | "relativeUnitWeek"
+        | "relativeUnitWeeks"
+        | "relativeUnitMonth"
+        | "relativeUnitMonths"
+        | "relativeUnitYear"
+        | "relativeUnitYears"
+      >
+    )[parts.unit];
+    const unit = this.t(unitKey);
+    const label = parts.isFuture
+      ? this.t("relativeFuture", { count: parts.count, unit })
+      : this.t("relativePast", { count: parts.count, unit });
+    return { label, absolute: parts.absolute, iso: parts.iso };
   }
 
   private browserIconUrl(s: Models.Session): string | null {
@@ -1941,8 +2035,8 @@ export class AuthUIAccount extends AuthUIElement {
                   const provider = (s.provider || "").trim();
                   const showProvider =
                     !!provider && provider !== "email" && provider !== "anonymous";
-                  const created = this.formatSessionDate(s.$createdAt);
-                  const expires = this.formatSessionDate(s.expire);
+                  const createdRel = this.formatRelativeLabel(s.$createdAt);
+                  const expiresRel = this.formatRelativeLabel(s.expire);
                   const location = s.countryName || s.countryCode || "";
                   return html`<div class="row">
                     <div class="inline">
@@ -1983,9 +2077,25 @@ export class AuthUIAccount extends AuthUIElement {
                           ${s.ip ? html`<span>${s.ip}</span>` : nothing}
                         </span>
                         ${
-                          created || expires
+                          createdRel || expiresRel
                             ? html`<span class="session-dates"
-                                >${created ? this.t("sessionCreated", { date: created }) : nothing}${created && expires ? " · " : ""}${expires ? this.t("sessionExpires", { date: expires }) : nothing}</span
+                                >${
+                                  createdRel
+                                    ? html`<time
+                                        datetime=${createdRel.iso}
+                                        title=${createdRel.absolute}
+                                        >${this.t("sessionCreated", { date: createdRel.label })}</time
+                                      >`
+                                    : nothing
+                                }${createdRel && expiresRel ? " · " : ""}${
+                                  expiresRel
+                                    ? html`<time
+                                        datetime=${expiresRel.iso}
+                                        title=${expiresRel.absolute}
+                                        >${this.t("sessionExpires", { date: expiresRel.label })}</time
+                                      >`
+                                    : nothing
+                                }</span
                               >`
                             : nothing
                         }
@@ -2036,6 +2146,28 @@ export class AuthUIAccount extends AuthUIElement {
 
   // ── Connections ──
 
+  private renderIdentityDates(i: Models.Identity): TemplateResult | typeof nothing {
+    const createdRel = this.formatRelativeLabel(i.$createdAt);
+    const expiryRaw = (i.providerAccessTokenExpiry || "").trim();
+    const expiresRel = expiryRaw ? this.formatRelativeLabel(expiryRaw) : null;
+    if (!createdRel && !expiresRel && !expiryRaw) return nothing;
+    return html`<span class="connection-dates"
+      >${
+        createdRel
+          ? html`<time datetime=${createdRel.iso} title=${createdRel.absolute}
+              >${this.t("identityCreated", { date: createdRel.label })}</time
+            >`
+          : nothing
+      }${createdRel ? " · " : ""}${
+        expiresRel
+          ? html`<time datetime=${expiresRel.iso} title=${expiresRel.absolute}
+              >${this.t("identityExpires", { date: expiresRel.label })}</time
+            >`
+          : html`<span>${this.t("identityExpiresNone")}</span>`
+      }</span
+    >`;
+  }
+
   private renderConnections(): TemplateResult {
     const list = this.identities;
     const providers = this.config?.methods?.oauth ?? [];
@@ -2061,6 +2193,7 @@ export class AuthUIAccount extends AuthUIElement {
                         <div class="row-main">
                           <span class="row-title">${providerLabel(i.provider)}</span>
                           <span class="row-sub">${i.providerEmail || i.providerUid}</span>
+                          ${this.renderIdentityDates(i)}
                         </div>
                       </div>
                       <div class="row-actions">
@@ -2153,7 +2286,14 @@ export class AuthUIAccount extends AuthUIElement {
                           >${[l.clientName, l.osName, l.countryName || l.countryCode, l.ip].filter(Boolean).join(" · ")}</span
                         >
                       </div>
-                      <span class="log-time">${new Date(l.time).toLocaleString()}</span>
+                      ${(() => {
+                        const rel = this.formatRelativeLabel(l.time);
+                        return rel
+                          ? html`<time class="log-time" datetime=${rel.iso} title=${rel.absolute}
+                              >${rel.label}</time
+                            >`
+                          : html`<span class="log-time">${l.time}</span>`;
+                      })()}
                     </div>`
                 )
         }`

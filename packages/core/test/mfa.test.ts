@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { availableMfaFactors, defaultMfaFactor } from "../src/mfa.js";
+import {
+  alternateMfaFactors,
+  availableMfaFactors,
+  defaultMfaFactor,
+  mfaFactorHintKey,
+} from "../src/mfa.js";
 
 describe("mfa helpers", () => {
   it("returns only enabled factors in Vibes priority order", () => {
@@ -33,5 +38,20 @@ describe("mfa helpers", () => {
         recoveryCode: false,
       })
     ).toBeNull();
+  });
+});
+
+describe("mfa factor hints and alternates", () => {
+  it("maps each factor to a hint string key", () => {
+    expect(mfaFactorHintKey("totp")).toBe("mfaHintTotp");
+    expect(mfaFactorHintKey("email")).toBe("mfaHintEmail");
+    expect(mfaFactorHintKey("phone")).toBe("mfaHintPhone");
+    expect(mfaFactorHintKey("recoverycode")).toBe("mfaHintRecoveryCode");
+  });
+
+  it("lists other enabled factors for in-challenge switching", () => {
+    expect(
+      alternateMfaFactors({ totp: true, email: true, phone: false, recoveryCode: true }, "totp")
+    ).toEqual(["email", "recoverycode"]);
   });
 });

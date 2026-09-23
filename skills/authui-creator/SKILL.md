@@ -28,7 +28,7 @@ Full docs: https://getauthui.appwrite.network/llms-full.txt
         visibility: hidden;
       }
     </style>
-    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.20"></script>
+    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.21"></script>
   </head>
   <body>
     <authui-config
@@ -173,7 +173,7 @@ Do not store `cookieFallback`, JWTs or session secrets yourself. Do not pass the
 3. Register the hostname as a Web platform; enable each method in the Console.
 4. Prefer `<authui-config>` + `<authui-button>` / `<authui-show>`; do not invent custom login forms.
 5. ESM CDN does **not** set `window.AuthUI`. Use `<authui-config>` or the IIFE build / npm `AuthUI.init`.
-6. Pin the CDN version (`@0.1.20` or newer).
+6. Pin the CDN version (`@0.1.21` or newer).
 7. In React use `AuthUIProvider`, `Show`, and `@getauthui/core/react`. Do not wrap children in `<authui-show>` if you need true conditional mounting.
 8. For `close-on-success` off in HTML use `close-on-success="false"` (string). In React use `closeOnSuccess={false}`.
 9. Read common mistakes: docs `/docs/common-mistakes`. Machine docs: `/llms-full.txt`.
