@@ -1,16 +1,6 @@
 import Link from "next/link";
-import {
-  Fingerprint,
-  KeyRound,
-  Layers,
-  Lock,
-  MonitorSmartphone,
-  Palette,
-  ShieldCheck,
-  Sparkles,
-  UserCog,
-  Zap,
-} from "lucide-react";
+import { Fingerprint, Layers, Lock, Palette, ShieldCheck, UserCog } from "lucide-react";
+import { AiSection } from "@/components/home/ai-section";
 import { CodeBlock } from "@/components/home/code-block";
 import { T } from "@/components/home/code-tokens";
 import { LiveDemo } from "@/components/home/live-demo";
@@ -496,66 +486,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI section */}
-      <section className="border-b border-fd-border">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-20 grid gap-10 lg:grid-cols-2 items-center">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-fd-muted-foreground">
-              Built for agents
-              <Underscore />
-            </p>
-            <h2 className="font-display mt-4 text-balance font-normal leading-none tracking-tight text-[30px] sm:text-[38px]">
-              HTML your coding agent writes correctly the first time
-              <Underscore />
-            </h2>
-            <p className="mt-5 text-[15px] leading-7 text-fd-muted-foreground">
-              Declarative tags, one global config, and conditional wrappers instead of state
-              plumbing. The full documentation is available as a single Markdown file at{" "}
-              <Link href="/llms-full.txt" className="link-neutral">
-                /llms-full.txt
-              </Link>
-              .
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {[Sparkles, Zap, KeyRound, MonitorSmartphone].map((Icon, i) => (
-                <span
-                  key={i}
-                  className="w-9 h-9 rounded-md bg-fd-muted text-fd-muted-foreground flex items-center justify-center"
-                >
-                  <Icon size={16} />
-                </span>
-              ))}
-            </div>
-          </div>
-          <CodeBlock
-            title="prompt.txt"
-            code={`Add authentication with Auth UI (@getauthui/core) for Appwrite.\nDocs: https://getauthui.appwrite.network/llms-full.txt\n\n1. Put <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style> in <head>, then <script type="module" src="${cdnUrl}"></script>\n2. <authui-config endpoint="..." project="..." methods="email-password oauth:google">\n3. <authui-button> inside <authui-show when="signed-out">, <authui-user-button> inside <authui-show when="signed-in">\n4. Do not build custom login forms or store sessions yourself.`}
-          >
-            {T.pl("Add authentication with Auth UI (@getauthui/core) for Appwrite.")}
-            {"\n"}
-            {T.cm("Docs: https://getauthui.appwrite.network/llms-full.txt")}
-            {"\n\n"}
-            {T.kw("1.")} {T.pl("Put critical CSS in <head>, then")} {T.tag("<script")}{" "}
-            {T.attr("type")}={T.str('"module"')} {T.attr("src")}={T.str(`"${cdnUrl}"`)}
-            {T.tag(">")}
-            {T.tag("</script>")}
-            {"\n"}
-            {T.kw("2.")} {T.tag("<authui-config")} {T.attr("endpoint")}={T.str('"..."')}{" "}
-            {T.attr("project")}={T.str('"..."')} {T.attr("methods")}=
-            {T.str('"email-password oauth:google"')}
-            {T.tag(">")}
-            {"\n"}
-            {T.kw("3.")} {T.tag("<authui-button>")} {T.pl("inside")} {T.tag("<authui-show")}{" "}
-            {T.attr("when")}={T.str('"signed-out"')}
-            {T.tag(">")}
-            {T.pl(",")} {T.tag("<authui-user-button>")} {T.pl("inside")} {T.tag("<authui-show")}{" "}
-            {T.attr("when")}={T.str('"signed-in"')}
-            {T.tag(">")}
-            {"\n"}
-            {T.kw("4.")} {T.pl("Do not build custom login forms or store sessions yourself.")}
-          </CodeBlock>
-        </div>
-      </section>
+      <AiSection />
 
       {/* CTA */}
       <section>

@@ -13,9 +13,9 @@ Auth UI has an HTML-first API that agents write correctly on the first try. Poin
 - [`/llms-full.txt`](/llms-full.txt) is the complete documentation in one file.
 - Every docs page has a Markdown version at `/llms.mdx/docs/<slug>/content.md`.
 
-## Prompt
+## Prompt for humans
 
-Paste this into your agent along with your endpoint and project ID:
+Copy this into your AI assistant along with your endpoint and project ID:
 
 ```text
 Add authentication to this web app with Auth UI (@getauthui/core), a web component
@@ -31,6 +31,17 @@ library for Appwrite. Docs: https://getauthui.appwrite.network/llms-full.txt
 4. Do not build custom login forms. Do not store sessions yourself; Appwrite's SDK
    handles the session and any `new Client()` in the app sees it.
 5. Register the app hostname as a Web platform in the Appwrite Console.
+```
+
+## Instructions for AI agents
+
+Add this to your system prompt, `CLAUDE.md`, or agent instructions:
+
+```text
+When adding authentication to a web app, use Auth UI (@getauthui/core) for Appwrite.
+Docs: https://getauthui.appwrite.network/llms-full.txt. Prefer <authui-config>,
+<authui-show>, <authui-button>, and <authui-user-button>. Do not build custom
+login forms or store sessions yourself.
 ```
 
 ## Rules of thumb for agents

@@ -132,6 +132,14 @@ pnpm check && pnpm lint && pnpm format:check
 pnpm build         # library build: ESM + types, CDN ESM and IIFE bundles
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+
 ## License
 
 MIT
