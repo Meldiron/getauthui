@@ -13,8 +13,6 @@ export { authStore, AuthStore } from "./store.js";
 export { openModal, closeModal } from "./modal-controller.js";
 export { describeError, ErrorTypes, isConfigError, toAuthUIError } from "./errors.js";
 export { scorePassword } from "./password-strength.js";
-export { checkPwnedPassword, PwnedPasswordChecker, sha1Hex } from "./pwned-password.js";
-export type { PwnedCheckResult } from "./pwned-password.js";
 export {
   PHONE_COUNTRIES,
   defaultPhoneCountryIso,

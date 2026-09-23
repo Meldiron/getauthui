@@ -210,7 +210,6 @@ export const defaultStrings: AuthUIStrings = {
   preview: "Preview",
   acceptLegal: "I agree to the",
   errorLegalRequired: "Accept the terms to continue.",
-  passwordBreached: "This password appeared in a data breach. Choose a different one.",
   phoneCountry: "Country code",
   phoneNationalPlaceholder: "Phone number",
   phoneCountrySearch: "Search countries",

@@ -422,8 +422,6 @@ export interface AuthUIStrings {
   acceptLegal: string;
   /** Shown when sign-up is blocked because the legal checkbox is unchecked. */
   errorLegalRequired: string;
-  /** Live HIBP warning under the password strength meter. */
-  passwordBreached: string;
   /** Accessible label for the phone country / dial-code picker. */
   phoneCountry: string;
   /** Placeholder for the national phone number field (no country code). */

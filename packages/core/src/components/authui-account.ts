@@ -8,7 +8,6 @@ import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import { scorePassword } from "../password-strength.js";
-import { PwnedPasswordChecker } from "../pwned-password.js";
 import {
   PHONE_COUNTRIES,
   defaultPhoneCountryIso,
@@ -255,7 +254,6 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private showOldPassword = false;
   @state() private showNewPassword = false;
   @state() private showNewPasswordConfirm = false;
-  private readonly pwnedChecker = new PwnedPasswordChecker(() => this.requestUpdate());
   @state() private authenticator: Models.MfaType | null = null;
   @state() private authenticatorCode = "";
   @state() private factors: Models.MfaFactors | null = null;
@@ -630,10 +628,6 @@ export class AuthUIAccount extends AuthUIElement {
       this.errors = { ...this.errors, password: this.t("errorPasswordMismatch") };
       return;
     }
-    if (this.pwnedChecker.pwned) {
-      this.errors = { ...this.errors, password: this.t("passwordBreached") };
-      return;
-    }
     void this.run(
       "password",
       async () => {
@@ -853,8 +847,6 @@ export class AuthUIAccount extends AuthUIElement {
     return (e: Event) => {
       const value = (e.target as HTMLInputElement).value;
       (this as any)[field] = value;
-      if (field === "newPassword") this.pwnedChecker.schedule(value);
-      if (field === "emailPassword") this.pwnedChecker.schedule(value);
     };
   }
 
@@ -1537,13 +1529,6 @@ export class AuthUIAccount extends AuthUIElement {
                               <span></span><span></span><span></span><span></span>
                             </div>
                             <p class="strength-label">${this.t(strength.labelKey)}</p>
-                            ${
-                              this.pwnedChecker.pwned
-                                ? html`<p class="strength-breached">
-                                    ${this.t("passwordBreached")}
-                                  </p>`
-                                : nothing
-                            }
                           </div>`;
                         })()
                       : html`<p class="hint">${this.t("passwordHint")}</p>`
@@ -1584,7 +1569,7 @@ export class AuthUIAccount extends AuthUIElement {
                 class="btn btn-primary btn-sm"
                 type="submit"
                 form="password-form"
-                ?disabled=${!!this.busy || !this.newPassword || this.pwnedChecker.pwned}
+                ?disabled=${!!this.busy || !this.newPassword}
               >
                 ${this.spinner("password")} ${this.t("update")}
               </button>`

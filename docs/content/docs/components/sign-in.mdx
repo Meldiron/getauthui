@@ -42,9 +42,7 @@ The host is `display: block` with `max-width: 420px`. Override `max-width` on th
 
 ## Password strength
 
-Sign-up, password reset and change-password show a live strength meter as the user types. Scoring is client-only (length and character classes). Override the labels with `strings.passwordStrengthTooWeak` through `strings.passwordStrengthVeryStrong`.
-
-While the meter is visible, Auth UI also checks Have I Been Pwned with the [range k-anonymity API](https://haveibeenpwned.com/API/v3#PwnedPasswords) (only the first 5 characters of the SHA-1 hash leave the browser). Breached passwords show a warning and block submit. If the check cannot reach the network, the form stays usable and Appwrite can still reject with `password_pwned`.
+Sign-up, password reset and change-password show a live strength meter as the user types. Scoring is client-only (length and character classes). Override the labels with `strings.passwordStrengthTooWeak` through `strings.passwordStrengthVeryStrong`. Appwrite can still reject with `password_pwned` when the project has the breached-password check enabled.
 
 ## Phone country picker
 

@@ -10,7 +10,6 @@ import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
 import { openModal } from "../modal-controller.js";
 import { scorePassword } from "../password-strength.js";
-import { PwnedPasswordChecker } from "../pwned-password.js";
 import {
   PHONE_COUNTRIES,
   defaultPhoneCountryIso,
@@ -102,7 +101,6 @@ export class AuthUISignIn extends AuthUIElement {
   /** True after the user edits the email field; blocks further prefills. */
   private emailTouched = false;
   private didApplyEmailPrefill = false;
-  private readonly pwnedChecker = new PwnedPasswordChecker(() => this.requestUpdate());
   /** Sign-up legal checkbox when legal.requireAcceptance is set. */
   @state() private legalAccepted = false;
   /** True when the legal-required error was raised by an OAuth click (show near providers). */
@@ -324,10 +322,6 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.requireValid(e)) return;
     this.legalErrorFromOAuth = false;
     if (!this.ensureLegalAccepted()) return;
-    if (this.isPasswordBreached()) {
-      this.error = this.t("passwordBreached");
-      return;
-    }
     void this.run(async () => {
       await authStore.signUp(this.email, this.password, this.name);
       this.password = "";
@@ -379,10 +373,6 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.requireValid(e)) return;
     if (this.password !== this.passwordConfirm) {
       this.error = this.t("errorPasswordMismatch");
-      return;
-    }
-    if (this.isPasswordBreached()) {
-      this.error = this.t("passwordBreached");
       return;
     }
     const recovery = this.recovery;
@@ -500,7 +490,6 @@ export class AuthUISignIn extends AuthUIElement {
       const value = (e.target as HTMLInputElement).value;
       this[field] = value;
       if (field === "email") this.emailTouched = true;
-      if (field === "password") this.pwnedChecker.schedule(value);
       if (field === "phone") {
         // Legacy full-number path (tests / paste). Re-parse into picker state.
         const parsed = parsePhone(value, this.phoneCountryIso);
@@ -523,10 +512,6 @@ export class AuthUISignIn extends AuthUIElement {
 
   private syncPhoneE164(): void {
     this.phone = toE164(this.phoneCountryIso, this.phoneNational);
-  }
-
-  private isPasswordBreached(): boolean {
-    return this.pwnedChecker.pwned;
   }
 
   // ───────────────────────────── render ─────────────────────────────
@@ -705,11 +690,6 @@ export class AuthUISignIn extends AuthUIElement {
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <p class="strength-label">${this.t(strength.labelKey)}</p>
-                ${
-                  this.pwnedChecker.pwned
-                    ? html`<p class="strength-breached">${this.t("passwordBreached")}</p>`
-                    : nothing
-                }
               </div>`
             : opts.hint
               ? html`<p class="hint">${opts.hint}</p>`
@@ -1158,7 +1138,7 @@ export class AuthUISignIn extends AuthUIElement {
           ${this.emailField()}
           ${this.passwordField({ label: this.t("password"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.legalAcceptField()} ${oauthLegalError ? nothing : this.renderError()}
-          ${this.submitButton(this.t("createAccount"), "btn-primary", this.isPasswordBreached())}
+          ${this.submitButton(this.t("createAccount"))}
         </form>
         <div class="links">
           <span>${this.t("haveAccount")}</span>
@@ -1207,8 +1187,7 @@ export class AuthUISignIn extends AuthUIElement {
         <form class="form" @submit=${this.onReset} novalidate>
           ${this.passwordField({ label: this.t("newPassword"), autocomplete: "new-password", id: "authui-password", field: "password", hint: this.t("passwordHint"), meter: true })}
           ${this.passwordField({ label: this.t("confirmPassword"), autocomplete: "new-password", id: "authui-password-confirm", field: "passwordConfirm" })}
-          ${this.renderError()}
-          ${this.submitButton(this.t("resetPassword"), "btn-primary", this.isPasswordBreached())}
+          ${this.renderError()} ${this.submitButton(this.t("resetPassword"))}
         </form>
         <div class="links">
           <button

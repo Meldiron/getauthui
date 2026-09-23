@@ -421,11 +421,6 @@ export const base = css`
     color: var(--authui-muted-foreground);
     margin: 0;
   }
-  .strength-breached {
-    font-size: 12px;
-    color: var(--authui-error-foreground);
-    margin: 0;
-  }
   .phone-row {
     display: flex;
     gap: 8px;
