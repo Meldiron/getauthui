@@ -15,7 +15,7 @@
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.21"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.22"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -65,16 +65,18 @@ CDN:
     visibility: hidden;
   }
 </style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.21"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.22"></script>
 ```
 
 The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
 
-The default CDN URL is an ESM module: it defines the elements but does **not** set `window.AuthUI`. For `AuthUI.init` / `AuthUI.on` from a classic script, use the IIFE build:
+The default CDN URL (bare unpkg / jsDelivr package, or `…/dist/authui.cdn.mjs`) is an ESM module: it defines the elements but does **not** set `window.AuthUI`. For `AuthUI.init` / `AuthUI.on` from a classic script, use the IIFE build:
 
 ```html
-<script src="https://unpkg.com/@getauthui/core@0.1.21/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.22/dist/authui.cdn.js"></script>
 ```
+
+Do **not** point a `<script type="module">` at `…/dist/authui.js`. That path is the bundler entry and fails on CDNs with `Failed to resolve module specifier "appwrite"` (custom elements never upgrade).
 
 npm:
 
@@ -131,6 +133,14 @@ pnpm test          # unit tests (vitest + jsdom, Appwrite mocked)
 pnpm check && pnpm lint && pnpm format:check
 pnpm build         # library build: ESM + types, CDN ESM and IIFE bundles
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 ## License
 

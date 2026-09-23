@@ -465,9 +465,14 @@ export class AuthUISignIn extends AuthUIElement {
     `;
   }
 
-  private renderHeader(): TemplateResult {
+  private renderHeader(): TemplateResult | typeof nothing {
     const logo = this.config?.branding?.logo;
     const name = this.productName;
+    // Incomplete config never reaches the store, so productName is empty while
+    // configError is sticky. Do not show "Welcome back" above that banner.
+    if ((this.auth.configError || !this.auth.configured) && !name) {
+      return nothing;
+    }
     let title = "";
     let description = "";
     if (this.auth.status === "signed-in") {

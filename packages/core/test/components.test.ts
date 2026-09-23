@@ -700,6 +700,19 @@ describe("auth notice and last-method bugs", () => {
     warn.mockRestore();
   });
 
+  it("does not show Welcome back above an incomplete-config error", async () => {
+    authStore.notifyConfigIncomplete();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await tick();
+    await (el as any).updateComplete;
+    const text = shadowText(el);
+    const hint = authStore.getState().configError;
+    expect(hint).toBeTruthy();
+    expect(text).toContain(hint!);
+    expect(text).not.toMatch(/Welcome back/i);
+    expect(el.shadowRoot!.querySelector(".title")).toBeNull();
+  });
+
   it("does not pin Last used on OAuth click before a successful session", async () => {
     const { clearLastMethod, getLastMethod } = await import("../src/last-method.js");
     clearLastMethod();

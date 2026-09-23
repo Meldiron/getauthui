@@ -7,7 +7,7 @@ A short cookbook of the failures newcomers hit most often. Pair it with [Configu
 
 ## Endpoint without `/v1`
 
-Appwrite's HTTP API lives under `/v1`. If you pass `https://cloud.appwrite.io` (or your self-hosted host) without that suffix, the SDK receives an HTML 404 page and Auth UI surfaces a messy alert.
+Appwrite's HTTP API lives under `/v1`. If you pass `https://cloud.appwrite.io` (or your self-hosted host) without that suffix, Auth UI shows a single sticky config error banner asking you to end the endpoint with `/v1`.
 
 ```ts
 // Wrong
@@ -17,7 +17,7 @@ AuthUI.init({ endpoint: "https://cloud.appwrite.io", project: "…" });
 AuthUI.init({ endpoint: "https://cloud.appwrite.io/v1", project: "…" });
 ```
 
-Regional Cloud endpoints look like `https://fra.cloud.appwrite.io/v1`. Auth UI warns in the console when the endpoint does not end with `/v1`.
+Regional Cloud endpoints look like `https://fra.cloud.appwrite.io/v1`. Auth UI also warns in the console when the endpoint does not end with `/v1`.
 
 ## Hostname not registered as a Web platform
 
@@ -27,23 +27,30 @@ Auth UI runs on your origin. Appwrite rejects requests from hosts that are not l
 
 `methods` on `<authui-config>` / `AuthUI.init()` only controls which buttons Auth UI shows. Each method must also be enabled under **Auth → Settings** in the Appwrite Console (and each OAuth provider must be configured with client IDs). Otherwise the UI looks ready and the request fails at runtime.
 
-## ESM CDN vs IIFE / no `window.AuthUI`
+## CDN URL: use the CDN builds, not `dist/authui.js`
 
-| Script                                                            | What you get                                                     |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `https://unpkg.com/@getauthui/core@0.1.21` (ESM, `type="module"`) | Custom elements are defined. No `window.AuthUI`.                 |
-| `…/dist/authui.cdn.js` (IIFE, classic script)                     | Custom elements plus `window.AuthUI` for `init` / `on` / `open`. |
+Bare unpkg / jsDelivr package URLs and the dedicated CDN files are safe in a `<script>` tag. The package `main` / `module` file (`dist/authui.js`) is a **bundler** entry: it has a bare `import "appwrite"`, so loading it from a CDN fails with `Failed to resolve module specifier "appwrite"` and custom elements never upgrade.
+
+| URL | Use |
+| --- | --- |
+| `https://unpkg.com/@getauthui/core@0.1.22` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`. |
+| `…/dist/authui.cdn.mjs` | Same CDN ESM entry, explicit path. |
+| `…/dist/authui.cdn.js` | CDN IIFE. Elements plus `window.AuthUI` for `init` / `on` / `open`. |
+| `…/dist/authui.js` | **Not for CDN.** Bundler / npm import only. |
 
 ```html
-<!-- ESM: elements only. Configure with <authui-config>. -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.21"></script>
+<!-- Safe ESM CDN: elements only. Configure with <authui-config>. -->
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.22"></script>
 <authui-config endpoint="…" project="…"></authui-config>
 
-<!-- IIFE: use window.AuthUI from a classic script. -->
-<script src="https://unpkg.com/@getauthui/core@0.1.21/dist/authui.cdn.js"></script>
+<!-- Safe IIFE CDN: use window.AuthUI from a classic script. -->
+<script src="https://unpkg.com/@getauthui/core@0.1.22/dist/authui.cdn.js"></script>
 <script>
   AuthUI.init({ endpoint: "…", project: "…" });
 </script>
+
+<!-- Wrong: package main / bundler build on a CDN -->
+<!-- <script type="module" src="https://unpkg.com/@getauthui/core@0.1.22/dist/authui.js"></script> -->
 ```
 
 With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version on the CDN in production.
