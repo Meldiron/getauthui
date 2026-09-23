@@ -68,6 +68,17 @@ describe("shared layout styles", () => {
       /\.card-footer\s*\{[^}]*background:\s*color-mix\(in\s+oklab,\s*var\(--authui-muted\)/s
     );
   });
+
+  it("styles danger cards with a quiet tint instead of a screaming red outline", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.card-danger\s*\{[^}]*border-color:\s*var\(--authui-border\)/s);
+    expect(cssText).toMatch(
+      /\.card-danger\s*\{[^}]*background:\s*color-mix\(in\s+oklab,\s*var\(--authui-destructive\)/s
+    );
+    expect(cssText).not.toMatch(
+      /\.card-danger\s*\{[^}]*border-color:\s*color-mix\(in\s+oklab,\s*var\(--authui-destructive\)\s+40%/s
+    );
+  });
 });
 
 describe("design tokens", () => {
@@ -82,6 +93,19 @@ describe("design tokens", () => {
     expect(cssText).toMatch(/:host\s*\{[^}]*--authui-ring:\s*#71717a/s);
     // Dark ring from 0.1.13 must not regress
     expect(cssText).toMatch(/:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-ring:\s*#a1a1aa/s);
+  });
+
+  it("keeps dark borders soft (no zinc-500 chrome) while focus ring stays strong", () => {
+    const cssText = String(tokens);
+    expect(cssText).toMatch(
+      /:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-border:\s*oklch\(1 0 0 \/ 10%\)/s
+    );
+    expect(cssText).toMatch(
+      /:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-input:\s*oklch\(1 0 0 \/ 15%\)/s
+    );
+    expect(cssText).not.toMatch(
+      /:host\(\[data-theme="dark"\]\)\s*\{[^}]*--authui-border:\s*#71717a/s
+    );
   });
 });
 

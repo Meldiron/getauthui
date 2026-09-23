@@ -1423,7 +1423,7 @@ export class AuthUIAccount extends AuthUIElement {
       this.confirmDelete
         ? this.error("delete")
         : html`${this.error("delete")}
-            <button class="btn btn-outline btn-sm warn" @click=${() => (this.confirmDelete = true)}>
+            <button class="btn btn-destructive btn-sm" @click=${() => (this.confirmDelete = true)}>
               ${icons.userX} ${this.t("deleteAccount")}
             </button>`,
       this.confirmDelete

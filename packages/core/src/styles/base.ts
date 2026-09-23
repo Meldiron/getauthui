@@ -117,7 +117,7 @@ export const base = css`
     color: var(--authui-primary-foreground);
   }
   .btn-primary:hover {
-    background: color-mix(in oklab, var(--authui-primary) 90%, transparent);
+    background: color-mix(in oklab, var(--authui-primary) 88%, var(--authui-background));
   }
   .btn-brand {
     background: var(--authui-brand);
@@ -127,9 +127,13 @@ export const base = css`
     opacity: 0.9;
   }
   .btn-outline {
-    border-color: var(--authui-border);
+    border-color: color-mix(in oklab, var(--authui-border) 90%, var(--authui-foreground));
     background: transparent;
     color: var(--authui-foreground);
+  }
+  :host([data-theme="dark"]) .btn-outline {
+    border-color: var(--authui-border);
+    background: color-mix(in oklab, var(--authui-foreground) 3%, transparent);
   }
   .btn-outline:hover {
     background: var(--authui-accent);
@@ -154,8 +158,19 @@ export const base = css`
     background: var(--authui-destructive);
     color: #fff;
   }
+  :host([data-theme="dark"]) .btn-destructive {
+    background: var(--authui-destructive-foreground);
+    color: oklch(0.985 0 0);
+  }
   .btn-destructive:hover {
-    background: color-mix(in oklab, var(--authui-destructive) 90%, transparent);
+    background: color-mix(in oklab, var(--authui-destructive) 88%, var(--authui-foreground));
+  }
+  :host([data-theme="dark"]) .btn-destructive:hover {
+    background: color-mix(
+      in oklab,
+      var(--authui-destructive-foreground) 88%,
+      var(--authui-background)
+    );
   }
   .btn-link {
     height: auto;
@@ -246,7 +261,7 @@ export const base = css`
     min-width: 0;
     border-radius: var(--authui-radius-md);
     border: 1px solid var(--authui-input);
-    background: transparent;
+    background: var(--authui-background);
     color: var(--authui-foreground);
     padding: 4px 12px;
     outline: none;
@@ -255,7 +270,8 @@ export const base = css`
       box-shadow 150ms;
   }
   :host([data-theme="dark"]) .input {
-    background: color-mix(in oklab, var(--authui-input) 30%, transparent);
+    /* Subtle elevated field, not a second heavy chrome box */
+    background: color-mix(in oklab, var(--authui-card) 65%, var(--authui-background));
   }
   .input::placeholder {
     color: var(--authui-muted-foreground);
@@ -568,8 +584,8 @@ export const base = css`
     color: var(--authui-info-foreground);
   }
   .badge-outline {
-    background: color-mix(in oklab, var(--authui-muted) 60%, transparent);
-    color: color-mix(in oklab, var(--authui-foreground) 80%, transparent);
+    background: color-mix(in oklab, var(--authui-muted) 70%, transparent);
+    color: color-mix(in oklab, var(--authui-foreground) 88%, transparent);
   }
 
   /* ── Separator ── */
@@ -606,7 +622,7 @@ export const base = css`
     max-width: 100%;
     overflow-x: auto;
     border-radius: var(--authui-radius-lg);
-    background: color-mix(in oklab, var(--authui-muted) 50%, transparent);
+    background: color-mix(in oklab, var(--authui-muted) 70%, transparent);
     color: var(--authui-muted-foreground);
     padding: 3px;
     gap: 2px;
@@ -622,7 +638,7 @@ export const base = css`
     mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
   }
   :host([data-theme="dark"]) .tabs {
-    background: color-mix(in oklab, var(--authui-muted) 80%, transparent);
+    background: color-mix(in oklab, var(--authui-muted) 55%, transparent);
   }
   .tab {
     display: inline-flex;
@@ -651,9 +667,14 @@ export const base = css`
     color: var(--authui-foreground);
   }
   .tab[aria-selected="true"] {
-    background: var(--authui-background);
+    background: var(--authui-card);
     color: var(--authui-foreground);
-    border-color: var(--authui-input);
+    border-color: transparent;
+    box-shadow: var(--authui-shadow-xs);
+  }
+  :host([data-theme="dark"]) .tab[aria-selected="true"] {
+    background: color-mix(in oklab, var(--authui-foreground) 8%, var(--authui-background));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--authui-border) 80%, transparent);
   }
   .tab:focus-visible {
     outline: none;
@@ -664,7 +685,7 @@ export const base = css`
   .card {
     border-radius: var(--authui-radius-xl);
     border: 1px solid var(--authui-border);
-    background: color-mix(in oklab, var(--authui-card) 50%, transparent);
+    background: var(--authui-card);
     overflow: hidden;
   }
   .card-header {
@@ -683,18 +704,33 @@ export const base = css`
   }
   .card-body {
     padding: 16px 24px;
-    border-top: 1px solid var(--authui-border);
+    border-top: 1px solid color-mix(in oklab, var(--authui-border) 85%, transparent);
   }
   .card-footer {
     padding: 16px 24px;
     border-top: 1px solid var(--authui-border);
-    background: color-mix(in oklab, var(--authui-muted) 30%, transparent);
+    background: color-mix(in oklab, var(--authui-muted) 40%, transparent);
     display: flex;
     justify-content: flex-end;
     gap: 8px;
   }
+  /* Quiet danger zone: soft surface tint + strong action, no screaming outline */
   .card-danger {
-    border-color: color-mix(in oklab, var(--authui-destructive) 40%, transparent);
+    border-color: var(--authui-border);
+    background: color-mix(in oklab, var(--authui-destructive) 4%, var(--authui-card));
+  }
+  :host([data-theme="dark"]) .card-danger {
+    background: color-mix(in oklab, var(--authui-destructive-foreground) 4%, var(--authui-card));
+  }
+  .card-danger .card-title {
+    color: var(--authui-foreground);
+  }
+  .card-danger .card-body,
+  .card-danger .card-footer {
+    border-color: var(--authui-border);
+  }
+  .card-danger .card-footer {
+    background: color-mix(in oklab, var(--authui-muted) 50%, transparent);
   }
 
   /* ── Lists / rows ── */
@@ -1048,7 +1084,7 @@ export const base = css`
     padding: 28px 16px;
     border: 1px dashed var(--authui-border);
     border-radius: var(--authui-radius-xl);
-    background: color-mix(in oklab, var(--authui-card) 50%, transparent);
+    background: color-mix(in oklab, var(--authui-muted) 35%, transparent);
   }
   .empty-icon {
     width: 48px;

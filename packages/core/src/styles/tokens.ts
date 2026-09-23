@@ -24,8 +24,9 @@ export const tokens = css`
     --authui-accent-foreground: oklch(0.21 0.006 285.885);
     --authui-destructive: oklch(0.577 0.245 27.325);
     --authui-destructive-foreground: oklch(0.577 0.245 27.325);
-    --authui-border: oklch(0.93 0.0035 286.32);
-    --authui-input: oklch(0.93 0.0035 286.32);
+    /* Soft zinc borders (Console / shadcn new-york); hierarchy via surfaces */
+    --authui-border: oklch(0.91 0.004 286.32);
+    --authui-input: oklch(0.88 0.004 286.32);
     /* Raised on white for WCAG 1.4.11 / 2.4.7 (~3:1+) UI contrast; zinc-500 */
     --authui-ring: #71717a;
     --authui-brand: #fd366e;
@@ -52,30 +53,32 @@ export const tokens = css`
       "Droid Sans", "Helvetica Neue", sans-serif;
     --authui-font-mono: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 
+    --authui-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --authui-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     --authui-z: 110;
   }
 
   :host([data-theme="dark"]) {
-    --authui-background: #19191c;
+    --authui-background: #141417;
     --authui-foreground: oklch(0.985 0 0);
-    --authui-card: #1d1d21;
+    --authui-card: #1c1c20;
     --authui-card-foreground: oklch(0.985 0 0);
-    --authui-popover: #1d1d21;
+    --authui-popover: #1c1c20;
     --authui-popover-foreground: oklch(0.985 0 0);
     --authui-primary: oklch(0.985 0 0);
     --authui-primary-foreground: oklch(0.21 0.006 285.885);
-    --authui-secondary: #2d2d31;
+    --authui-secondary: #27272b;
     --authui-secondary-foreground: oklch(0.985 0 0);
-    --authui-muted: #2d2d31;
-    --authui-muted-foreground: oklch(0.705 0.015 286.067);
-    --authui-accent: #2d2d31;
+    --authui-muted: #27272b;
+    --authui-muted-foreground: oklch(0.72 0.015 286.067);
+    --authui-accent: #27272b;
     --authui-accent-foreground: oklch(0.985 0 0);
     --authui-destructive: oklch(0.396 0.141 25.723);
     --authui-destructive-foreground: oklch(0.637 0.237 25.331);
-    /* Raised vs card (#1d1d21) for WCAG 1.4.11 (~3:1) UI contrast */
-    --authui-border: #71717a;
-    --authui-input: #71717a;
+    /* Soft borders (Vercel / shadcn zinc dark): white alpha, not zinc-500 chrome */
+    --authui-border: oklch(1 0 0 / 10%);
+    --authui-input: oklch(1 0 0 / 15%);
+    /* Focus ring stays high-contrast for WCAG 1.4.11 / 2.4.7 */
     --authui-ring: #a1a1aa;
     --authui-success-foreground: #34d399;
     --authui-warning-foreground: #fbbf24;

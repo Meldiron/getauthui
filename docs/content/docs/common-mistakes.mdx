@@ -33,24 +33,24 @@ Bare unpkg / jsDelivr package URLs and the dedicated CDN files are safe in a `<s
 
 | URL                                                                 | Use                                                                 |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `https://unpkg.com/@getauthui/core@0.1.25` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`.                         |
+| `https://unpkg.com/@getauthui/core@0.1.26` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`.                         |
 | `…/dist/authui.cdn.mjs`                                             | Same CDN ESM entry, explicit path.                                  |
 | `…/dist/authui.cdn.js`                                              | CDN IIFE. Elements plus `window.AuthUI` for `init` / `on` / `open`. |
 | `…/dist/authui.js`                                                  | **Not for CDN.** Bundler / npm import only.                         |
 
 ```html
 <!-- Safe ESM CDN: elements only. Configure with <authui-config>. -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.25"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.26"></script>
 <authui-config endpoint="…" project="…"></authui-config>
 
 <!-- Safe IIFE CDN: use window.AuthUI from a classic script. -->
-<script src="https://unpkg.com/@getauthui/core@0.1.25/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.26/dist/authui.cdn.js"></script>
 <script>
   AuthUI.init({ endpoint: "…", project: "…" });
 </script>
 
 <!-- Wrong: package main / bundler build on a CDN -->
-<!-- <script type="module" src="https://unpkg.com/@getauthui/core@0.1.25/dist/authui.js"></script> -->
+<!-- <script type="module" src="https://unpkg.com/@getauthui/core@0.1.26/dist/authui.js"></script> -->
 ```
 
 With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version on the CDN in production.
