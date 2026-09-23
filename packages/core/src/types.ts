@@ -293,6 +293,10 @@ export interface AuthUIStrings {
   generateRecoveryCodes: string;
   regenerateRecoveryCodes: string;
   recoveryCodesWarning: string;
+  /** Checkbox label: user confirms they saved view-once recovery codes before Done. */
+  recoveryCodesSavedConfirm: string;
+  download: string;
+  print: string;
   currentSession: string;
   /** Session expiry label, `{date}` = formatted expire time. */
   sessionExpires: string;

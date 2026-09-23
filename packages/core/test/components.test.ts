@@ -1387,3 +1387,183 @@ describe("0.1.18 sign-in fixes", () => {
     expect(el.shadowRoot!.querySelector("#authui-email")).toBeTruthy();
   });
 });
+
+describe("0.1.19 account UX fixes", () => {
+  it("adds Download, Print, and a save gate before Done on recovery codes", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: true,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    account.listMFAFactors.mockResolvedValue({
+      totp: true,
+      email: true,
+      phone: false,
+      recoveryCode: true,
+    });
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    (el as any).recoveryCodes = ["aaaa-bbbb", "cccc-dddd"];
+    (el as any).recoveryCodesSaved = false;
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toMatch(/aaaa-bbbb/);
+    expect(text).toMatch(/Download/i);
+    expect(text).toMatch(/Print/i);
+    expect(text).toMatch(/I saved these codes/i);
+
+    const done = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^Done$/i.test((b.textContent ?? "").trim())
+    ) as HTMLButtonElement;
+    expect(done).toBeTruthy();
+    expect(done.disabled).toBe(true);
+
+    const checkbox = el.shadowRoot!.querySelector(
+      ".legal-accept input[type=checkbox]"
+    ) as HTMLInputElement;
+    expect(checkbox).toBeTruthy();
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect(done.disabled).toBe(false);
+
+    const createObjectURL = vi.fn(() => "blob:codes");
+    const revokeObjectURL = vi.fn();
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      const download = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+        /download/i.test(b.textContent ?? "")
+      )!;
+      download.click();
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(clickSpy).toHaveBeenCalled();
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:codes");
+    } finally {
+      clickSpy.mockRestore();
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+    }
+
+    const printWin = {
+      document: { write: vi.fn(), close: vi.fn() },
+      focus: vi.fn(),
+      print: vi.fn(),
+    };
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(printWin as unknown as Window);
+    try {
+      const printBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+        /print/i.test(b.textContent ?? "")
+      )!;
+      printBtn.click();
+      expect(openSpy).toHaveBeenCalled();
+      expect(printWin.document.write).toHaveBeenCalled();
+      expect(printWin.print).toHaveBeenCalled();
+    } finally {
+      openSpy.mockRestore();
+    }
+
+    done.click();
+    await (el as any).updateComplete;
+    expect((el as any).recoveryCodes).toBeNull();
+    expect((el as any).recoveryCodesSaved).toBe(false);
+  });
+
+  it("toggles profile email and phone password reveal", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    (el as any).emailInput = "new@b.co";
+    (el as any).phoneInput = "+15555550999";
+    await (el as any).updateComplete;
+
+    const root = el.shadowRoot!;
+    const emailPw = root.querySelector("#acc-email-password") as HTMLInputElement;
+    const phonePw = root.querySelector("#acc-phone-password") as HTMLInputElement;
+    expect(emailPw?.type).toBe("password");
+    expect(phonePw?.type).toBe("password");
+
+    const emailToggle = emailPw
+      .closest(".input-wrap")!
+      .querySelector(".btn-icon") as HTMLButtonElement;
+    const phoneToggle = phonePw
+      .closest(".input-wrap")!
+      .querySelector(".btn-icon") as HTMLButtonElement;
+    emailToggle.click();
+    await (el as any).updateComplete;
+    expect(emailPw.type).toBe("text");
+    expect(phonePw.type).toBe("password");
+    phoneToggle.click();
+    await (el as any).updateComplete;
+    expect(phonePw.type).toBe("text");
+  });
+
+  it("cancels phone verify mid-flow and returns to phone edit", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /send code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).phoneCodeSent).toBe(true);
+    expect(shadowText(el)).toMatch(/Use a different phone number/i);
+
+    const cancel = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /use a different phone number/i.test(b.textContent ?? "")
+    )!;
+    cancel.click();
+    await (el as any).updateComplete;
+
+    expect((el as any).phoneCodeSent).toBe(false);
+    expect((el as any).phoneCode).toBe("");
+    expect((el as any).verifyPhoneCooldownUntil).toBe(0);
+    expect(el.shadowRoot!.querySelector("#acc-phone")).toBeTruthy();
+    expect(shadowText(el)).toMatch(/Send code/i);
+    expect(shadowText(el)).not.toMatch(/Use a different phone number/i);
+  });
+});

@@ -209,6 +209,8 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private phoneCode = "";
   @state() private phoneCodeSent = false;
   @state() private guestName = "";
+  @state() private showEmailPassword = false;
+  @state() private showPhonePassword = false;
 
   // security
   @state() private oldPassword = "";
@@ -221,6 +223,8 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private authenticatorCode = "";
   @state() private factors: Models.MfaFactors | null = null;
   @state() private recoveryCodes: string[] | null = null;
+  /** User confirmed they saved view-once recovery codes (gates Done). */
+  @state() private recoveryCodesSaved = false;
   @state() private stepUp: {
     retry: () => Promise<void>;
     challenge?: { id: string; factor: MfaFactor };
@@ -641,6 +645,7 @@ export class AuthUIAccount extends AuthUIElement {
         if (!isErrorType(err, ErrorTypes.recoveryCodesExist)) throw err;
         this.recoveryCodes = await authStore.getRecoveryCodes();
       }
+      this.recoveryCodesSaved = false;
       await this.loadFactors();
     });
   };
@@ -653,6 +658,7 @@ export class AuthUIAccount extends AuthUIElement {
     this.confirmRegenerate = false;
     void this.run("recovery", async () => {
       this.recoveryCodes = await authStore.regenerateRecoveryCodes();
+      this.recoveryCodesSaved = false;
     });
   };
 
@@ -665,6 +671,56 @@ export class AuthUIAccount extends AuthUIElement {
     } catch {
       this.setNotice("error", this.t("copyFailed"));
     }
+  };
+
+  private onDownloadCodes = () => {
+    if (!this.recoveryCodes) return;
+    const blob = new Blob([this.recoveryCodes.join("\n") + "\n"], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "authui-recovery-codes.txt";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  private onPrintCodes = () => {
+    if (!this.recoveryCodes) return;
+    const escape = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const list = this.recoveryCodes.map((c) => `<li><code>${escape(c)}</code></li>`).join("");
+    const title = escape(this.t("recoveryCodes"));
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) {
+      this.setNotice("error", this.t("copyFailed"));
+      return;
+    }
+    w.document.write(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${title}</title>` +
+        `<style>body{font-family:system-ui,sans-serif;padding:24px}ul{columns:2;gap:24px}` +
+        `li{margin:0 0 8px;font-size:16px}</style></head><body>` +
+        `<h1>${title}</h1><ul>${list}</ul></body></html>`
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
+  private onDismissRecoveryCodes = () => {
+    if (!this.recoveryCodesSaved) return;
+    this.recoveryCodes = null;
+    this.recoveryCodesSaved = false;
+  };
+
+  private onCancelPhoneVerification = () => {
+    this.phoneCodeSent = false;
+    this.phoneCode = "";
+    this.verifyPhoneCooldownUntil = 0;
+    this.clearVerifyPhoneCooldownTimer();
+    this.errors = { ...this.errors, "verify-phone": "", "verify-phone-code": "" };
   };
 
   private onCopySecret = async () => {
@@ -1080,15 +1136,27 @@ export class AuthUIAccount extends AuthUIElement {
                   <label class="label" for="acc-email-password"
                     >${u.passwordUpdate ? this.t("currentPassword") : this.t("createPassword")}</label
                   >
-                  <input
-                    class="input"
-                    id="acc-email-password"
-                    type="password"
-                    .value=${this.emailPassword}
-                    @input=${this.bind("emailPassword")}
-                    autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
-                    required
-                  />
+                  <div class="input-wrap">
+                    <input
+                      class="input"
+                      id="acc-email-password"
+                      type=${this.showEmailPassword ? "text" : "password"}
+                      .value=${this.emailPassword}
+                      @input=${this.bind("emailPassword")}
+                      autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-icon"
+                      @click=${() => (this.showEmailPassword = !this.showEmailPassword)}
+                      aria-label=${
+                        this.showEmailPassword ? this.t("hidePassword") : this.t("showPassword")
+                      }
+                    >
+                      ${this.showEmailPassword ? icons.eyeOff : icons.eye}
+                    </button>
+                  </div>
                   ${
                     u.passwordUpdate
                       ? nothing
@@ -1157,15 +1225,27 @@ export class AuthUIAccount extends AuthUIElement {
                   <label class="label" for="acc-phone-password"
                     >${u.passwordUpdate ? this.t("currentPassword") : this.t("createPassword")}</label
                   >
-                  <input
-                    class="input"
-                    id="acc-phone-password"
-                    type="password"
-                    .value=${this.phonePassword}
-                    @input=${this.bind("phonePassword")}
-                    autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
-                    required
-                  />
+                  <div class="input-wrap">
+                    <input
+                      class="input"
+                      id="acc-phone-password"
+                      type=${this.showPhonePassword ? "text" : "password"}
+                      .value=${this.phonePassword}
+                      @input=${this.bind("phonePassword")}
+                      autocomplete=${u.passwordUpdate ? "current-password" : "new-password"}
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-icon"
+                      @click=${() => (this.showPhonePassword = !this.showPhonePassword)}
+                      aria-label=${
+                        this.showPhonePassword ? this.t("hidePassword") : this.t("showPassword")
+                      }
+                    >
+                      ${this.showPhonePassword ? icons.eyeOff : icons.eye}
+                    </button>
+                  </div>
                   ${
                     u.passwordUpdate
                       ? nothing
@@ -1235,6 +1315,14 @@ export class AuthUIAccount extends AuthUIElement {
                     ?disabled=${!!this.busy}
                   >
                     ${this.spinner("verify-phone-code")} ${this.t("verifyCode")}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    @click=${this.onCancelPhoneVerification}
+                    ?disabled=${!!this.busy}
+                  >
+                    ${this.t("useDifferentPhone")}
                   </button>`
               : nothing
           }
@@ -1587,11 +1675,38 @@ export class AuthUIAccount extends AuthUIElement {
                   ${this.recoveryCodes.map((c) => html`<span class="code">${c}</span>`)}
                 </div>
                 <div class="inline">
-                  <button class="btn btn-outline btn-sm" @click=${this.onCopyCodes}>
+                  <button class="btn btn-outline btn-sm" type="button" @click=${this.onCopyCodes}>
                     ${this.copied ? icons.check : icons.copy}
                     ${this.copied ? this.t("copied") : this.t("copy")}
                   </button>
-                  <button class="btn btn-ghost btn-sm" @click=${() => (this.recoveryCodes = null)}>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    @click=${this.onDownloadCodes}
+                  >
+                    ${icons.download} ${this.t("download")}
+                  </button>
+                  <button class="btn btn-outline btn-sm" type="button" @click=${this.onPrintCodes}>
+                    ${icons.printer} ${this.t("print")}
+                  </button>
+                </div>
+                <label class="legal-accept">
+                  <input
+                    type="checkbox"
+                    .checked=${this.recoveryCodesSaved}
+                    @change=${(e: Event) => {
+                      this.recoveryCodesSaved = (e.target as HTMLInputElement).checked;
+                    }}
+                  />
+                  <span>${this.t("recoveryCodesSavedConfirm")}</span>
+                </label>
+                <div class="inline">
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    ?disabled=${!this.recoveryCodesSaved}
+                    @click=${this.onDismissRecoveryCodes}
+                  >
                     ${this.t("done")}
                   </button>
                 </div>`
