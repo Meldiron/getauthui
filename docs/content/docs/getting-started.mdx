@@ -16,8 +16,8 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
     Add one script tag anywhere in your HTML. The bundle includes Lit and the Appwrite SDK.
 
     ```html
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.36/dist/fouc.css" />
-    <script src="https://unpkg.com/@getauthui/core@0.1.36/dist/authui.cdn.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.37/dist/fouc.css" />
+    <script src="https://unpkg.com/@getauthui/core@0.1.37/dist/authui.cdn.js"></script>
     ```
 
     The `fouc.css` link hides `<authui-show>` and undefined buttons until Auth UI is ready. The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg / jsDelivr ESM entry (`type="module"` on the bare package URL, or `…/dist/authui.cdn.mjs`) only defines the elements; it does not set a global. Pin a version in production.

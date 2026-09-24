@@ -4,6 +4,7 @@
  *
  * Source of truth: packages/core/package.json "version".
  * Also updates docs/lib/shared.ts cdnUrl and the authui-creator skill tip.
+ * Rewrites leftover cdn.jsdelivr.net/npm/@getauthui/core@ pins to unpkg.com.
  *
  * Run after bumping the package version (agent:publish-* does this automatically).
  * Humans: bump packages/core, then `pnpm sync:cdn-pins`, then publish / commit.
@@ -59,6 +60,11 @@ for (const abs of walk(root)) {
   const before = text;
 
   text = text.replace(pinRe, `@getauthui/core@${version}`);
+  // Canonical CDN host is unpkg (see docs/lib/shared.ts). Rewrite leftover jsDelivr pins.
+  text = text.replace(
+    /https:\/\/cdn\.jsdelivr\.net\/npm\/@getauthui\/core@/g,
+    "https://unpkg.com/@getauthui/core@"
+  );
   text = text.replace(tipRe, `Pin the CDN version (\`@${version}\` or newer)`);
   if (relative(root, abs).replace(/\\/g, "/") === "docs/lib/shared.ts") {
     text = text.replace(

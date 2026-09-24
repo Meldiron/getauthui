@@ -11,18 +11,18 @@ description: What Auth UI does and does not do with credentials and sessions.
 - **Redirect targets are validated by Appwrite.** Every URL Auth UI registers with Appwrite must be on a platform you configured in the Console, so tokens cannot be sent to an attacker's site.
 - **OAuth uses the token flow.** The provider returns a one-time token that the page redeems immediately; no session is created on a redirect.
 - **MFA is enforced server side.** Auth UI only renders what Appwrite requires. Protected actions that need a fresh factor trigger an inline challenge.
-- **Content Security Policy.** With npm the library is part of your bundle and needs no extra `script-src`. For the CDN, allow the script host and your Appwrite endpoint:
+- **Content Security Policy.** With npm the library is part of your bundle and needs no extra `script-src`. For the CDN, allow the script and stylesheet host (docs pin `https://unpkg.com`) and your Appwrite endpoint:
 
 ```http
 Content-Security-Policy:
   default-src 'self';
   script-src 'self' https://unpkg.com;
   connect-src 'self' https://cloud.appwrite.io https://*.cloud.appwrite.io https://fra.cloud.appwrite.io;
-  style-src 'self' 'unsafe-inline';
+  style-src 'self' https://unpkg.com;
   img-src 'self' data: https:;
   frame-src 'none';
 ```
 
-Replace the `connect-src` hosts with your Appwrite endpoint's origin. The in-module FOUC guard uses `document.adoptedStyleSheets` (CSP-exempt). Browsers without constructable stylesheets fall back to an inline `<style>` tag and need `style-src 'unsafe-inline'` for that fallback and for Lit's own fallback. Prefer the shipped `fouc.css` in your page `<head>` (see [`<authui-show>`](/docs/components/show)); load it as a static stylesheet and drop `'unsafe-inline'` from `style-src` if you can.
+Replace the `connect-src` hosts with your Appwrite endpoint's origin. Allowlist the CDN host you pin in both `script-src` and `style-src`, or self-host `fouc.css` under `'self'` and omit the CDN from `style-src`. The in-module FOUC guard uses `document.adoptedStyleSheets` (CSP-exempt). Browsers without constructable stylesheets fall back to an inline `<style>` tag and need `style-src 'unsafe-inline'` for that fallback and for Lit's own fallback. Prefer the shipped `fouc.css` in your page `<head>` (see [`<authui-show>`](/docs/components/show)); load it as a static stylesheet and drop `'unsafe-inline'` from `style-src` if you can.
 
-- **Pin versions in production.** Use `@getauthui/core@0.1.36` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.
+- **Pin versions in production.** Use `@getauthui/core@0.1.37` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.

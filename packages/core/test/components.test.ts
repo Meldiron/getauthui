@@ -475,6 +475,43 @@ describe("<authui-modal> and <authui-button>", () => {
     expect(modal.open).toBe(true);
   });
 
+  it("shows configError on idle <authui-button> without opening the modal", async () => {
+    account.get.mockRejectedValueOnce({
+      type: "project_not_found",
+      message: "Project with the requested ID could not be found.",
+      code: 404,
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    authStore.configure(config);
+    await tick();
+    await tick();
+    const hint = authStore.getState().configError;
+    expect(hint).toBeTruthy();
+
+    const button = await mount<HTMLElement>(`<authui-button>Sign in</authui-button>`);
+    await tick();
+    await (button as any).updateComplete;
+    const text = shadowText(button);
+    expect(text).toContain(hint!);
+    expect(button.getAttribute("data-config-error")).toBe("");
+    expect(button.shadowRoot!.querySelector(".alert.alert-error[role=alert]")).not.toBeNull();
+    // Modal stays unmounted until click.
+    expect(document.querySelector("authui-modal")).toBeNull();
+    warn.mockRestore();
+  });
+
+  it("keeps happy-path <authui-button> free of configError chrome", async () => {
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(authStore.getState().configError).toBeNull();
+    const button = await mount<HTMLElement>(`<authui-button>Sign in</authui-button>`);
+    await (button as any).updateComplete;
+    expect(button.getAttribute("data-config-error")).toBeNull();
+    expect(button.shadowRoot!.querySelector(".alert")).toBeNull();
+    expect(shadowText(button)).toMatch(/Sign in/i);
+  });
+
   it("opens the modal on button click and closes on sign in", async () => {
     authStore.configure(config);
     await tick();

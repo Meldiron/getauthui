@@ -31,6 +31,16 @@ export class AuthUIUserButton extends AuthUIElement {
         display: inline-block;
         position: relative;
       }
+      :host([data-config-error]) {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        max-width: min(100%, 360px);
+      }
+      .config-error {
+        box-sizing: border-box;
+      }
       .trigger {
         border: 1px solid transparent;
         background: transparent;
@@ -294,6 +304,8 @@ export class AuthUIUserButton extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
+    if (this.auth.configError) this.setAttribute("data-config-error", "");
+    else this.removeAttribute("data-config-error");
     if (changed.has("menuOpen")) {
       if (this.menuOpen) {
         if (this.showTeams) void this.loadTeams();
@@ -352,9 +364,19 @@ export class AuthUIUserButton extends AuthUIElement {
     if (status === "loading" && configured)
       return html`<span class="avatar"><span class="spinner"></span></span>`;
     if (status !== "signed-in" || !user) {
-      return html`<button class="btn btn-primary btn-sm" @click=${() => openModal("sign-in")}>
-        <slot>${this.t("signIn")}</slot>
-      </button>`;
+      return html`
+        ${
+          this.auth.configError
+            ? html`<div class="alert alert-error config-error" role="alert">
+                ${icons.alert}
+                <div class="alert-body">${this.auth.configError}</div>
+              </div>`
+            : nothing
+        }
+        <button class="btn btn-primary btn-sm" @click=${() => openModal("sign-in")}>
+          <slot>${this.t("signIn")}</slot>
+        </button>
+      `;
     }
     const label = user.name || user.email || user.phone || this.t("guestAccount");
     // Explicit src wins; otherwise Appwrite getPhoto for this user id.
