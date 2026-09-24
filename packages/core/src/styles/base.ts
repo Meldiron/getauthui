@@ -446,9 +446,10 @@ export const base = css`
   .phone-country {
     flex: 0 0 auto;
     width: auto;
-    max-width: 42%;
-    min-width: 7.5rem;
-    padding-inline-end: 28px;
+    max-width: 38%;
+    /* Tight for flag + dial (+9999) at 320; frees national placeholder room */
+    min-width: 5.5rem;
+    padding-inline-end: 24px;
   }
   .phone-national {
     flex: 1 1 auto;
@@ -891,7 +892,7 @@ export const base = css`
   .legal-accept {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 6px;
     font-size: 12px;
     color: var(--authui-muted-foreground);
     line-height: 1.5;
@@ -899,8 +900,20 @@ export const base = css`
     cursor: pointer;
     user-select: none;
   }
+  /* 44×44 hit target around a 16×16 visual checkbox (touch / WCAG 2.5.5). */
+  .legal-accept-hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    margin-block: -12px;
+    margin-inline-start: -14px;
+    margin-inline-end: -6px;
+  }
   .legal-accept input {
-    margin-top: 2px;
+    margin: 0;
     width: 16px;
     height: 16px;
     flex-shrink: 0;
@@ -947,8 +960,8 @@ export const base = css`
     justify-content: center;
   }
   .providers.icon .btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     justify-content: center;
     position: relative;

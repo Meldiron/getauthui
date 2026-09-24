@@ -1797,13 +1797,15 @@ export class AuthUIAccount extends AuthUIElement {
                   </button>
                 </div>
                 <label class="legal-accept">
-                  <input
-                    type="checkbox"
-                    .checked=${this.recoveryCodesSaved}
-                    @change=${(e: Event) => {
-                      this.recoveryCodesSaved = (e.target as HTMLInputElement).checked;
-                    }}
-                  />
+                  <span class="legal-accept-hit">
+                    <input
+                      type="checkbox"
+                      .checked=${this.recoveryCodesSaved}
+                      @change=${(e: Event) => {
+                        this.recoveryCodesSaved = (e.target as HTMLInputElement).checked;
+                      }}
+                    />
+                  </span>
                   <span>${this.t("recoveryCodesSavedConfirm")}</span>
                 </label>
                 <div class="inline">

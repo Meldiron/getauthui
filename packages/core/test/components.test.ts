@@ -664,6 +664,28 @@ describe("UX audit follow-ups", () => {
     expect(text).toMatch(/Use a different phone/);
     expect(text).not.toMatch(/Send code ·|Send code\s*·/);
   });
+
+  it("renders phone country + national without a duplicate dial hint", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, phone: true, oauth: [] },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const phoneBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /phone/i.test(b.textContent ?? "")
+    );
+    phoneBtn!.click();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    expect(root.querySelector(".phone-row")).toBeTruthy();
+    expect(root.querySelector(".phone-country")).toBeTruthy();
+    expect(root.querySelector(".phone-national")).toBeTruthy();
+    // Select already shows flag+dial; no redundant .hint under the row.
+    const field = root.querySelector(".phone-row")!.parentElement!;
+    expect(field.querySelector(":scope > .hint")).toBeNull();
+  });
 });
 
 describe("auth notice and last-method bugs", () => {
@@ -984,6 +1006,7 @@ describe("0.1.10 features", () => {
     const root = el.shadowRoot!;
     const box = root.querySelector(".legal-accept input") as HTMLInputElement;
     expect(box).toBeTruthy();
+    expect(root.querySelector(".legal-accept-hit")).toBeTruthy();
     expect(box.checked).toBe(false);
     const name = root.querySelector("#authui-name") as HTMLInputElement;
     const email = root.querySelector("#authui-email") as HTMLInputElement;

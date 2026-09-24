@@ -79,6 +79,25 @@ describe("shared layout styles", () => {
       /\.card-danger\s*\{[^}]*border-color:\s*color-mix\(in\s+oklab,\s*var\(--authui-destructive\)\s+40%/s
     );
   });
+
+  it("keeps the phone country select compact so national gets room at 320", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.phone-country\s*\{[^}]*min-width:\s*5\.5rem/s);
+    expect(cssText).not.toMatch(/\.phone-country\s*\{[^}]*min-width:\s*7\.5rem/s);
+  });
+
+  it("sizes icon oauth buttons to a 44px touch target", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.providers\.icon\s+\.btn\s*\{[^}]*width:\s*44px/s);
+    expect(cssText).toMatch(/\.providers\.icon\s+\.btn\s*\{[^}]*height:\s*44px/s);
+  });
+
+  it("gives legal-accept checkboxes a 44px hit target around a 16px control", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.legal-accept-hit\s*\{[^}]*width:\s*44px/s);
+    expect(cssText).toMatch(/\.legal-accept-hit\s*\{[^}]*height:\s*44px/s);
+    expect(cssText).toMatch(/\.legal-accept\s+input\s*\{[^}]*width:\s*16px/s);
+  });
 });
 
 describe("design tokens", () => {

@@ -15,7 +15,6 @@ import {
   PHONE_COUNTRIES,
   defaultPhoneCountryIso,
   flagEmoji,
-  getPhoneCountry,
   parsePhone,
   toE164,
 } from "../phone-countries.js";
@@ -807,19 +806,21 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.needsLegalAcceptance()) return nothing;
     const legalInvalid = this.error === this.t("errorLegalRequired");
     return html`<label class="legal-accept">
-      <input
-        type="checkbox"
-        .checked=${this.legalAccepted}
-        aria-invalid=${legalInvalid ? "true" : nothing}
-        aria-describedby=${legalInvalid ? ERROR_ALERT_ID : nothing}
-        @change=${(e: Event) => {
-          this.legalAccepted = (e.target as HTMLInputElement).checked;
-          if (this.legalAccepted && this.error === this.t("errorLegalRequired")) {
-            this.error = "";
-            this.legalErrorFromOAuth = false;
-          }
-        }}
-      />
+      <span class="legal-accept-hit">
+        <input
+          type="checkbox"
+          .checked=${this.legalAccepted}
+          aria-invalid=${legalInvalid ? "true" : nothing}
+          aria-describedby=${legalInvalid ? ERROR_ALERT_ID : nothing}
+          @change=${(e: Event) => {
+            this.legalAccepted = (e.target as HTMLInputElement).checked;
+            if (this.legalAccepted && this.error === this.t("errorLegalRequired")) {
+              this.error = "";
+              this.legalErrorFromOAuth = false;
+            }
+          }}
+        />
+      </span>
       <span>${this.t("acceptLegal")} ${this.legalLinks()}.</span>
     </label>`;
   }
@@ -1413,7 +1414,6 @@ export class AuthUISignIn extends AuthUIElement {
 
   private renderPhone(): TemplateResult {
     if (this.token) return html`<div class="stack">${this.renderCodeEntry()}</div>`;
-    const country = getPhoneCountry(this.phoneCountryIso);
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onPhoneOtp} novalidate>
@@ -1449,7 +1449,6 @@ export class AuthUISignIn extends AuthUIElement {
                 aria-describedby=${this.error ? ERROR_ALERT_ID : nothing}
               />
             </div>
-            <p class="hint">${country ? `${flagEmoji(country.iso)} ${country.dial}` : nothing}</p>
           </div>
           ${this.renderError()} ${this.submitButton(this.t("sendCode"))}
         </form>

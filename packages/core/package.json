@@ -1,6 +1,6 @@
 {
   "name": "@getauthui/core",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "description": "Drop-in authentication UI for Appwrite. One script tag, every sign-in method, MFA, sessions and account management as web components.",
   "type": "module",
   "main": "./dist/authui.js",
