@@ -2206,3 +2206,93 @@ describe("0.1.28 account fixes", () => {
     expect((el as any).phoneCodeSent).toBe(true);
   });
 });
+
+describe("user-button teams menu a11y", () => {
+  it("renders empty teams as a disabled menuitem (valid menu child)", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    await tick();
+    const spy = vi.spyOn(authStore, "listTeams").mockResolvedValue([]);
+    const el = await mount<HTMLElement & { showTeams: boolean }>(
+      `<authui-user-button show-teams></authui-user-button>`
+    );
+    el.showTeams = true;
+    await (el as any).updateComplete;
+    el.shadowRoot!.querySelector<HTMLButtonElement>(".trigger")!.click();
+    await (el as any).updateComplete;
+    await tick();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const empty = [...root.querySelectorAll('[role="menuitem"]')].find((n) =>
+      /not on any teams/i.test(n.textContent ?? "")
+    ) as HTMLButtonElement | undefined;
+    expect(empty).toBeTruthy();
+    expect(empty!.getAttribute("aria-disabled")).toBe("true");
+    expect(root.querySelector('[role="note"]')).toBeNull();
+    expect(root.querySelector('[role="menu"] [aria-busy="true"]')).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("renders loading teams as a busy disabled menuitem", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    await tick();
+    const spy = vi.spyOn(authStore, "listTeams").mockImplementation(() => new Promise(() => {}));
+    const el = await mount<HTMLElement & { showTeams: boolean }>(
+      `<authui-user-button show-teams></authui-user-button>`
+    );
+    el.showTeams = true;
+    await (el as any).updateComplete;
+    el.shadowRoot!.querySelector<HTMLButtonElement>(".trigger")!.click();
+    await (el as any).updateComplete;
+    await tick();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const busy = root.querySelector('[role="menuitem"][aria-busy="true"]') as HTMLButtonElement;
+    expect(busy).toBeTruthy();
+    expect(busy.getAttribute("aria-disabled")).toBe("true");
+    expect(busy.querySelector(".spinner")).toBeTruthy();
+    spy.mockRestore();
+  });
+
+  it("ArrowDown includes menuitemradio team rows", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    await tick();
+    const spy = vi
+      .spyOn(authStore, "listTeams")
+      .mockResolvedValue([
+        { $id: "alpha", name: "Alpha Team" } as any,
+        { $id: "beta", name: "Beta Team" } as any,
+      ]);
+    const el = await mount<HTMLElement & { showTeams: boolean }>(
+      `<authui-user-button show-teams></authui-user-button>`
+    );
+    el.showTeams = true;
+    await (el as any).updateComplete;
+    el.shadowRoot!.querySelector<HTMLButtonElement>(".trigger")!.click();
+    await (el as any).updateComplete;
+    await tick();
+    await (el as any).updateComplete;
+    const root = el.shadowRoot!;
+    const radios = [...root.querySelectorAll('[role="menuitemradio"]')] as HTMLElement[];
+    expect(radios.map((r) => r.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "Alpha Team",
+      "Beta Team",
+    ]);
+    radios[0]!.focus();
+    expect(root.activeElement).toBe(radios[0]);
+    radios[0]!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, composed: true })
+    );
+    expect(root.activeElement).toBe(radios[1]);
+    radios[1]!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, composed: true })
+    );
+    const manage = [...root.querySelectorAll('[role="menuitem"]')].find((n) =>
+      /Manage account/i.test(n.textContent ?? "")
+    );
+    expect(root.activeElement).toBe(manage);
+    spy.mockRestore();
+  });
+});

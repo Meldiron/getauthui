@@ -143,6 +143,17 @@ export class AuthUIUserButton extends AuthUIElement {
         margin-inline-start: auto;
         color: var(--authui-brand);
       }
+      .menu-item[aria-disabled="true"] {
+        cursor: default;
+        color: var(--authui-muted-foreground);
+      }
+      .menu-item[aria-disabled="true"]:hover {
+        background: transparent;
+      }
+      .menu-item[aria-disabled="true"]:focus-visible {
+        background: var(--authui-accent);
+        outline: none;
+      }
       .avatar {
         width: 32px;
         height: 32px;
@@ -244,9 +255,7 @@ export class AuthUIUserButton extends AuthUIElement {
       }
       return;
     }
-    const items = [
-      ...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? []),
-    ] as HTMLElement[];
+    const items = this.focusableMenuItems();
     const current = items.findIndex((el) => el === this.shadowRoot?.activeElement);
     if (e.key === "Escape") {
       e.preventDefault();
@@ -271,11 +280,17 @@ export class AuthUIUserButton extends AuthUIElement {
     }
   };
 
-  private focusMenuItem(index: number): void {
-    const items = [
-      ...(this.renderRoot?.querySelectorAll('[role="menuitem"]') ?? []),
+  /** Interactive rows inside role=menu (menuitem + team radios). */
+  private focusableMenuItems(): HTMLElement[] {
+    return [
+      ...(this.renderRoot?.querySelectorAll(
+        '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]'
+      ) ?? []),
     ] as HTMLElement[];
-    items[index]?.focus();
+  }
+
+  private focusMenuItem(index: number): void {
+    this.focusableMenuItems()[index]?.focus();
   }
 
   protected updated(changed: Map<string, unknown>): void {
@@ -387,11 +402,27 @@ export class AuthUIUserButton extends AuthUIElement {
                       <div class="menu-section-label">${this.t("teamsLabel")}</div>
                       ${
                         this.teamsLoading
-                          ? html`<div class="menu-item" aria-busy="true">
-                              <span class="spinner"></span>
-                            </div>`
+                          ? html`<button
+                              class="menu-item"
+                              role="menuitem"
+                              type="button"
+                              aria-disabled="true"
+                              aria-busy="true"
+                              @click=${(e: Event) => e.preventDefault()}
+                            >
+                              <span class="spinner" aria-hidden="true"></span>
+                              <span class="sr-only">${this.t("loading")}</span>
+                            </button>`
                           : this.teams.length === 0
-                            ? html`<div class="menu-item" role="note">${this.t("noTeams")}</div>`
+                            ? html`<button
+                                class="menu-item"
+                                role="menuitem"
+                                type="button"
+                                aria-disabled="true"
+                                @click=${(e: Event) => e.preventDefault()}
+                              >
+                                ${this.t("noTeams")}
+                              </button>`
                             : this.teams.map(
                                 (team) =>
                                   html`<button

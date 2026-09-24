@@ -550,6 +550,9 @@ export const base = css`
     border-color: color-mix(in oklab, var(--authui-warning-foreground) 30%, transparent);
     background: var(--authui-warning-bg);
   }
+  .alert-warning .alert-body {
+    color: var(--authui-warning-foreground);
+  }
 
   /* ── Badge ── */
   .badge {
@@ -629,14 +632,6 @@ export const base = css`
     gap: 2px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    /* Subtle right-edge fade as overflow cue at narrow widths */
-    -webkit-mask-image: linear-gradient(
-      to right,
-      #000 0%,
-      #000 calc(100% - 28px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
   }
   :host([data-theme="dark"]) .tabs {
     background: color-mix(in oklab, var(--authui-muted) 55%, transparent);

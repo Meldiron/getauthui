@@ -32,6 +32,19 @@ describe("shared layout styles", () => {
     );
   });
 
+  it("keeps warning alert body on the warning foreground for AA contrast", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(
+      /\.alert-warning\s+\.alert-body\s*\{[^}]*color:\s*var\(--authui-warning-foreground\)/s
+    );
+  });
+
+  it("does not fade the account tabs with a right-edge mask", () => {
+    const cssText = String(base);
+    expect(cssText).not.toMatch(/\.tabs\s*\{[^}]*mask-image:/s);
+    expect(cssText).not.toMatch(/\.tabs\s*\{[^}]*-webkit-mask-image:/s);
+  });
+
   it("lays out the password label and forgot link as siblings", () => {
     const cssText = String(base);
     expect(cssText).toMatch(/\.field-header\s*\{[^}]*justify-content:\s*space-between/s);
