@@ -311,6 +311,8 @@ export interface AuthUIStrings {
   authenticatorApp: string;
   authenticatorAdd: string;
   authenticatorScan: string;
+  /** Step-2 hint while verifying the authenticator OTP. */
+  authenticatorVerifyHint: string;
   qrCodeAlt: string;
   authenticatorManual: string;
   authenticatorCopyKey: string;
@@ -373,6 +375,12 @@ export interface AuthUIStrings {
   noActivityDescription: string;
   noSessions: string;
   noSessionsDescription: string;
+  /** Label for the account $id copy control on Profile. */
+  accountId: string;
+  /** Short help under Account ID. */
+  accountIdDescription: string;
+  /** Accessible name for the Account ID copy button. */
+  copyAccountId: string;
   deleteAccount: string;
   deleteAccountDescription: string;
   deleteAccountConfirm: string;

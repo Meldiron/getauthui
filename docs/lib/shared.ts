@@ -11,7 +11,7 @@ export const gitConfig = {
   branch: "main",
 };
 
-export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.35";
+export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.36";
 
 /** CDN URL for the shipped FOUC stylesheet (same rules as CRITICAL_FOUC_CSS). */
 export const foucCssUrl = `${cdnUrl}/dist/fouc.css`;

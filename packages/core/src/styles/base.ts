@@ -866,6 +866,87 @@ export const base = css`
     word-break: break-all;
     user-select: all;
   }
+  /* Vibes CopyableId badge: muted mono click-to-copy. */
+  .copyable-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    margin: 0;
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--authui-radius-sm);
+    background: var(--authui-muted);
+    color: var(--authui-muted-foreground);
+    font-family: var(--authui-font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+    transition:
+      background-color 150ms,
+      color 150ms;
+  }
+  .copyable-id:hover {
+    background: color-mix(in oklab, var(--authui-muted) 80%, var(--authui-foreground));
+    color: var(--authui-foreground);
+  }
+  .copyable-id:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--authui-ring) 50%, transparent);
+  }
+  .copyable-id-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
+  }
+  .copyable-id svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+  .copyable-id-copied {
+    color: var(--authui-success-foreground);
+  }
+  /* Identity row on delete-account danger / confirm. */
+  .identity-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: var(--authui-radius-md);
+    border: 1px solid var(--authui-border);
+    background: color-mix(in oklab, var(--authui-muted) 50%, transparent);
+  }
+  .identity-summary .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  .identity-summary .row-main {
+    min-width: 0;
+    flex: 1;
+  }
+  .identity-summary .row-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--authui-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .identity-summary .row-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--authui-muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .codes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

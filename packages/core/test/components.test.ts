@@ -1353,6 +1353,106 @@ describe("0.1.12 account UX fixes", () => {
   });
 });
 
+describe("0.1.36 Vibes account polish", () => {
+  async function signedInAccount(tab: "profile" | "security" = "profile") {
+    account.state.user = {
+      $id: "user-abc-123",
+      email: "matej@example.com",
+      name: "Matej",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    account.listMFAFactors.mockResolvedValue({
+      totp: false,
+      email: true,
+      phone: false,
+      recoveryCode: false,
+    });
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="${tab}"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    return el;
+  }
+
+  it("shows a copyable Account ID badge on profile", async () => {
+    const el = await signedInAccount("profile");
+    const text = shadowText(el);
+    expect(text).toMatch(/Account ID/);
+    const btn = el.shadowRoot!.querySelector(".copyable-id") as HTMLButtonElement | null;
+    expect(btn).toBeTruthy();
+    expect(btn!.getAttribute("aria-label")).toMatch(/copy account id/i);
+    expect(btn!.textContent).toMatch(/user-abc-123/);
+  });
+
+  it("shows identity summary on delete-account danger and confirm", async () => {
+    const el = await signedInAccount("profile");
+    expect(el.shadowRoot!.querySelector(".identity-summary")).toBeTruthy();
+    expect(shadowText(el)).toMatch(/Matej/);
+    expect(shadowText(el)).toMatch(/matej@example\.com/);
+
+    (el as any).confirmDelete = true;
+    await (el as any).updateComplete;
+    const summary = el.shadowRoot!.querySelector(".card-danger .identity-summary");
+    expect(summary).toBeTruthy();
+    expect(summary!.textContent).toMatch(/Matej/);
+    expect(summary!.textContent).toMatch(/matej@example\.com/);
+  });
+
+  it("splits TOTP setup into QR then verify steps", async () => {
+    const el = await signedInAccount("security");
+    const addBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /add authenticator/i.test(b.textContent ?? "")
+    );
+    expect(addBtn).toBeTruthy();
+    addBtn!.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).authenticator).toBeTruthy();
+    expect((el as any).authenticatorSetupStep).toBe("qr");
+    expect(el.shadowRoot!.querySelector("img.qr")).toBeTruthy();
+    expect(el.shadowRoot!.querySelector("#acc-totp")).toBeNull();
+    expect(shadowText(el)).toMatch(/Scan this QR code/);
+
+    const continueBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^\s*Continue\s*$/i.test(b.textContent ?? "")
+    );
+    expect(continueBtn).toBeTruthy();
+    continueBtn!.click();
+    await (el as any).updateComplete;
+
+    expect((el as any).authenticatorSetupStep).toBe("verify");
+    expect(el.shadowRoot!.querySelector("img.qr")).toBeNull();
+    expect(el.shadowRoot!.querySelector("#acc-totp")).toBeTruthy();
+    expect(shadowText(el)).toMatch(/Enter the 6-digit one-time code/);
+
+    const backBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^\s*Back\s*$/i.test(b.textContent ?? "")
+    );
+    expect(backBtn).toBeTruthy();
+    backBtn!.click();
+    await (el as any).updateComplete;
+    expect((el as any).authenticatorSetupStep).toBe("qr");
+    expect(el.shadowRoot!.querySelector("img.qr")).toBeTruthy();
+
+    const cancelBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^\s*Cancel\s*$/i.test(b.textContent ?? "")
+    );
+    expect(cancelBtn).toBeTruthy();
+    cancelBtn!.click();
+    await (el as any).updateComplete;
+    expect((el as any).authenticator).toBeNull();
+    expect((el as any).authenticatorSetupStep).toBe("qr");
+  });
+});
+
 describe("0.1.18 sign-in fixes", () => {
   it("keeps magic-url sent UI when setPending notice arrives while signed-out", async () => {
     authStore.configure({

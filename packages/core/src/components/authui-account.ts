@@ -260,6 +260,8 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private showNewPasswordConfirm = false;
   @state() private authenticator: Models.MfaType | null = null;
   @state() private authenticatorCode = "";
+  /** TOTP setup wizard: QR first, then verify OTP. */
+  @state() private authenticatorSetupStep: "qr" | "verify" = "qr";
   @state() private factors: Models.MfaFactors | null = null;
   @state() private recoveryCodes: string[] | null = null;
   /** User confirmed they saved view-once recovery codes (gates Done). */
@@ -321,6 +323,13 @@ export class AuthUIAccount extends AuthUIElement {
   protected willUpdate(changed: Map<string, unknown>): void {
     if (changed.has("tab") && changed.get("tab") !== undefined) this.active = this.tab;
     if (changed.has("auth")) this.hydrate();
+    if (
+      changed.has("active") &&
+      changed.get("active") === "security" &&
+      this.active !== "security"
+    ) {
+      this.resetAuthenticatorSetup();
+    }
     this.ensureLoaded();
   }
 
@@ -766,18 +775,26 @@ export class AuthUIAccount extends AuthUIElement {
     void this.run("authenticator", async () => {
       this.authenticator = await authStore.addAuthenticator();
       this.authenticatorCode = "";
+      this.authenticatorSetupStep = "qr";
     });
   };
+
+  private resetAuthenticatorSetup(): void {
+    this.authenticator = null;
+    this.authenticatorCode = "";
+    this.authenticatorSetupStep = "qr";
+    this.errors = { ...this.errors, authenticator: "", "authenticator-code": "" };
+  }
 
   private onVerifyAuthenticator = (e: Event) => {
     e.preventDefault();
     if (!this.requireValid(e)) return;
+    if (this.authenticatorCode.replace(/\D/g, "").length !== 6) return;
     void this.run(
       "authenticator-code",
       async () => {
         await authStore.verifyAuthenticator(this.authenticatorCode);
-        this.authenticator = null;
-        this.authenticatorCode = "";
+        this.resetAuthenticatorSetup();
         await this.loadFactors();
       },
       this.t("authenticatorAdded")
@@ -887,6 +904,18 @@ export class AuthUIAccount extends AuthUIElement {
     if (!secret) return;
     try {
       await navigator.clipboard.writeText(secret);
+      this.copied = true;
+      setTimeout(() => (this.copied = false), 1500);
+    } catch {
+      this.setNotice("error", this.t("copyFailed"));
+    }
+  };
+
+  private onCopyAccountId = async () => {
+    const id = this.user?.$id;
+    if (!id) return;
+    try {
+      await navigator.clipboard.writeText(id);
       this.copied = true;
       setTimeout(() => (this.copied = false), 1500);
     } catch {
@@ -1207,6 +1236,53 @@ export class AuthUIAccount extends AuthUIElement {
       : html`<span class="badge badge-warning">${this.t("unverified")}</span>`;
   }
 
+  /** Muted mono click-to-copy for account.$id (Vibes CopyableId). */
+  private renderCopyableId(id: string): TemplateResult {
+    return html`<button
+      type="button"
+      class="copyable-id ${this.copied ? "copyable-id-copied" : ""}"
+      aria-label=${this.t("copyAccountId")}
+      title=${id}
+      @click=${() => void this.onCopyAccountId()}
+    >
+      <span class="copyable-id-text">${id}</span>
+      ${this.copied ? icons.check : icons.copy}
+    </button>`;
+  }
+
+  /**
+   * Compact avatar + name/email (or phone) row for delete-account danger/confirm.
+   * Matches the profile header identity rules.
+   */
+  private renderUserIdentitySummary(): TemplateResult {
+    const u = this.user!;
+    const displayName = u.name || u.email || u.phone || this.t("guestAccount");
+    let secondary = "";
+    if (u.name) secondary = u.email || u.phone || "";
+    else if (u.email && u.phone) secondary = u.phone;
+    const photoUrl = avatarPhotoUrl(authStore.getClient(), u, 72);
+    const showPhoto = !!photoUrl && photoUrl !== this.photoFailedUrl;
+    return html`<div class="identity-summary">
+      <span class="avatar"
+        >${
+          showPhoto
+            ? html`<img
+                src=${photoUrl!}
+                alt=""
+                @error=${() => {
+                  this.photoFailedUrl = photoUrl;
+                }}
+              />`
+            : avatarInitial(displayName)
+        }</span
+      >
+      <div class="row-main">
+        <span class="row-title" title=${displayName}>${displayName}</span>
+        ${secondary ? html`<span class="row-sub" title=${secondary}>${secondary}</span>` : nothing}
+      </div>
+    </div>`;
+  }
+
   // ── Profile ──
 
   private renderProfile(): TemplateResult {
@@ -1267,6 +1343,15 @@ export class AuthUIAccount extends AuthUIElement {
       </div>`;
     }
     return html`<div class="section">
+      ${
+        u.$id
+          ? this.card(
+              this.t("accountId"),
+              this.t("accountIdDescription"),
+              html`<div class="kv">${this.renderCopyableId(u.$id)}</div>`
+            )
+          : nothing
+      }
       ${this.card(
         this.t("name"),
         undefined,
@@ -1602,12 +1687,19 @@ export class AuthUIAccount extends AuthUIElement {
     return this.card(
       this.t("deleteAccount"),
       this.t("deleteAccountDescription"),
-      this.confirmDelete
-        ? this.error("delete")
-        : html`${this.error("delete")}
-            <button class="btn btn-destructive btn-sm" @click=${() => (this.confirmDelete = true)}>
-              ${icons.userX} ${this.t("deleteAccount")}
-            </button>`,
+      html`<div class="kv">
+        ${this.renderUserIdentitySummary()} ${this.error("delete")}
+        ${
+          this.confirmDelete
+            ? nothing
+            : html`<button
+                class="btn btn-destructive btn-sm"
+                @click=${() => (this.confirmDelete = true)}
+              >
+                ${icons.userX} ${this.t("deleteAccount")}
+              </button>`
+        }
+      </div>`,
       this.confirmDelete
         ? this.confirmFooter(
             () => {
@@ -1844,52 +1936,90 @@ export class AuthUIAccount extends AuthUIElement {
         ${this.error("authenticator")} ${this.error("remove-authenticator")}
         ${
           this.authenticator
-            ? html`<form class="form" @submit=${this.onVerifyAuthenticator} novalidate>
-                <p class="hint">${this.t("authenticatorScan")}</p>
-                <img class="qr" src=${qrUrl} alt=${this.t("qrCodeAlt")} />
-                <p class="hint center">${this.t("authenticatorManual")}</p>
-                <div class="inline">
-                  <span class="code"
-                    >${this.authenticator.secret.match(/.{1,4}/g)?.join(" ") ?? this.authenticator.secret}</span
-                  >
-                  <button
-                    class="btn btn-ghost btn-sm"
-                    type="button"
-                    @click=${() => void this.onCopySecret()}
-                  >
-                    ${this.copied ? icons.check : icons.copy}
-                    ${this.copied ? this.t("copied") : this.t("authenticatorCopyKey")}
-                  </button>
-                </div>
-                <div class="field">
-                  <label class="label" for="acc-totp">${this.t("code")}</label>
-
-                  ${otpInput({
-                    id: "acc-totp",
-
-                    value: this.authenticatorCode,
-
-                    disabled: !!this.busy,
-
-                    onChange: (v) => {
-                      this.authenticatorCode = v;
-                    },
-                  })}
-                </div>
-                ${this.error("authenticator-code")}
-                <div class="inline">
-                  <button class="btn btn-primary btn-sm" type="submit" ?disabled=${!!this.busy}>
-                    ${this.spinner("authenticator-code")} ${this.t("authenticatorVerify")}
-                  </button>
-                  <button
-                    class="btn btn-ghost btn-sm"
-                    type="button"
-                    @click=${() => (this.authenticator = null)}
-                  >
-                    ${this.t("cancel")}
-                  </button>
-                </div>
-              </form>`
+            ? this.authenticatorSetupStep === "qr"
+              ? html`<div class="form">
+                  <p class="hint">${this.t("authenticatorScan")}</p>
+                  <img class="qr" src=${qrUrl} alt=${this.t("qrCodeAlt")} />
+                  <div class="separator-text">${this.t("or")}</div>
+                  <p class="hint center">${this.t("authenticatorManual")}</p>
+                  <div class="inline">
+                    <span class="code"
+                      >${this.authenticator.secret.match(/.{1,4}/g)?.join(" ") ?? this.authenticator.secret}</span
+                    >
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      type="button"
+                      @click=${() => void this.onCopySecret()}
+                    >
+                      ${this.copied ? icons.check : icons.copy}
+                      ${this.copied ? this.t("copied") : this.t("authenticatorCopyKey")}
+                    </button>
+                  </div>
+                  <div class="inline">
+                    <button
+                      class="btn btn-primary btn-sm"
+                      type="button"
+                      ?disabled=${!!this.busy || !qrUrl}
+                      @click=${() => {
+                        this.authenticatorSetupStep = "verify";
+                        this.authenticatorCode = "";
+                        this.errors = { ...this.errors, "authenticator-code": "" };
+                      }}
+                    >
+                      ${this.t("continue")}
+                    </button>
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      type="button"
+                      @click=${() => this.resetAuthenticatorSetup()}
+                    >
+                      ${this.t("cancel")}
+                    </button>
+                  </div>
+                </div>`
+              : html`<form class="form" @submit=${this.onVerifyAuthenticator} novalidate>
+                  <p class="hint">${this.t("authenticatorVerifyHint")}</p>
+                  <div class="field">
+                    <label class="label" for="acc-totp">${this.t("code")}</label>
+                    ${otpInput({
+                      id: "acc-totp",
+                      value: this.authenticatorCode,
+                      disabled: !!this.busy,
+                      onChange: (v) => {
+                        this.authenticatorCode = v;
+                      },
+                    })}
+                  </div>
+                  ${this.error("authenticator-code")}
+                  <div class="inline">
+                    <button
+                      class="btn btn-outline btn-sm"
+                      type="button"
+                      ?disabled=${!!this.busy}
+                      @click=${() => {
+                        this.authenticatorSetupStep = "qr";
+                        this.authenticatorCode = "";
+                        this.errors = { ...this.errors, "authenticator-code": "" };
+                      }}
+                    >
+                      ${this.t("back")}
+                    </button>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      type="submit"
+                      ?disabled=${!!this.busy || this.authenticatorCode.replace(/\D/g, "").length !== 6}
+                    >
+                      ${this.spinner("authenticator-code")} ${this.t("authenticatorVerify")}
+                    </button>
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      type="button"
+                      @click=${() => this.resetAuthenticatorSetup()}
+                    >
+                      ${this.t("cancel")}
+                    </button>
+                  </div>
+                </form>`
             : nothing
         }
       </div>`

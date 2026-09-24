@@ -50,7 +50,7 @@ Note the project ID and API endpoint from the Console, for example `https://fra.
 WeekToDo already has a Yarn build, so install the package and its peers:
 
 ```bash
-yarn add @getauthui/core@0.1.35 appwrite lit --ignore-engines
+yarn add @getauthui/core@0.1.36 appwrite lit --ignore-engines
 ```
 
 Auth UI, Lit and the Appwrite Web SDK ship modern syntax (`??`, and so on). Vue CLI 4 does not transpile `node_modules` by default, so teach Webpack about those packages and tell `vue-loader` that `authui-*` tags are custom elements (WeekToDo uses the runtime-only Vue build, so `app.config.compilerOptions.isCustomElement` in `main.js` is ignored):
@@ -90,7 +90,7 @@ Merge those keys into the existing `module.exports` rather than replacing the El
 Put the FOUC guard in `public/index.html` inside `<head>` so sign-in slots stay hidden until the custom elements upgrade:
 
 ```html title="public/index.html"
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.35/dist/fouc.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.36/dist/fouc.css" />
 ```
 
 Then initialize Auth UI once in `src/main.js`, before you mount the app:

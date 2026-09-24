@@ -147,6 +147,15 @@ describe("design tokens", () => {
   });
 });
 
+describe("copyable id and identity summary", () => {
+  it("styles the Account ID copyable badge with mono muted tokens", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.copyable-id\s*\{[^}]*font-family:\s*var\(--authui-font-mono\)/s);
+    expect(cssText).toMatch(/\.copyable-id\s*\{[^}]*color:\s*var\(--authui-muted-foreground\)/s);
+    expect(cssText).toMatch(/\.identity-summary\s*\{/);
+  });
+});
+
 describe("sign-in panel overflow", () => {
   it("lets embedded panel overflow so input focus rings are not clipped", async () => {
     const { signInStyles } = await import("../src/components/sign-in.styles.js");
