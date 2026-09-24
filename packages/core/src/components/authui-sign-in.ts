@@ -74,6 +74,15 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private resendCooldownUntil = 0;
   /** Email a password-recovery link was last sent to (dedicated sent UI + cooldown). */
   @state() private recoverySentTo: string | null = null;
+  /** In-panel recovery OTP pending (userId + optional phrase). */
+  @state() private recoveryOtp: {
+    userId: string;
+    email: string;
+    phrase?: string;
+  } | null = null;
+  @state() private recoveryCode = "";
+  /** True when reset-password completes via updateRecoveryOTP. */
+  @state() private recoveryViaOtp = false;
 
   @state() private challenge: { id: string; factor: MfaFactor } | null = null;
   /** Prevents duplicate auto-start challenges on re-render. */
@@ -284,6 +293,8 @@ export class AuthUISignIn extends AuthUIElement {
     this.password = "";
     this.passwordConfirm = "";
     this.recoverySentTo = null;
+    this.recoveryOtp = null;
+    this.recoveryCode = "";
     this.legalAccepted = false;
     this.legalErrorFromOAuth = false;
     if (step !== "mfa") {
@@ -373,23 +384,62 @@ export class AuthUISignIn extends AuthUIElement {
     e.preventDefault();
     if (!this.requireValid(e)) return;
     void this.run(async () => {
-      await authStore.sendPasswordRecovery(this.email);
-      this.recoverySentTo = this.email;
+      const result = await authStore.sendPasswordRecovery(this.email);
+      if (result.mode === "otp") {
+        this.recoveryOtp = {
+          userId: result.token.userId,
+          email: this.email,
+          phrase: result.token.phrase || undefined,
+        };
+        this.recoveryCode = "";
+        this.recoverySentTo = null;
+      } else {
+        this.recoveryOtp = null;
+        this.recoverySentTo = this.email;
+      }
       this.resendCooldownUntil = Date.now() + 30000;
       window.setTimeout(() => this.requestUpdate(), 30000);
     });
   };
 
   private async onResendRecovery(): Promise<void> {
-    const target = this.recoverySentTo;
+    const target = this.recoveryOtp?.email ?? this.recoverySentTo;
     if (!target || Date.now() < this.resendCooldownUntil) return;
     this.error = "";
     await this.run(async () => {
-      await authStore.sendPasswordRecovery(target);
+      const result = await authStore.sendPasswordRecovery(target);
+      if (result.mode === "otp") {
+        this.recoveryOtp = {
+          userId: result.token.userId,
+          email: target,
+          phrase: result.token.phrase || undefined,
+        };
+        this.recoveryCode = "";
+        this.recoverySentTo = null;
+      } else {
+        this.recoveryOtp = null;
+        this.recoverySentTo = target;
+      }
       this.resendCooldownUntil = Date.now() + 30000;
       window.setTimeout(() => this.requestUpdate(), 30000);
     });
   }
+
+  private onRecoveryOtpContinue = (e: Event) => {
+    e.preventDefault();
+    const input = this.renderRoot.querySelector("#authui-recovery-code") as HTMLInputElement | null;
+    if (input && typeof input.reportValidity === "function" && !input.reportValidity()) return;
+    const otp = this.recoveryOtp;
+    if (!otp || !this.recoveryCode.trim()) return;
+    this.recovery = { userId: otp.userId, secret: this.recoveryCode.trim() };
+    this.recoveryViaOtp = true;
+    this.recoveryOtp = null;
+    this.recoveryCode = "";
+    this.error = "";
+    this.step = "reset-password";
+    this.focusOnStep = true;
+    this.fire("authui-view", { view: "reset-password" });
+  };
 
   private onReset = (e: Event) => {
     e.preventDefault();
@@ -400,11 +450,15 @@ export class AuthUISignIn extends AuthUIElement {
     }
     const recovery = this.recovery;
     if (!recovery) return;
+    const viaOtp = this.recoveryViaOtp;
     void this.run(async () => {
-      await authStore.completePasswordRecovery(recovery.userId, recovery.secret, this.password);
+      await authStore.completePasswordRecovery(recovery.userId, recovery.secret, this.password, {
+        otp: viaOtp,
+      });
       this.password = "";
       this.passwordConfirm = "";
       this.recovery = null;
+      this.recoveryViaOtp = false;
       if (this.auth.pending?.type === "reset-password") authStore.setPending(null);
       this.go("sign-in");
       // go() clears notice; re-set after so the success message survives on sign-in.
@@ -1193,6 +1247,56 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderForgot(): TemplateResult {
+    if (this.recoveryOtp) {
+      const cooling = Date.now() < this.resendCooldownUntil;
+      return html`<div class="stack">
+        <div class="alert alert-success" role="status">
+          ${icons.mail}
+          <div class="alert-body">
+            ${this.t("resetCodeSent", { email: this.recoveryOtp.email })}
+          </div>
+        </div>
+        ${this.phraseBox(this.recoveryOtp.phrase)}
+        <form class="form" @submit=${this.onRecoveryOtpContinue} novalidate>
+          <div class="field">
+            <label class="label" for="authui-recovery-code">${this.t("code")}</label>
+            ${otpInput({
+              id: "authui-recovery-code",
+              value: this.recoveryCode,
+              disabled: this.busy,
+              onChange: (v) => {
+                this.recoveryCode = v;
+              },
+            })}
+          </div>
+          ${this.renderError()}
+          ${this.submitButton(this.t("continueToNewPassword"), "btn-primary", !this.recoveryCode.trim())}
+        </form>
+        <div class="links">
+          <button
+            type="button"
+            class="btn btn-link"
+            ?disabled=${cooling || this.busy}
+            @click=${() => void this.onResendRecovery()}
+          >
+            ${this.t("resendCode")}
+          </button>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            class="btn btn-link"
+            @click=${() => {
+              this.recoveryOtp = null;
+              this.recoveryCode = "";
+              this.error = "";
+            }}
+          >
+            ${this.t("useDifferentEmail")}
+          </button>
+        </div>
+        ${this.backLink()}
+      </div>`;
+    }
     if (this.recoverySentTo) {
       const cooling = Date.now() < this.resendCooldownUntil;
       return html`<div class="stack">
@@ -1227,7 +1331,7 @@ export class AuthUISignIn extends AuthUIElement {
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onForgot} novalidate>
-          ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendResetLink"))}
+          ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("sendResetCode"))}
         </form>
         ${this.backLink()}
       </div>

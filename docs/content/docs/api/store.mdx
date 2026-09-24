@@ -30,18 +30,19 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 
 ## Sign in
 
-| Method                                     | Description                                                |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| `signInWithEmailPassword(email, password)` | `createEmailPasswordSession`                               |
-| `signUp(email, password, name?)`           | `create` then `createEmailPasswordSession`                 |
-| `signInAnonymously()`                      | `createAnonymousSession`                                   |
-| `signInWithOAuth(provider)`                | `createOAuth2Token`; navigates away                        |
-| `sendMagicUrl(email)`                      | `createMagicURLToken`; returns the token with its `phrase` |
-| `sendEmailOtp(email)`                      | `createEmailToken`                                         |
-| `sendPhoneOtp(phone)`                      | `createPhoneToken`                                         |
-| `signInWithToken(userId, secret)`          | `createSession`; redeems any token                         |
-| `signOut(sessionId = "current")`           | `deleteSession`                                            |
-| `signOutEverywhere()`                      | `deleteSessions`                                           |
+| Method                                                                                         | Description                                                                                                              |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `signInWithEmailPassword(email, password)`                                                     | `createEmailPasswordSession`                                                                                             |
+| `signUp(email, password, name?)`                                                               | `create` then `createEmailPasswordSession`                                                                               |
+| `signInAnonymously()`                                                                          | `createAnonymousSession`                                                                                                 |
+| `signInWithOAuth(provider)`                                                                    | `createOAuth2Token`; navigates away                                                                                      |
+| `sendMagicUrl(email)`                                                                          | `createMagicURLToken`; returns the token with its `phrase`                                                               |
+| `sendEmailOtp(email)`                                                                          | `createEmailToken`                                                                                                       |
+| `sendPhoneOtp(phone)`                                                                          | `createPhoneToken`                                                                                                       |
+| `signInWithToken(userId, secret)`                                                              | `createSession`; redeems any token                                                                                       |
+| `createIdTokenSession({ provider, idToken, nonce?, accessToken?, accessTokenExpiry?, name? })` | Native OIDC ID token session (Capacitor / WebView / One Tap bridges). Soft-detects missing routes. Not a sign-in button. |
+| `signOut(sessionId = "current")`                                                               | `deleteSession`                                                                                                          |
+| `signOutEverywhere()`                                                                          | `deleteSessions`                                                                                                         |
 
 ## MFA
 
@@ -58,12 +59,13 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 
 ## Recovery and verification
 
-| Method                                                      | Description                          |
-| ----------------------------------------------------------- | ------------------------------------ |
-| `sendPasswordRecovery(email)`                               | emails a reset link to `redirectUrl` |
-| `completePasswordRecovery(userId, secret, password)`        | sets the new password                |
-| `sendEmailVerification()`                                   | emails a verification link           |
-| `sendPhoneVerification()` / `confirmPhoneVerification(otp)` | SMS verification                     |
+| Method                                                         | Description                                                                                                                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sendPasswordRecovery(email)`                                  | prefers recovery OTP (`createRecoveryOTP`); falls back to a reset link when the route is missing. Returns `{ mode: "otp", token }` or `{ mode: "link" }` |
+| `completePasswordRecovery(userId, secret, password, { otp? })` | sets the new password via `updateRecoveryOTP` when `otp: true`, otherwise `updateRecovery`                                                               |
+| `sendEmailVerification()`                                      | prefers email verification OTP; falls back to a verification link. Returns `{ mode: "otp", token }` or `{ mode: "link" }`                                |
+| `confirmEmailVerification(otp)`                                | `updateEmailVerificationOTP`                                                                                                                             |
+| `sendPhoneVerification()` / `confirmPhoneVerification(otp)`    | SMS verification                                                                                                                                         |
 
 ## Account
 
@@ -71,7 +73,7 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `updateName(name)`, `updateEmail(email, password)`, `updatePhone(phone, password)`, `updatePassword(password, oldPassword?)` | profile updates                                  |
 | `convertGuest(email, password, name?)`                                                                                       | upgrade an anonymous account                     |
-| `listSessions()`, `listIdentities()`, `deleteIdentity(id)`, `listLogs()`                                                     | lists                                            |
+| `listSessions()`, `listIdentities()`, `deleteIdentity(id)`, `listLogs()`, `listConsents()`, `deleteConsent(id)`              | lists                                            |
 | `deleteAccount()`                                                                                                            | `updateStatus`; blocks the account and signs out |
 
 ## Redirects

@@ -318,11 +318,40 @@ export class PreviewAccount {
     return this.delay({});
   }
 
+  async createRecoveryOTP(email: string, phrase?: boolean) {
+    return this.delay({
+      userId: this.user?.$id ?? "preview-user",
+      secret: "",
+      phrase: phrase ? "calm-river" : "",
+      email,
+    });
+  }
+
+  async updateRecoveryOTP(_userId: string, _secret: string, _password: string) {
+    return this.delay({});
+  }
+
   async createEmailVerification() {
     return this.delay({});
   }
 
   async updateEmailVerification() {
+    return this.delay(() => {
+      if (this.user) this.user.emailVerification = true;
+      return {};
+    });
+  }
+
+  async createEmailVerificationOTP(phrase?: boolean) {
+    this.requireUser();
+    return this.delay({
+      userId: this.user!.$id,
+      secret: "",
+      phrase: phrase ? "calm-river" : "",
+    });
+  }
+
+  async updateEmailVerificationOTP() {
     return this.delay(() => {
       if (this.user) this.user.emailVerification = true;
       return {};
@@ -338,6 +367,28 @@ export class PreviewAccount {
       if (this.user) this.user.phoneVerification = true;
       return {};
     });
+  }
+
+  async createIdTokenSession(params: { provider: string; idToken: string; name?: string }) {
+    return this.delay(() => {
+      this.makeUser({
+        email: this.seed.email,
+        name: params.name?.trim() || this.seed.name,
+      });
+      this.afterPrimarySignIn();
+      return this.sessions[0];
+    });
+  }
+
+  async listConsents() {
+    return this.delay(() => {
+      this.requireUser();
+      return { total: 0, consents: [] as never[] };
+    });
+  }
+
+  async deleteConsent() {
+    return this.delay({});
   }
 
   async getPrefs() {

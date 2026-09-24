@@ -185,7 +185,7 @@ function SignInBridge(props: {
 }
 
 export function AuthUIAccount(props: {
-  tab?: "profile" | "security" | "sessions" | "connections" | "activity";
+  tab?: "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
 }): ReactElement {
   return createElement("authui-account", { tab: props.tab });
 }

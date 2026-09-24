@@ -9,7 +9,7 @@ The default. The sign-in screen shows email and password fields with a "Forgot p
 
 Password rules come from your project: minimum length, dictionary check, personal data check, password history and the breached-password check are all enforced by Appwrite. Auth UI maps each rejection to a specific message.
 
-**Password recovery** sends an email through `account.createRecovery()` with a link back to your page. Opening the link shows the **Reset password** screen inside Auth UI.
+**Password recovery** prefers an in-panel OTP (`createRecoveryOTP` / `updateRecoveryOTP`) when the Appwrite server supports it: the user enters a code, then a new password. On older servers the UI falls back to `createRecovery()` and emails a link that opens the **Reset password** screen. Deep links with `userId` and `secret` still complete via `updateRecovery`.
 
 ## Magic URL
 
@@ -33,7 +33,11 @@ Each provider you list renders a "Continue with ..." button with a brand icon fo
 
 Configure the provider's client ID and secret in the Appwrite Console under **Auth** → **Settings**, and add the callback URL Appwrite shows there to the provider's own configuration.
 
-Signed-in users can connect additional providers from the **Connections** tab of the account screen and disconnect them again.
+Signed-in users can connect additional providers from the **Connections** tab of the account screen and disconnect them again. Third-party apps the user has authorized appear under **Authorized apps** (OAuth2 consents) when the server exposes `/account/consents`.
+
+## Native ID token (bridges)
+
+For Capacitor, WebView or Google One Tap style bridges, call `authStore.createIdTokenSession({ provider, idToken, nonce?, accessToken?, accessTokenExpiry?, name? })` after the native SDK returns an OIDC JWT. This is not a sign-in button in Auth UI; it creates a session the same way other sign-in paths do, then refreshes state and fires `signed-in`. Soft-detects missing routes on older Appwrite.
 
 ## MFA
 

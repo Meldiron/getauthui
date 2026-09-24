@@ -20,7 +20,7 @@ import { otpInput } from "../otp-input.js";
 import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
 import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
 
-type Tab = "profile" | "security" | "sessions" | "connections" | "activity";
+type Tab = "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
 
 interface Notice {
   tone: "success" | "error" | "info";
@@ -288,6 +288,13 @@ export class AuthUIAccount extends AuthUIElement {
   private verifyEmailCooldownTimer: ReturnType<typeof setInterval> | null = null;
   @state() private verifyPhoneCooldownUntil = 0;
   private verifyPhoneCooldownTimer: ReturnType<typeof setInterval> | null = null;
+  @state() private emailCodeSent = false;
+  @state() private emailCode = "";
+  @state() private emailVerifyPhrase: string | undefined;
+  @state() private consents: Models.Oauth2Consent[] | null = null;
+  @state() private consentsSupported: boolean | null = null;
+  private consentsProbeStarted = false;
+  @state() private confirmRevokeConsentId: string | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -315,8 +322,17 @@ export class AuthUIAccount extends AuthUIElement {
   private ensureLoaded(): void {
     if (!this.user || this.busy) return;
     if (!this.logsProbeStarted) void this.probeLogsSupport();
+    if (!this.consentsProbeStarted) void this.probeConsentsSupport();
     if (this.active === "sessions" && this.sessions === null) void this.loadSessions();
     else if (this.active === "connections" && this.identities === null) void this.loadIdentities();
+    else if (
+      this.active === "consents" &&
+      this.consentsSupported === true &&
+      this.consents === null
+    )
+      void this.loadConsents();
+    else if (this.active === "consents" && this.consentsSupported === false)
+      this.active = "profile";
     else if (this.active === "activity" && this.logsSupported === true && this.logs === null)
       void this.loadLogs();
     else if (this.active === "activity" && this.logsSupported === false) this.active = "profile";
@@ -387,6 +403,7 @@ export class AuthUIAccount extends AuthUIElement {
       (changed.has("confirmDelete") && this.confirmDelete) ||
       (changed.has("confirmSignOutAll") && this.confirmSignOutAll) ||
       (changed.has("confirmDisconnectId") && this.confirmDisconnectId !== null) ||
+      (changed.has("confirmRevokeConsentId") && this.confirmRevokeConsentId !== null) ||
       (changed.has("confirmRegenerate") && this.confirmRegenerate) ||
       (changed.has("confirmRemoveAuthenticator") && this.confirmRemoveAuthenticator);
     if (confirmOpened) {
@@ -490,6 +507,38 @@ export class AuthUIAccount extends AuthUIElement {
     }
   }
 
+  /** Probe once so Consents is never shown on servers without /account/consents. */
+  private async probeConsentsSupport(): Promise<void> {
+    if (this.consentsProbeStarted) return;
+    this.consentsProbeStarted = true;
+    try {
+      this.consents = await authStore.listConsents();
+      this.consentsSupported = true;
+    } catch {
+      this.consentsSupported = false;
+      this.consents = [];
+      if (this.active === "consents") this.active = "profile";
+    }
+  }
+
+  private async loadConsents(): Promise<void> {
+    if (this.consentsSupported === false) {
+      if (this.active === "consents") this.active = "profile";
+      return;
+    }
+    this.busy = "consents";
+    try {
+      this.consents = await authStore.listConsents();
+      this.consentsSupported = true;
+    } catch {
+      this.consentsSupported = false;
+      this.consents = [];
+      if (this.active === "consents") this.active = "profile";
+    } finally {
+      this.busy = "";
+    }
+  }
+
   private factorsLoading = false;
 
   private async loadFactors(): Promise<void> {
@@ -526,6 +575,9 @@ export class AuthUIAccount extends AuthUIElement {
       async () => {
         await authStore.updateEmail(this.emailInput, this.emailPassword);
         this.emailPassword = "";
+        this.emailCodeSent = false;
+        this.emailCode = "";
+        this.emailVerifyPhrase = undefined;
       },
       this.t("emailUpdated")
     );
@@ -561,13 +613,38 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onSendVerification = () => {
     if (Date.now() < this.verifyEmailCooldownUntil) return;
+    void this.run("verify", async () => {
+      const result = await authStore.sendEmailVerification();
+      this.startVerifyEmailCooldown();
+      if (result.mode === "otp") {
+        this.emailCodeSent = true;
+        this.emailCode = "";
+        this.emailVerifyPhrase = result.token.phrase || undefined;
+        this.setNotice("success", this.t("emailVerificationCodeSent"));
+      } else {
+        this.emailCodeSent = false;
+        this.emailVerifyPhrase = undefined;
+        this.setNotice("success", this.t("verificationSent"));
+      }
+    });
+  };
+
+  private onConfirmEmailVerification = (e: Event) => {
+    e.preventDefault();
+    const input = this.renderRoot.querySelector("#acc-email-code") as HTMLInputElement | null;
+    if (input && typeof input.reportValidity === "function" && !input.reportValidity()) return;
+    if (!this.emailCode.trim()) return;
     void this.run(
-      "verify",
+      "verify-email-code",
       async () => {
-        await authStore.sendEmailVerification();
-        this.startVerifyEmailCooldown();
+        await authStore.confirmEmailVerification(this.emailCode);
+        this.emailCode = "";
+        this.emailCodeSent = false;
+        this.emailVerifyPhrase = undefined;
+        this.verifyEmailCooldownUntil = 0;
+        this.clearVerifyEmailCooldownTimer();
       },
-      this.t("verificationSent")
+      this.t("emailVerified")
     );
   };
 
@@ -850,6 +927,18 @@ export class AuthUIAccount extends AuthUIElement {
     });
   };
 
+  private onDeleteConsent = (id: string) => {
+    if (this.confirmRevokeConsentId !== id) {
+      this.confirmRevokeConsentId = id;
+      return;
+    }
+    this.confirmRevokeConsentId = null;
+    void this.run(`consent-${id}`, async () => {
+      await authStore.deleteConsent(id);
+      this.consents = (this.consents ?? []).filter((c) => c.$id !== id);
+    });
+  };
+
   private onDeleteAccount = () => {
     void this.run("delete", () => authStore.deleteAccount());
   };
@@ -899,6 +988,7 @@ export class AuthUIAccount extends AuthUIElement {
       { id: "security", label: this.t("security") },
       { id: "sessions", label: this.t("sessions") },
       { id: "connections", label: this.t("connections") },
+      ...(this.consentsSupported ? [{ id: "consents" as Tab, label: this.t("consents") }] : []),
       ...(this.logsSupported ? [{ id: "activity" as Tab, label: this.t("activity") }] : []),
     ];
 
@@ -1007,6 +1097,8 @@ export class AuthUIAccount extends AuthUIElement {
         return this.renderSessions();
       case "connections":
         return this.renderConnections();
+      case "consents":
+        return this.renderConsents();
       case "activity":
         return this.renderActivity();
       default:
@@ -1248,11 +1340,34 @@ export class AuthUIAccount extends AuthUIElement {
                 </div>`
               : nothing
           }
-          ${this.error("email")} ${this.error("verify")}
+          ${
+            this.emailCodeSent
+              ? html`<div class="field">
+                  <label class="label" for="acc-email-code">${this.t("code")}</label>
+                  ${otpInput({
+                    id: "acc-email-code",
+                    value: this.emailCode,
+                    disabled: !!this.busy,
+                    onChange: (v) => {
+                      this.emailCode = v;
+                    },
+                  })}
+                  ${
+                    this.emailVerifyPhrase
+                      ? html`<p class="hint">
+                          ${this.t("securityPhrase")}:
+                          <span class="code">${this.emailVerifyPhrase}</span>
+                        </p>`
+                      : nothing
+                  }
+                </div>`
+              : nothing
+          }
+          ${this.error("email")} ${this.error("verify")} ${this.error("verify-email-code")}
         </form>`,
         html`
           ${
-            u.email && !u.emailVerification
+            u.email && !u.emailVerification && !this.emailCodeSent
               ? html`<button
                   class="btn btn-outline btn-sm"
                   type="button"
@@ -1271,6 +1386,36 @@ export class AuthUIAccount extends AuthUIElement {
                       : this.t("verifyEmail")
                   }
                 </button>`
+              : nothing
+          }
+          ${
+            this.emailCodeSent
+              ? html`<button
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    @click=${this.onSendVerification}
+                    ?disabled=${!!this.busy || Date.now() < this.verifyEmailCooldownUntil}
+                  >
+                    ${this.spinner("verify")}
+                    ${
+                      Date.now() < this.verifyEmailCooldownUntil
+                        ? this.t("verificationResendIn", {
+                            seconds: Math.max(
+                              1,
+                              Math.ceil((this.verifyEmailCooldownUntil - Date.now()) / 1000)
+                            ),
+                          })
+                        : this.t("resendCode")
+                    }
+                  </button>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    @click=${this.onConfirmEmailVerification}
+                    ?disabled=${!!this.busy || !this.emailCode.trim()}
+                  >
+                    ${this.spinner("verify-email-code")} ${this.t("verifyCode")}
+                  </button>`
               : nothing
           }
           <button
@@ -2340,6 +2485,110 @@ export class AuthUIAccount extends AuthUIElement {
                   </button>`
               )}`
           : undefined
+      )}
+    </div>`;
+  }
+
+  // ── Consents ──
+
+  private consentClientLabel(c: Models.Oauth2Consent): string {
+    if (c.appId) return c.appId;
+    if (c.cimdUrl) {
+      try {
+        return new URL(c.cimdUrl).hostname || c.cimdUrl;
+      } catch {
+        return c.cimdUrl;
+      }
+    }
+    return this.t("consents");
+  }
+
+  private renderConsents(): TemplateResult {
+    const list = this.consents;
+    return html`<div class="section">
+      ${this.card(
+        this.t("consents"),
+        undefined,
+        html`${this.error("consents")}
+        ${
+          list === null
+            ? html`<div class="empty"><span class="spinner"></span></div>`
+            : list.length === 0
+              ? this.emptyState(icons.globe, this.t("noConsents"), this.t("noConsentsDescription"))
+              : list.map((c) => {
+                  const createdRel = this.formatRelativeLabel(c.$createdAt);
+                  const scopes = (c.scopes ?? []).filter(Boolean);
+                  return html`<div class="row">
+                    <div class="inline">
+                      <span class="device">${icons.globe}</span>
+                      <div class="row-main">
+                        <span class="row-title">${this.consentClientLabel(c)}</span>
+                        ${
+                          scopes.length
+                            ? html`<span class="row-sub"
+                                >${this.t("consentScopes", {
+                                  scopes: scopes.join(", "),
+                                })}</span
+                              >`
+                            : nothing
+                        }
+                        ${
+                          createdRel
+                            ? html`<span class="row-sub"
+                                ><time datetime=${createdRel.iso} title=${createdRel.absolute}
+                                  >${this.t("consentCreated", {
+                                    date: createdRel.label,
+                                  })}</time
+                                ></span
+                              >`
+                            : nothing
+                        }
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      ${
+                        this.confirmRevokeConsentId === c.$id
+                          ? html`<div class="inline">
+                              <button
+                                type="button"
+                                class="btn btn-outline btn-sm"
+                                autofocus
+                                ?disabled=${!!this.busy}
+                                @click=${() => (this.confirmRevokeConsentId = null)}
+                              >
+                                ${this.t("cancel")}
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-destructive btn-sm"
+                                @click=${() => this.onDeleteConsent(c.$id)}
+                                ?disabled=${!!this.busy}
+                              >
+                                ${
+                                  this.busy === `consent-${c.$id}`
+                                    ? html`<span class="spinner"></span>`
+                                    : nothing
+                                }
+                                ${this.t("revokeConsent")}
+                              </button>
+                            </div>`
+                          : html`<button
+                              class="btn btn-ghost btn-sm"
+                              @click=${() => this.onDeleteConsent(c.$id)}
+                              ?disabled=${!!this.busy}
+                            >
+                              ${
+                                this.busy === `consent-${c.$id}`
+                                  ? html`<span class="spinner"></span>`
+                                  : nothing
+                              }
+                              ${this.t("revokeConsent")}
+                            </button>`
+                      }
+                    </div>
+                  </div>`;
+                })
+        }`
       )}
     </div>`;
   }

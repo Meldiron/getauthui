@@ -1990,7 +1990,7 @@ describe("0.1.27 sign-in fixes", () => {
     expect((el as any).step).toBe("forgot-password");
     expect((el as any).email).toBe("wipe-test@example.com");
     expect(shadowText(el)).toMatch(/Reset password/i);
-    expect(shadowText(el)).toMatch(/Send reset link/i);
+    expect(shadowText(el)).toMatch(/Send reset code/i);
     expect(shadowText(el)).toContain("Forgot notice should not wipe");
   });
 
@@ -2049,13 +2049,14 @@ describe("0.1.27 sign-in fixes", () => {
     await (el as any).updateComplete;
 
     expect((el as any).step).toBe("forgot-password");
-    expect((el as any).recoverySentTo).toBe("reset@example.com");
+    expect((el as any).recoveryOtp?.email).toBe("reset@example.com");
+    expect((el as any).recoveryOtp?.userId).toBe("u-recovery");
     expect((el as any).resendCooldownUntil).toBeGreaterThan(Date.now());
-    expect(shadowText(el)).toMatch(/reset link is on its way/i);
-    expect(shadowText(el)).toMatch(/Resend link/i);
+    expect(shadowText(el)).toMatch(/reset code is on its way/i);
+    expect(shadowText(el)).toMatch(/Resend code/i);
     expect(shadowText(el)).toMatch(/Use a different email/i);
     const resend = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
-      /Resend link/i.test(b.textContent ?? "")
+      /Resend code/i.test(b.textContent ?? "")
     ) as HTMLButtonElement;
     expect(resend).toBeTruthy();
     expect(resend.disabled).toBe(true);

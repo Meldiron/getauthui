@@ -21,9 +21,9 @@ Full docs: https://getauthui.appwrite.network/llms-full.txt
     <!-- Critical CSS: hide protected content before the module runs -->
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.33/dist/fouc.css"
+      href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.34/dist/fouc.css"
     />
-    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.33"></script>
+    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.34"></script>
   </head>
   <body>
     <authui-config
@@ -169,7 +169,7 @@ Do not store `cookieFallback`, JWTs or session secrets yourself. Do not pass the
 4. Prefer `<authui-config>` + `<authui-button>` / `<authui-show>`; do not invent custom login forms.
 5. CDN-safe script URLs only: bare `https://unpkg.com/@getauthui/core@…` (or jsDelivr), `…/dist/authui.cdn.mjs`, or IIFE `…/dist/authui.cdn.js`. Never load `…/dist/authui.js` from a CDN (bundler entry; fails with `Failed to resolve module specifier "appwrite"`).
 6. ESM CDN does **not** set `window.AuthUI`. Use `<authui-config>` or the IIFE build / npm `AuthUI.init`.
-7. Pin the CDN version (`@0.1.33` or newer).
+7. Pin the CDN version (`@0.1.34` or newer).
 8. In React use `AuthUIProvider`, `Show`, and `@getauthui/core/react`. Do not wrap children in `<authui-show>` if you need true conditional mounting.
 9. For `close-on-success` off in HTML use `close-on-success="false"` (string). In React use `closeOnSuccess={false}`.
 10. Read common mistakes: docs `/docs/common-mistakes`. Machine docs: `/llms-full.txt`.

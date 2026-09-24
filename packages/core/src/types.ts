@@ -242,8 +242,14 @@ export interface AuthUIStrings {
   /** Account Security: password changed while signed in. */
   passwordChanged: string;
   sendResetLink: string;
+  /** Prefer OTP recovery: primary CTA on forgot-password. */
+  sendResetCode: string;
   resendResetLink: string;
   requestNewLink: string;
+  /** In-panel recovery OTP sent confirmation. */
+  resetCodeSent: string;
+  /** After entering a recovery OTP, continue to choose a new password. */
+  continueToNewPassword: string;
   agreeTo: string;
   terms: string;
   privacy: string;
@@ -275,12 +281,16 @@ export interface AuthUIStrings {
   sessions: string;
   connections: string;
   activity: string;
+  /** OAuth2 apps the user has authorized (third-party consents). */
+  consents: string;
   dangerZone: string;
   verified: string;
   unverified: string;
   verifyEmail: string;
   verificationResendIn: string;
   verificationSent: string;
+  /** In-panel email verification OTP was sent. */
+  emailVerificationCodeSent: string;
   emailVerified: string;
   changePassword: string;
   currentPassword: string;
@@ -346,6 +356,11 @@ export interface AuthUIStrings {
   noConnectionsDescription: string;
   disconnect: string;
   connectProvider: string;
+  noConsents: string;
+  noConsentsDescription: string;
+  revokeConsent: string;
+  consentScopes: string;
+  consentCreated: string;
   noActivity: string;
   noActivityDescription: string;
   noSessions: string;

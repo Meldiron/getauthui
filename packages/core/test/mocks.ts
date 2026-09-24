@@ -50,7 +50,37 @@ export function createAccountMock() {
     createOAuth2Token: vi.fn(),
     createRecovery: vi.fn(async () => ({})),
     updateRecovery: vi.fn(async () => ({})),
+    createRecoveryOTP: vi.fn(async (email: string) => ({
+      userId: "u-recovery",
+      secret: "",
+      phrase: "brave-otter",
+      email,
+    })),
+    updateRecoveryOTP: vi.fn(async () => ({})),
     updateEmailVerification: vi.fn(async () => ({})),
+    createEmailVerificationOTP: vi.fn(async () => ({
+      userId: "u1",
+      secret: "",
+      phrase: "calm-fox",
+    })),
+    updateEmailVerificationOTP: vi.fn(async () => {
+      if (state.user) state.user = { ...state.user, emailVerification: true };
+      return {};
+    }),
+    createIdTokenSession: vi.fn(async (params: { provider: string }) => {
+      state.user = {
+        $id: "u-idtoken",
+        email: "idtoken@example.com",
+        name: "",
+        phone: "",
+        provider: params.provider,
+      };
+      return { $id: "s-idtoken" };
+    }),
+    listConsents: vi.fn(async () => {
+      throw err("general_route_not_found", 404);
+    }),
+    deleteConsent: vi.fn(async () => ({})),
     listMFAFactors: vi.fn(async () => ({
       totp: true,
       email: true,

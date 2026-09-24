@@ -30,6 +30,10 @@ Lists every active session with client, operating system, country and IP, and ma
 
 Lists connected OAuth identities with the provider's email or user ID, offers to disconnect each, and shows buttons for any configured provider that is not yet connected. Connecting goes through the same OAuth redirect as sign in.
 
+## Authorized apps
+
+When Appwrite exposes OAuth2 consents (`listConsents`), the account screen shows an **Authorized apps** tab. Users can review client apps and scopes they granted and revoke access. The tab hides itself on servers without the route.
+
 ## Activity
 
 The account security log from `account.listLogs()`, when the server exposes it. Appwrite Cloud 2.2.0 does not (the route returns 404), and some self-hosted builds omit it too. Auth UI probes once on load and only shows the Activity tab when the endpoint responds successfully.

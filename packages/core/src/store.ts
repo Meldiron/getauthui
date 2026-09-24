@@ -225,6 +225,49 @@ export class AuthStore {
     return this.account;
   }
 
+  /** True when the server has no matching route (older Cloud / self-hosted). */
+  private isMissingRoute(err: unknown): boolean {
+    const e = toAuthUIError(err);
+    if (e.type === ErrorTypes.routeNotFound) return true;
+    if (e.code === 404) return true;
+    return false;
+  }
+
+  private accountClient(): Client {
+    const acct = this.acct() as Account & { client?: Client };
+    const client = acct.client ?? this.client;
+    if (!client) throw new Error(this.getStrings().errorNotConfigured);
+    return client;
+  }
+
+  /**
+   * Prefer an Account SDK method when present; otherwise hit the REST path the
+   * same way the Appwrite SDK would (for routes not yet in the pinned SDK).
+   */
+  private async accountMethodOrRest<T>(opts: {
+    names: string[];
+    args: unknown[];
+    method: string;
+    path: string;
+    payload: Record<string, unknown>;
+  }): Promise<T> {
+    const acct = this.acct();
+    for (const name of opts.names) {
+      const fn = (acct as unknown as Record<string, unknown>)[name];
+      if (typeof fn === "function") {
+        return (fn as (...a: unknown[]) => Promise<T>).apply(acct, opts.args);
+      }
+    }
+    const client = this.accountClient();
+    const endpoint = String(client.config.endpoint).replace(/\/+$/, "");
+    const uri = new URL(endpoint + opts.path);
+    const apiHeaders: Record<string, string> = {
+      "content-type": "application/json",
+      accept: "application/json",
+    };
+    return client.call(opts.method, uri, apiHeaders, opts.payload) as Promise<T>;
+  }
+
   // ─────────────────────────── session lifecycle ───────────────────────────
 
   /** Re-fetch the current user and derive status. */
@@ -438,6 +481,44 @@ export class AuthStore {
     await this.afterSignIn();
   }
 
+  /**
+   * Create a session from a native OIDC ID token (Capacitor / WebView / One Tap bridges).
+   * Not shown as a sign-in button; call from your native bridge after the provider returns a JWT.
+   * Soft-detects missing routes on older Appwrite.
+   */
+  async createIdTokenSession(params: {
+    provider: string;
+    idToken: string;
+    nonce?: string;
+    accessToken?: string;
+    accessTokenExpiry?: number;
+    name?: string;
+  }): Promise<void> {
+    const payload: Record<string, unknown> = {
+      provider: params.provider,
+      idToken: params.idToken,
+    };
+    if (params.nonce) payload.nonce = params.nonce;
+    if (params.accessToken) payload.accessToken = params.accessToken;
+    if (params.accessTokenExpiry != null && params.accessTokenExpiry > 0) {
+      payload.accessTokenExpiry = params.accessTokenExpiry;
+    }
+    if (params.name?.trim()) payload.name = params.name.trim();
+    try {
+      await this.accountMethodOrRest({
+        names: ["createIdTokenSession"],
+        args: [params],
+        method: "post",
+        path: "/account/sessions/id-token",
+        payload,
+      });
+    } catch (err) {
+      this.fail(err);
+    }
+    rememberLastMethod(`oauth:${params.provider}`);
+    await this.afterSignIn();
+  }
+
   // ─────────────────────────────── MFA ───────────────────────────────
 
   async createMfaChallenge(factor: MfaFactor): Promise<Models.MfaChallenge> {
@@ -565,17 +646,53 @@ export class AuthStore {
 
   // ───────────────────────── password recovery ─────────────────────────
 
-  async sendPasswordRecovery(email: string): Promise<void> {
+  /**
+   * Prefer in-panel recovery OTP when the server supports it; otherwise email a
+   * reset link. Soft-detects missing OTP routes so older Appwrite keeps working.
+   */
+  async sendPasswordRecovery(
+    email: string
+  ): Promise<{ mode: "otp"; token: Models.Token } | { mode: "link" }> {
+    const trimmed = email.trim();
+    const phrase = this.config?.securityPhrase ?? true;
     try {
-      await this.acct().createRecovery(email.trim(), this.redirectUrl("recovery"));
+      const token = await this.accountMethodOrRest<Models.Token>({
+        names: ["createRecoveryOTP"],
+        args: [trimmed, phrase],
+        method: "post",
+        path: "/account/recovery/otp",
+        payload: { email: trimmed, phrase },
+      });
+      return { mode: "otp", token };
+    } catch (err) {
+      if (!this.isMissingRoute(err)) this.fail(err);
+    }
+    try {
+      await this.acct().createRecovery(trimmed, this.redirectUrl("recovery"));
+      return { mode: "link" };
     } catch (err) {
       this.fail(err);
     }
   }
 
-  async completePasswordRecovery(userId: string, secret: string, password: string): Promise<void> {
+  async completePasswordRecovery(
+    userId: string,
+    secret: string,
+    password: string,
+    opts: { otp?: boolean } = {}
+  ): Promise<void> {
     try {
-      await this.acct().updateRecovery(userId, secret, password);
+      if (opts.otp) {
+        await this.accountMethodOrRest({
+          names: ["updateRecoveryOTP"],
+          args: [userId, secret.trim(), password],
+          method: "put",
+          path: "/account/recovery/otp",
+          payload: { userId, secret: secret.trim(), password },
+        });
+      } else {
+        await this.acct().updateRecovery(userId, secret, password);
+      }
     } catch (err) {
       this.fail(err);
     }
@@ -695,16 +812,51 @@ export class AuthStore {
     await this.refresh();
   }
 
-  async sendEmailVerification(): Promise<void> {
+  /**
+   * Prefer in-panel email verification OTP when supported; otherwise email a
+   * verification link. Soft-detects missing OTP routes.
+   */
+  async sendEmailVerification(): Promise<{ mode: "otp"; token: Models.Token } | { mode: "link" }> {
+    const phrase = this.config?.securityPhrase ?? true;
+    try {
+      const token = await this.accountMethodOrRest<Models.Token>({
+        names: ["createEmailVerificationOTP"],
+        args: [phrase],
+        method: "post",
+        path: "/account/verifications/email/otp",
+        payload: { phrase },
+      });
+      return { mode: "otp", token };
+    } catch (err) {
+      if (!this.isMissingRoute(err)) this.fail(err);
+    }
     try {
       await call(
         this.acct(),
         ["createEmailVerification", "createVerification"],
         [this.redirectUrl("verify-email")]
       );
+      return { mode: "link" };
     } catch (err) {
       this.fail(err);
     }
+  }
+
+  async confirmEmailVerification(otp: string): Promise<void> {
+    const userId = this.state.user?.$id;
+    if (!userId) return;
+    try {
+      await this.accountMethodOrRest({
+        names: ["updateEmailVerificationOTP"],
+        args: [userId, otp.trim()],
+        method: "put",
+        path: "/account/verifications/email/otp",
+        payload: { userId, secret: otp.trim() },
+      });
+    } catch (err) {
+      this.fail(err);
+    }
+    await this.refresh();
   }
 
   async sendPhoneVerification(): Promise<void> {
@@ -724,6 +876,22 @@ export class AuthStore {
       this.fail(err);
     }
     await this.refresh();
+  }
+
+  async listConsents(): Promise<Models.Oauth2Consent[]> {
+    try {
+      return (await this.acct().listConsents()).consents;
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
+  async deleteConsent(consentId: string): Promise<void> {
+    try {
+      await this.acct().deleteConsent(consentId);
+    } catch (err) {
+      this.fail(err);
+    }
   }
 
   /** Blocks the account and ends the session. Appwrite keeps the record so an admin can restore it. */

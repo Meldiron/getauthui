@@ -292,3 +292,80 @@ describe("teams", () => {
     expect(await authStore.listTeams()).toEqual([]);
   });
 });
+
+describe("recovery OTP, email verify OTP, id token, consents", () => {
+  it("prefers recovery OTP and completes via updateRecoveryOTP", async () => {
+    authStore.configure(config);
+    await tick();
+    const result = await authStore.sendPasswordRecovery("a@b.co");
+    expect(result).toMatchObject({ mode: "otp" });
+    expect(account.createRecoveryOTP).toHaveBeenCalled();
+    expect(account.createRecovery).not.toHaveBeenCalled();
+    await authStore.completePasswordRecovery("u-recovery", "123456", "NewPass1!", { otp: true });
+    expect(account.updateRecoveryOTP).toHaveBeenCalledWith("u-recovery", "123456", "NewPass1!");
+    expect(account.updateRecovery).not.toHaveBeenCalled();
+  });
+
+  it("falls back to link recovery when OTP route is missing", async () => {
+    account.createRecoveryOTP.mockRejectedValueOnce({
+      type: "general_route_not_found",
+      message: "Not Found",
+      code: 404,
+    });
+    authStore.configure(config);
+    await tick();
+    const result = await authStore.sendPasswordRecovery("a@b.co");
+    expect(result).toEqual({ mode: "link" });
+    expect(account.createRecovery).toHaveBeenCalled();
+  });
+
+  it("prefers email verification OTP and confirms it", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      emailVerification: false,
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const result = await authStore.sendEmailVerification();
+    expect(result).toMatchObject({ mode: "otp" });
+    expect(account.createEmailVerificationOTP).toHaveBeenCalled();
+    await authStore.confirmEmailVerification("654321");
+    expect(account.updateEmailVerificationOTP).toHaveBeenCalledWith("u1", "654321");
+  });
+
+  it("creates an ID token session and refreshes", async () => {
+    authStore.configure(config);
+    await tick();
+    await authStore.createIdTokenSession({ provider: "google", idToken: "jwt.here" });
+    expect(account.createIdTokenSession).toHaveBeenCalled();
+    expect(authStore.getState().status).toBe("signed-in");
+  });
+
+  it("lists consents when the route exists", async () => {
+    account.listConsents.mockResolvedValueOnce({
+      total: 1,
+      consents: [
+        {
+          $id: "c1",
+          $createdAt: "2026-01-01T00:00:00.000Z",
+          $updatedAt: "2026-01-01T00:00:00.000Z",
+          userId: "u1",
+          appId: "app1",
+          cimdUrl: "",
+          scopes: ["openid"],
+          resources: [],
+          authorizationDetails: "",
+          expire: "",
+        },
+      ],
+    });
+    account.state.user = { $id: "u1", email: "a@b.co", name: "Test" };
+    authStore.configure(config);
+    await authStore.refresh();
+    const list = await authStore.listConsents();
+    expect(list).toHaveLength(1);
+    expect(list[0]!.appId).toBe("app1");
+  });
+});
