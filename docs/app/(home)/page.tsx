@@ -202,7 +202,7 @@ export default function HomePage() {
             </div>
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-[13px] text-fd-muted-foreground font-mono">
               {[
-                ["~99 KB", "gzipped ESM, batteries included"],
+                ["~106 KB", "gzipped ESM, batteries included"],
                 ["0", "servers"],
                 ["48", "OAuth providers"],
                 ["MIT", "license"],

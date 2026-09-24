@@ -72,6 +72,16 @@ import {
   FOUC_CSS,
   CRITICAL_FOUC_CSS,
   scorePassword,
+  isConfigError,
+  PHONE_COUNTRIES,
+  defaultPhoneCountryIso,
+  digitsOnly,
+  flagEmoji,
+  getPhoneCountry,
+  parsePhone,
+  toE164,
+  type ParsedPhone,
+  type PhoneCountry,
   getLastMethod,
   rememberLastMethod,
   clearLastMethod,
@@ -83,8 +93,11 @@ import {
 - `describeError(err, strings, context?)` maps an Appwrite error to a friendly string. Pass `"code"` as `context` when the user typed a one-time code.
 - `toAuthUIError(err)` normalises anything thrown into `{ message, type, code }`.
 - `ErrorTypes` lists the Appwrite error `type` strings the UI reacts to.
+- `isConfigError(err)` returns whether an error points to a wrong project, origin or endpoint, or a dead network on first contact.
 - `providerLabel(slug)` returns the display name of an OAuth provider.
 - `FOUC_CSS` / `CRITICAL_FOUC_CSS` are the critical CSS strings the in-module FOUC guard uses. Prefer the shipped stylesheet `@getauthui/core/fouc.css` (CDN: `dist/fouc.css`) in `<head>` before the Auth UI script (see [`<authui-show>`](/docs/components/show)).
 - `scorePassword(password)` returns `{ level, percent, labelKey, checks }` for the live strength meter (client-only).
+- `PHONE_COUNTRIES` is the country list used by the phone picker. `defaultPhoneCountryIso(lang?)` selects a country from a BCP 47 language tag, `getPhoneCountry(iso)` looks one up, and `flagEmoji(iso)` returns its flag emoji.
+- `digitsOnly(value)` strips non-digits. `toE164(iso, national)` builds an E.164 number, and `parsePhone(input, fallbackIso?)` splits one into `{ iso, national, e164 }` (`ParsedPhone`), using `PhoneCountry` entries for country data.
 - `getLastMethod()` / `rememberLastMethod(method)` / `clearLastMethod()` read and write `localStorage` key `authui:last-method` (what the sign-in form highlights as last used).
 - `getStoredActiveTeamId(project)` / `setStoredActiveTeamId(project, teamId)` read and write `localStorage` key `authui:active-team:<projectId>`. Prefer `AuthUI.store.getActiveTeamId()` / `setActiveTeam()` in app code; these are the underlying helpers.

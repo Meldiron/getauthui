@@ -21,7 +21,7 @@ The user enters an email and receives a six-digit code, then types it into Auth 
 
 ## Phone
 
-The user enters a phone number in E.164 format, receives an SMS code and types it in. Appwrite needs an SMS provider configured under **Messaging**. On Appwrite Cloud, phone authentication is metered.
+The phone step includes a country dial-code picker and a national number field. Auth UI composes an E.164 value for Appwrite, then the user receives an SMS code and types it in. The default country follows `navigator.language` when possible, otherwise `+1`. Appwrite needs an SMS provider configured under **Messaging**. On Appwrite Cloud, phone authentication is metered.
 
 ## Anonymous (guest)
 
