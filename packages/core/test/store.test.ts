@@ -359,7 +359,7 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
   });
 
   it("REST fallback for createIdTokenSession sends X-Appwrite-Project", async () => {
-    // appwrite@27 has no Account.createIdTokenSession; force the REST path.
+    // Older SDKs lack Account.createIdTokenSession; force the REST path (header-safe).
     delete (account as AccountMock & { createIdTokenSession?: unknown }).createIdTokenSession;
     const clientCall = (account as AccountMock & { clientCall: ReturnType<typeof vi.fn> })
       .clientCall;

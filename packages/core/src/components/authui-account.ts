@@ -18,7 +18,7 @@ import {
 import { otpInput } from "../otp-input.js";
 import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
 import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
-import type { AuthUIApp } from "../types.js";
+import type { AuthUILog, AuthUIApp } from "../types.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
 
@@ -280,7 +280,7 @@ export class AuthUIAccount extends AuthUIElement {
   /** Photo URL that failed to load; skip that URL and show initials. */
   @state() private photoFailedUrl: string | null = null;
   @state() private identities: Models.Identity[] | null = null;
-  @state() private logs: Models.Log[] | null = null;
+  @state() private logs: AuthUILog[] | null = null;
   /** null = probing, true = show Activity, false = hide. */
   @state() private logsSupported: boolean | null = null;
   private logsProbeStarted = false;

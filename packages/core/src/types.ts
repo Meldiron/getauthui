@@ -195,6 +195,20 @@ export interface AuthUIApp {
   tagline?: string;
 }
 
+/**
+ * Account activity log row. Models.Log was removed in appwrite@28; keep a local
+ * shape for preview and soft-detect of /account/logs on older servers.
+ */
+export interface AuthUILog {
+  event: string;
+  time: string;
+  ip?: string;
+  clientName?: string;
+  osName?: string;
+  countryName?: string;
+  countryCode?: string;
+}
+
 export type AuthUIStatus = "loading" | "signed-out" | "signed-in" | "mfa-required";
 
 /** Something the widget must finish after a redirect, e.g. password reset. */

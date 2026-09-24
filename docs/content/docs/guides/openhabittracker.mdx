@@ -45,8 +45,8 @@ Note the project ID and API endpoint from the Console.
 Add one script tag at the end of `OpenHabitTracker.Blazor.Wasm/wwwroot/index.html`, after the service worker registration:
 
 ```html title="wwwroot/index.html"
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.39/dist/fouc.css" />
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.39"></script>
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.40/dist/fouc.css" />
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.40"></script>
 ```
 
 </Step>
@@ -57,7 +57,7 @@ Add one script tag at the end of `OpenHabitTracker.Blazor.Wasm/wwwroot/index.htm
 Blazor talks to JavaScript through modules. Create `OpenHabitTracker.Blazor.Wasm/wwwroot/appwrite.js` with five functions. `init` configures Auth UI and reports sign-in changes back to C#. The upload keeps one file per user, named after the user ID, with permissions for that user only. The download goes through Auth UI's client, so the request is authenticated the same way as everything else, and because the file is JSON the client hands back the parsed object.
 
 ```js title="wwwroot/appwrite.js"
-import { AuthUI, appwrite } from "https://unpkg.com/@getauthui/core@0.1.39";
+import { AuthUI, appwrite } from "https://unpkg.com/@getauthui/core@0.1.40";
 
 const { Storage, Permission, Role } = appwrite;
 const BUCKET = "backups";

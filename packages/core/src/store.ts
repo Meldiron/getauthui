@@ -26,6 +26,7 @@ import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 import { clearPendingOAuth, rememberLastMethod, rememberPendingOAuth } from "./last-method.js";
 import type {
   AuthUIApp,
+  AuthUILog,
   AuthUIConfig,
   AuthUIEventMap,
   AuthUIEventName,
@@ -764,9 +765,19 @@ export class AuthStore {
     }
   }
 
-  async listLogs(): Promise<Models.Log[]> {
+  async listLogs(): Promise<AuthUILog[]> {
     try {
-      return (await this.acct().listLogs()).logs;
+      // Removed from appwrite@28; soft-detect for older SDKs / preview.
+      const acct = this.acct() as Account & {
+        listLogs?: () => Promise<{ logs: AuthUILog[] }>;
+      };
+      if (typeof acct.listLogs !== "function") {
+        throw Object.assign(new Error("general_route_not_found"), {
+          type: "general_route_not_found",
+          code: 404,
+        });
+      }
+      return (await acct.listLogs()).logs;
     } catch (err) {
       return this.fail(err);
     }
@@ -904,7 +915,7 @@ export class AuthStore {
   /**
    * Fetch OAuth2 app branding (name, logoUri, tagline) for authorized-apps rows.
    * Soft-detects an Apps SDK service when the host's appwrite package exports it;
-   * otherwise GET /apps/{appId} via Client.call (SDK 27 does not ship Apps yet).
+   * otherwise GET /apps/{appId} via Client.call (Apps may be absent in older SDKs).
    * Does not emit a global error on failure; callers soft-fail per appId.
    */
   async getApp(appId: string): Promise<AuthUIApp> {
@@ -929,7 +940,7 @@ export class AuthStore {
     }
     const client = this.accountClient();
 
-    // Soft-detect Apps when the installed SDK exports it (absent in appwrite@27).
+    // Soft-detect Apps when the installed SDK exports it.
     const AppsCtor = Reflect.get(AppwriteSdk, "Apps") as
       (new (c: Client) => { get(p: { appId: string }): Promise<AuthUIApp> }) | undefined;
     if (typeof AppsCtor === "function") {

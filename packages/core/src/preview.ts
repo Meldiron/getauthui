@@ -1,4 +1,5 @@
 import type { Models } from "appwrite";
+import type { AuthUILog } from "./types.js";
 
 /**
  * In-memory stand-in for the Appwrite Account service used when `preview: true`.
@@ -56,7 +57,7 @@ export class PreviewAccount {
   lastChallenge = 0;
   sessions: Models.Session[] = [];
   identities: Models.Identity[] = [];
-  logs: Models.Log[] = [];
+  logs: AuthUILog[] = [];
   /** Tokens waiting to be redeemed by userId. */
   private tokens = new Map<string, { email?: string; phone?: string }>();
   private pendingAuthenticator: { secret: string; uri: string } | null = null;
@@ -198,7 +199,7 @@ export class PreviewAccount {
         countryName: "United States",
         ip: "192.0.2.90",
       },
-    ] as unknown as Models.Log[];
+    ] as AuthUILog[];
   }
 
   private requireUser() {
