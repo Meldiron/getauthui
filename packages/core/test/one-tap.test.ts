@@ -6,13 +6,14 @@ let authStore: typeof import("../src/store.js").authStore;
 let promptGoogleOneTap: typeof import("../src/one-tap.js").promptGoogleOneTap;
 let resetOneTapPromptState: typeof import("../src/one-tap.js").resetOneTapPromptState;
 let loadGoogleIdentityServices: typeof import("../src/one-tap.js").loadGoogleIdentityServices;
+let generateOneTapNonce: typeof import("../src/one-tap.js").generateOneTapNonce;
 
 beforeEach(async () => {
   vi.resetModules();
   document.head.innerHTML = "";
   account = mockAppwrite();
   ({ authStore } = await import("../src/store.js"));
-  ({ promptGoogleOneTap, resetOneTapPromptState, loadGoogleIdentityServices } =
+  ({ promptGoogleOneTap, resetOneTapPromptState, loadGoogleIdentityServices, generateOneTapNonce } =
     await import("../src/one-tap.js"));
   resetOneTapPromptState();
   delete (window as any).google;
@@ -41,6 +42,14 @@ describe("Google One Tap", () => {
     await tick();
     await tick();
     expect(soft).toHaveBeenCalledWith(expect.stringMatching(/unavailable|failed/i));
+  });
+
+  it("generateOneTapNonce returns 64 hex chars", () => {
+    const a = generateOneTapNonce();
+    const b = generateOneTapNonce();
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
+    expect(b).toMatch(/^[0-9a-f]{64}$/);
+    expect(a).not.toBe(b);
   });
 
   it("initializes GIS and creates an id-token session on credential", async () => {
@@ -72,16 +81,27 @@ describe("Google One Tap", () => {
     });
 
     expect(initialize).toHaveBeenCalledWith(
-      expect.objectContaining({ client_id: "123.apps.googleusercontent.com" })
+      expect.objectContaining({
+        client_id: "123.apps.googleusercontent.com",
+        nonce: expect.stringMatching(/^[0-9a-f]{64}$/),
+      })
     );
     expect(prompt).toHaveBeenCalled();
 
-    const callback = initialize.mock.calls[0][0].callback as (r: { credential?: string }) => void;
-    callback({ credential: "eyJhbGciOiJSUzI1NiJ9.payload.sig" });
+    const initArgs = initialize.mock.calls[0][0] as {
+      nonce: string;
+      callback: (r: { credential?: string }) => void;
+    };
+    const nonce = initArgs.nonce;
+    initArgs.callback({ credential: "eyJhbGciOiJSUzI1NiJ9.payload.sig" });
     await tick();
     await tick();
     expect(account.createIdTokenSession).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: "google", idToken: "eyJhbGciOiJSUzI1NiJ9.payload.sig" })
+      expect.objectContaining({
+        provider: "google",
+        idToken: "eyJhbGciOiJSUzI1NiJ9.payload.sig",
+        nonce,
+      })
     );
     expect(onSuccess).toHaveBeenCalled();
   });

@@ -46,7 +46,7 @@ Nullboard's hamburger menu at the top right is a list of links inside `<div clas
 Put critical CSS in `<head>` so the menu entries stay hidden until Auth UI loads:
 
 ```html title="nullboard.html"
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.40/dist/fouc.css" />
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.41/dist/fouc.css" />
 ```
 
 Then add the menu entries:
@@ -69,7 +69,7 @@ Nullboard's own code is a classic `<script>` at the bottom of the file. Add a mo
 
 ```html title="nullboard.html"
 <script type="module">
-  import { AuthUI } from "https://unpkg.com/@getauthui/core@0.1.40";
+  import { AuthUI } from "https://unpkg.com/@getauthui/core@0.1.41";
 
   AuthUI.init({
     endpoint: "https://fra.cloud.appwrite.io/v1",

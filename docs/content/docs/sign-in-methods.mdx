@@ -49,7 +49,7 @@ Optional auto-prompt on signed-out **sign-in** and **sign-up** mounts. Enable wi
 ></authui-config>
 ```
 
-Auth UI loads `https://accounts.google.com/gsi/client` once, calls `google.accounts.id.initialize` + `prompt`, and on credential passes the ID token into `createIdTokenSession({ provider: "google", idToken })` then discards it from component state. Keep `oauth:google` as a visible fallback: One Tap is passive and browsers may hide it (FedCM cool-down, dismissed, third-party cookies). Soft-fails never break email/password or OAuth buttons. Requires project via Client (`appwrite@28` ships native `createIdTokenSession` with `X-Appwrite-Project`; REST fallback still sends it for older SDKs).
+Auth UI loads `https://accounts.google.com/gsi/client` once, generates a cryptographically random nonce per prompt, passes it to `google.accounts.id.initialize`, and on credential forwards the ID token plus the same raw nonce into `createIdTokenSession({ provider: "google", idToken, nonce })` (required by Appwrite when the JWT carries a nonce claim). The token and nonce are discarded after the session call. Keep `oauth:google` as a visible fallback: One Tap is passive and browsers may hide it (FedCM cool-down, dismissed, third-party cookies). Soft-fails never break email/password or OAuth buttons. Requires project via Client (`appwrite@28` ships native `createIdTokenSession` with `X-Appwrite-Project`; REST fallback still sends it for older SDKs).
 
 **CSP:** allow `https://accounts.google.com` in `script-src` and `frame-src` (and often `connect-src`). See [Security notes](/docs/guides/security).
 

@@ -27,4 +27,4 @@ When Google One Tap is enabled (`oneTap` / `one-tap`), allow `https://accounts.g
 
 Replace the `connect-src` hosts with your Appwrite endpoint's origin. Allowlist the CDN host you pin in both `script-src` and `style-src`, or self-host `fouc.css` under `'self'` and omit the CDN from `style-src`. The in-module FOUC guard uses `document.adoptedStyleSheets` (CSP-exempt). Browsers without constructable stylesheets fall back to an inline `<style>` tag and need `style-src 'unsafe-inline'` for that fallback and for Lit's own fallback. Prefer the shipped `fouc.css` in your page `<head>` (see [`<authui-show>`](/docs/components/show)); load it as a static stylesheet and drop `'unsafe-inline'` from `style-src` if you can.
 
-- **Pin versions in production.** Use `@getauthui/core@0.1.40` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.
+- **Pin versions in production.** Use `@getauthui/core@0.1.41` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.

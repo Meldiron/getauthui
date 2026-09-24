@@ -11,6 +11,8 @@ interface GoogleIdConfig {
   context?: string;
   itp_support?: boolean;
   use_fedcm_for_prompt?: boolean;
+  /** Raw nonce; GIS puts it (or a hash) on the ID token claim. */
+  nonce?: string;
 }
 
 interface GoogleAccountsId {
@@ -36,6 +38,17 @@ declare global {
 
 let scriptPromise: Promise<GoogleAccountsId | null> | null = null;
 let promptedForClientId: string | null = null;
+
+/** 32 cryptographically random bytes as lowercase hex (64 chars). */
+export function generateOneTapNonce(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let hex = "";
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i]!.toString(16).padStart(2, "0");
+  }
+  return hex;
+}
 
 /** Load the Google Identity Services client once. Soft-fails to null. */
 export function loadGoogleIdentityServices(): Promise<GoogleAccountsId | null> {
@@ -87,7 +100,7 @@ export interface OneTapOptions {
 /**
  * Initialize GIS and show the One Tap prompt once per client id / page session.
  * Never throws into the UI: missing GIS, dismissals and FedCM cool-downs soft-fail.
- * Passes the ID token straight into `createIdTokenSession` then discards it.
+ * Generates a per-prompt nonce for GIS and Appwrite `createIdTokenSession`, then discards it.
  */
 export async function promptGoogleOneTap(options: OneTapOptions): Promise<void> {
   const clientId = options.clientId.trim();
@@ -114,9 +127,14 @@ export async function promptGoogleOneTap(options: OneTapOptions): Promise<void> 
     return;
   }
 
+  // Per-prompt nonce: GIS embeds it on the JWT; Appwrite requires the same value when
+  // the token carries a nonce claim (otherwise "Nonce required").
+  let nonce: string | null = generateOneTapNonce();
+
   try {
     googleId.initialize({
       client_id: clientId,
+      nonce,
       auto_select: false,
       cancel_on_tap_outside: true,
       context: "signin",
@@ -124,13 +142,19 @@ export async function promptGoogleOneTap(options: OneTapOptions): Promise<void> 
       use_fedcm_for_prompt: true,
       callback: (response) => {
         const idToken = response.credential?.trim();
+        const sessionNonce = nonce;
+        nonce = null;
         if (!idToken) {
           soft("one-tap: empty credential");
           return;
         }
         void (async () => {
           try {
-            await authStore.createIdTokenSession({ provider: "google", idToken });
+            await authStore.createIdTokenSession({
+              provider: "google",
+              idToken,
+              ...(sessionNonce ? { nonce: sessionNonce } : {}),
+            });
             options.onSuccess?.();
           } catch {
             // createIdTokenSession already emits error / fail; keep email/OAuth usable.
@@ -154,6 +178,7 @@ export async function promptGoogleOneTap(options: OneTapOptions): Promise<void> 
       }
     });
   } catch (err) {
+    nonce = null;
     soft(`one-tap: prompt error (${err instanceof Error ? err.message : "unknown"})`);
   }
 }

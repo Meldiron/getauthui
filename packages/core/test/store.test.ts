@@ -353,8 +353,18 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
   it("creates an ID token session and refreshes", async () => {
     authStore.configure(config);
     await tick();
-    await authStore.createIdTokenSession({ provider: "google", idToken: "jwt.here" });
-    expect(account.createIdTokenSession).toHaveBeenCalled();
+    await authStore.createIdTokenSession({
+      provider: "google",
+      idToken: "jwt.here",
+      nonce: "abc123nonce",
+    });
+    expect(account.createIdTokenSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "google",
+        idToken: "jwt.here",
+        nonce: "abc123nonce",
+      })
+    );
     expect(authStore.getState().status).toBe("signed-in");
   });
 
@@ -374,7 +384,11 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
     });
     authStore.configure(config);
     await tick();
-    await authStore.createIdTokenSession({ provider: "google", idToken: "jwt.here" });
+    await authStore.createIdTokenSession({
+      provider: "google",
+      idToken: "jwt.here",
+      nonce: "rest-nonce",
+    });
     expect(clientCall).toHaveBeenCalled();
     const [method, uri, headers, payload] = clientCall.mock.calls[0]!;
     expect(method).toBe("post");
@@ -384,7 +398,11 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
       "content-type": "application/json",
       accept: "application/json",
     });
-    expect(payload).toMatchObject({ provider: "google", idToken: "jwt.here" });
+    expect(payload).toMatchObject({
+      provider: "google",
+      idToken: "jwt.here",
+      nonce: "rest-nonce",
+    });
     expect(authStore.getState().status).toBe("signed-in");
   });
 
