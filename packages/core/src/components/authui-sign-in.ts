@@ -5,6 +5,7 @@ import { AuthUIElement } from "./element.js";
 import { signInStyles } from "./sign-in.styles.js";
 import { authStore, type MfaFactor } from "../store.js";
 import { describeError, ErrorTypes, isErrorType } from "../errors.js";
+import { avatarPhotoUrl } from "../avatar-photo.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import type { AuthUIView, OAuthProviderName } from "../types.js";
@@ -64,6 +65,8 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private error = "";
   @state() private notice: { tone: "success" | "info" | "error"; message: string } | null = null;
   @state() private showPassword = false;
+  /** Photo URL that failed to load; skip that URL and show initials. */
+  @state() private photoFailedUrl: string | null = null;
   @state() private showPasswordConfirm = false;
   /** Expanded OAuth provider in the accordion row (3+ providers). */
   @state() private expandedOAuth: OAuthProviderName | null = null;
@@ -870,11 +873,25 @@ export class AuthUISignIn extends AuthUIElement {
   private renderSignedIn(): TemplateResult {
     const user = this.auth.user!;
     const label = user.name || user.email || user.phone || this.t("guestAccount");
+    const photoUrl = avatarPhotoUrl(authStore.getClient(), user, 72);
+    const showPhoto = !!photoUrl && photoUrl !== this.photoFailedUrl;
     return html`
       <div class="stack">
         <div class="row">
           <div class="inline">
-            <span class="avatar">${avatarInitial(label)}</span>
+            <span class="avatar"
+              >${
+                showPhoto
+                  ? html`<img
+                      src=${photoUrl!}
+                      alt=""
+                      @error=${() => {
+                        this.photoFailedUrl = photoUrl;
+                      }}
+                    />`
+                  : avatarInitial(label)
+              }</span
+            >
             <div class="row-main">
               <span class="row-title" title=${label}>${label}</span>
               ${

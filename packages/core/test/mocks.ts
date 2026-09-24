@@ -154,6 +154,12 @@ export function mockAppwrite() {
       getFlag(code: string) {
         return `https://example.com/flag/${code}.png`;
       }
+      getPhoto(params: { width?: number; height?: number; userId?: string } = {}) {
+        const id = params.userId ?? "current";
+        const w = params.width ?? 64;
+        const h = params.height ?? 64;
+        return `https://example.com/photo/${id}?w=${w}&h=${h}`;
+      }
     },
     ID: { unique: () => "unique()" },
   }));

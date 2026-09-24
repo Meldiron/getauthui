@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { AuthUIElement } from "./element.js";
 import { authStore } from "../store.js";
 import { openModal } from "../modal-controller.js";
+import { avatarPhotoUrl } from "../avatar-photo.js";
 import { avatarInitial, icons } from "../icons.js";
 import type { AuthUIMenuItem } from "../types.js";
 
@@ -150,7 +151,7 @@ export class AuthUIUserButton extends AuthUIElement {
     `,
   ];
 
-  /** Avatar image URL; falls back to initials. */
+  /** Avatar image URL override. When empty, uses Appwrite getPhoto; on error, initials. */
   @property({ type: String }) src = "";
 
   @state() private menuOpen = false;
@@ -160,6 +161,8 @@ export class AuthUIUserButton extends AuthUIElement {
   @state() private teams: Models.Team<Models.Preferences>[] = [];
   @state() private teamsLoading = false;
   @state() private activeTeamId: string | null = null;
+  /** Photo URL that failed to load; skip that URL and show initials. */
+  @state() private photoFailedUrl: string | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -339,6 +342,9 @@ export class AuthUIUserButton extends AuthUIElement {
       </button>`;
     }
     const label = user.name || user.email || user.phone || this.t("guestAccount");
+    // Explicit src wins; otherwise Appwrite getPhoto for this user id.
+    const photoUrl = this.src || avatarPhotoUrl(authStore.getClient(), user, 64);
+    const showPhoto = !!photoUrl && photoUrl !== this.photoFailedUrl;
     return html`
       <button
         class="trigger"
@@ -348,7 +354,17 @@ export class AuthUIUserButton extends AuthUIElement {
         aria-label=${label}
       >
         <span class="avatar"
-          >${this.src ? html`<img src=${this.src} alt="" />` : avatarInitial(label)}</span
+          >${
+            showPhoto
+              ? html`<img
+                  src=${photoUrl!}
+                  alt=""
+                  @error=${() => {
+                    this.photoFailedUrl = photoUrl;
+                  }}
+                />`
+              : avatarInitial(label)
+          }</span
         >
       </button>
       ${

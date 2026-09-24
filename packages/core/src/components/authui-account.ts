@@ -5,6 +5,7 @@ import { AuthUIElement } from "./element.js";
 import { authStore, type MfaFactor } from "../store.js";
 import { previewQrDataUrl } from "../preview.js";
 import { describeError, ErrorTypes, isErrorType } from "../errors.js";
+import { avatarPhotoUrl } from "../avatar-photo.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
 import { scorePassword } from "../password-strength.js";
@@ -271,6 +272,8 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private sessions: Models.Session[] | null = null;
   /** Session ids whose browser avatar failed to load. */
   @state() private browserIconFailed: Record<string, boolean> = {};
+  /** Photo URL that failed to load; skip that URL and show initials. */
+  @state() private photoFailedUrl: string | null = null;
   @state() private identities: Models.Identity[] | null = null;
   @state() private logs: Models.Log[] | null = null;
   /** null = probing, true = show Activity, false = hide. */
@@ -958,10 +961,24 @@ export class AuthUIAccount extends AuthUIElement {
   private renderIdentity(): TemplateResult {
     const u = this.user!;
     const label = u.name || u.email || u.phone || this.t("guestAccount");
+    const photoUrl = avatarPhotoUrl(authStore.getClient(), u, 88);
+    const showPhoto = !!photoUrl && photoUrl !== this.photoFailedUrl;
     return html`
       <div class="between">
         <div class="identity">
-          <span class="avatar">${avatarInitial(label)}</span>
+          <span class="avatar"
+            >${
+              showPhoto
+                ? html`<img
+                    src=${photoUrl!}
+                    alt=""
+                    @error=${() => {
+                      this.photoFailedUrl = photoUrl;
+                    }}
+                  />`
+                : avatarInitial(label)
+            }</span
+          >
           <div class="row-main">
             <span class="row-title" title=${label}>
               ${label}

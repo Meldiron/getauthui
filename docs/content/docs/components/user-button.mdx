@@ -10,11 +10,11 @@ description: Avatar with an account menu while signed in, a sign-in button other
 
 ## Attributes
 
-| Name         | Type               | Description                                                                          |
-| ------------ | ------------------ | ------------------------------------------------------------------------------------ |
-| `src`        | `string`           | Avatar image URL. Falls back to the first letter of the user's name, email or phone. |
-| `show-teams` | `boolean`          | List Appwrite teams and let the user pick an active one.                             |
-| `menuItems`  | `AuthUIMenuItem[]` | Extra menu rows (property only). See Custom menu items.                              |
+| Name         | Type               | Description                                                                                                                                                                                                  |
+| ------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src`        | `string`           | Optional avatar image URL override. When empty, Auth UI uses Appwrite `avatars.getPhoto()` for the signed-in user (OAuth photo, Gravatar, or initials). On image error, falls back to a local initial glyph. |
+| `show-teams` | `boolean`          | List Appwrite teams and let the user pick an active one.                                                                                                                                                     |
+| `menuItems`  | `AuthUIMenuItem[]` | Extra menu rows (property only). See Custom menu items.                                                                                                                                                      |
 
 ## Slots
 

@@ -30,6 +30,12 @@ vi.mock("appwrite", async () => {
       getFlag(code: string) {
         return `https://example.com/flag/${code}.png`;
       }
+      getPhoto(params: { width?: number; height?: number; userId?: string } = {}) {
+        const id = params.userId ?? "current";
+        const w = params.width ?? 64;
+        const h = params.height ?? 64;
+        return `https://example.com/photo/${id}?w=${w}&h=${h}`;
+      }
     },
     ID: { unique: () => "unique()" },
   };
@@ -565,6 +571,43 @@ describe("UX audit follow-ups", () => {
     expect(avatarInitial("+15555550100")).not.toBe("+");
     expect(avatarInitial("Ada")).toBe("A");
     expect(avatarInitial("42")).toBe("4");
+  });
+
+  it("user-button uses getPhoto when src is empty", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-user-button></authui-user-button>`);
+    await tick();
+    await (el as any).updateComplete;
+    const img = el.shadowRoot!.querySelector<HTMLImageElement>(".avatar img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toContain("/photo/u1");
+    expect(img!.getAttribute("src")).toContain("w=64");
+  });
+
+  it("user-button src override wins over getPhoto", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(
+      `<authui-user-button src="https://cdn.example/me.png"></authui-user-button>`
+    );
+    await tick();
+    await (el as any).updateComplete;
+    const img = el.shadowRoot!.querySelector<HTMLImageElement>(".avatar img");
+    expect(img!.getAttribute("src")).toBe("https://cdn.example/me.png");
+  });
+
+  it("user-button falls back to initials when the photo errors", async () => {
+    authStore.configure(config);
+    await authStore.signInWithEmailPassword("a@b.co", "correct-horse");
+    const el = await mount<HTMLElement>(`<authui-user-button></authui-user-button>`);
+    await tick();
+    await (el as any).updateComplete;
+    const img = el.shadowRoot!.querySelector<HTMLImageElement>(".avatar img")!;
+    img.dispatchEvent(new Event("error"));
+    await (el as any).updateComplete;
+    expect(el.shadowRoot!.querySelector(".avatar img")).toBeNull();
+    expect(el.shadowRoot!.querySelector(".avatar")!.textContent).toContain("T");
   });
 
   it("forces sign-in when signUp is disabled", async () => {
