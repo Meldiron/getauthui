@@ -1,6 +1,6 @@
 {
   "name": "@getauthui/core",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "description": "Drop-in authentication UI for Appwrite. One script tag, every sign-in method, MFA, sessions and account management as web components.",
   "type": "module",
   "main": "./dist/authui.js",
@@ -16,7 +16,8 @@
       "import": "./dist/react.js"
     },
     "./cdn": "./dist/authui.cdn.mjs",
-    "./cdn/iife": "./dist/authui.cdn.js"
+    "./cdn/iife": "./dist/authui.cdn.js",
+    "./fouc.css": "./dist/fouc.css"
   },
   "unpkg": "./dist/authui.cdn.mjs",
   "jsdelivr": "./dist/authui.cdn.mjs",
@@ -66,7 +67,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && vite build --config vite.cdn.config.ts",
+    "build": "tsc --noEmit && vite build && vite build --config vite.cdn.config.ts && cp src/fouc.css dist/fouc.css",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -11,7 +11,7 @@ const Underscore = () => <span className="text-brand">_</span>;
 const humanPrompt = `Add authentication with Auth UI (@getauthui/core) for Appwrite.
 Docs: https://getauthui.appwrite.network/llms-full.txt
 
-1. Put <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style> in <head>, then <script type="module" src="${cdnUrl}"></script>
+1. Put <link rel="stylesheet" href="${cdnUrl}/dist/fouc.css" /> in <head>, then <script type="module" src="${cdnUrl}"></script>
 2. <authui-config endpoint="..." project="..." methods="email-password oauth:google">
 3. <authui-button> inside <authui-show when="signed-out">, <authui-user-button> inside <authui-show when="signed-in">
 4. Do not build custom login forms or store sessions yourself.`;

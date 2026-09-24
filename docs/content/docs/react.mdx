@@ -179,7 +179,7 @@ declare module "react" {
 
 ## FOUC CSS in React
 
-Prefer `authui-show:not([ready])` over `:defined` for FOUC CSS. React can define custom elements before Auth UI sets `ready`, so `[ready]` is the reliable gate. See [`<authui-show>`](/docs/components/show).
+Import `@getauthui/core/fouc.css` (or the CDN `dist/fouc.css` link). Prefer `authui-show:not([ready])` over `:defined` for FOUC CSS. React can define custom elements before Auth UI sets `ready`, so `[ready]` is the reliable gate. See [`<authui-show>`](/docs/components/show).
 
 ## Next.js
 

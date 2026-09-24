@@ -1,0 +1,10 @@
+/* Prefer this file over an inline <style> for script-tag / CDN installs.
+   Same rules as CRITICAL_FOUC_CSS. Keep authui-show on [ready] (not :defined)
+   so React apps that define the element early still hide until Auth UI is ready. */
+authui-show:not([ready]) {
+  display: none;
+}
+authui-button:not(:defined),
+authui-user-button:not(:defined) {
+  visibility: hidden;
+}

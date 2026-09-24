@@ -218,13 +218,8 @@ export default function HomePage() {
           </div>
 
           <CodeBlock code={heroSnippet} title="index.html">
-            {T.tag("<style>")}
-            {T.pl("authui-show:not([ready]){display:none}")}
-            {"\n  "}
-            {T.pl(
-              "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}"
-            )}
-            {T.tag("</style>")}
+            {T.tag("<link")} {T.attr("rel")}={T.str('"stylesheet"')} {T.attr("href")}=
+            {T.str(`"${cdnUrl}/dist/fouc.css"`)} {T.tag("/>")}
             {"\n"}
             {T.tag("<script")} {T.attr("type")}={T.str('"module"')} {T.attr("src")}=
             {T.str(`"${cdnUrl}"`)}

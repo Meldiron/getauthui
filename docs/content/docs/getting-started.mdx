@@ -16,11 +16,11 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
     Add one script tag anywhere in your HTML. The bundle includes Lit and the Appwrite SDK.
 
     ```html
-    <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style>
-    <script src="https://unpkg.com/@getauthui/core@0.1.30/dist/authui.cdn.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.31/dist/fouc.css" />
+    <script src="https://unpkg.com/@getauthui/core@0.1.31/dist/authui.cdn.js"></script>
     ```
 
-    The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg / jsDelivr ESM entry (`type="module"` on the bare package URL, or `…/dist/authui.cdn.mjs`) only defines the elements; it does not set a global. Pin a version in production.
+    The `fouc.css` link hides `<authui-show>` and undefined buttons until Auth UI is ready. The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg / jsDelivr ESM entry (`type="module"` on the bare package URL, or `…/dist/authui.cdn.mjs`) only defines the elements; it does not set a global. Pin a version in production.
 
     Do **not** load `…/dist/authui.js` from a CDN. That file is the bundler entry (bare `import "appwrite"`) and fails in the browser with `Failed to resolve module specifier "appwrite"`. See [Common mistakes](/docs/common-mistakes).
 
@@ -33,10 +33,11 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
     ```
 
     ```ts
+    import "@getauthui/core/fouc.css";
     import "@getauthui/core";
     ```
 
-    `appwrite` and `lit` are peer dependencies so they are shared with the rest of your app.
+    Import `fouc.css` in your entry (or put the CDN `<link>` in `<head>`) so `<authui-show>` stays hidden before the module runs. `appwrite` and `lit` are peer dependencies so they are shared with the rest of your app.
 
   </Tab>
 </Tabs>

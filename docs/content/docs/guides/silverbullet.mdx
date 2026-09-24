@@ -49,7 +49,7 @@ Create a page called `Appwrite` in your space. In SilverBullet, open the command
 
 ```space-lua
 -- priority: 50
-local AuthUI = js.import("https://unpkg.com/@getauthui/core@0.1.30").AuthUI
+local AuthUI = js.import("https://unpkg.com/@getauthui/core@0.1.31").AuthUI
 
 AuthUI.init({
   endpoint = "https://fra.cloud.appwrite.io/v1",
@@ -133,6 +133,6 @@ end)
 - **Store more than a page.** Preferences are a JSON object up to 64 KB. Recent pages, a per-person reading list, or the last cursor position all fit.
 - **Sync SilverBullet's own client settings.** `clientStore.get()` and `clientStore.set()` hold per-browser state; mirror the keys you care about the same way.
 - **Put the elements in a page.** `<authui-show when="signed-in">` written as HTML inside a markdown page renders as is. `<script>` tags do not, which is why this guide loads Auth UI from Lua.
-- **Load it server-side instead.** In single-space mode the `SB_HEAD_HTML` environment variable injects raw HTML into `<head>`. Use the **IIFE** build there (`<script src="https://unpkg.com/@getauthui/core@0.1.30/dist/authui.cdn.js"></script>`) so `js.window.AuthUI` is available without `js.import`. The default ESM entry (`type="module"`) only registers custom elements and does **not** set `window.AuthUI`. It is not in SilverBullet's docs but it works.
+- **Load it server-side instead.** In single-space mode the `SB_HEAD_HTML` environment variable injects raw HTML into `<head>`. Use the **IIFE** build there (`<script src="https://unpkg.com/@getauthui/core@0.1.31/dist/authui.cdn.js"></script>`) so `js.window.AuthUI` is available without `js.import`. The default ESM entry (`type="module"`) only registers custom elements and does **not** set `window.AuthUI`. It is not in SilverBullet's docs but it works.
 
 This guide follows the happy path. Two devices opening pages at the same moment race for the last write, and the navigation on sign in is unconditional, so a device that intentionally opened another page gets moved once. Both are easy to refine with a timestamp or a confirmation.

@@ -7,15 +7,16 @@ import type { AuthUIStatus } from "../types.js";
  * In-module FOUC guard. Prefer constructable stylesheets so strict CSP
  * `style-src 'self'` does not block the rule. Fall back to a <style> tag
  * for older browsers (Safari < 16.4). Pages that load the CDN as a deferred
- * module should still put CRITICAL_FOUC_CSS in <head> so content stays
- * hidden before this file executes.
+ * module should still load `fouc.css` (or CRITICAL_FOUC_CSS) in <head> so
+ * content stays hidden before this file executes. Prefer the shipped
+ * `@getauthui/core/fouc.css` / CDN `dist/fouc.css` over an inline <style>.
  */
-export const FOUC_CSS = "authui-show:not([ready]){display:none}";
+export const FOUC_CSS = "authui-show:not([ready]){display:none;}";
 
 /** Extra critical CSS for the page <head>, covering undefined custom elements. */
 export const CRITICAL_FOUC_CSS =
-  "authui-show:not([ready]){display:none}" +
-  "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}";
+  "authui-show:not([ready]){display:none;}" +
+  "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden;}";
 
 let foucInstalled = false;
 

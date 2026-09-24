@@ -16,17 +16,9 @@ Auth UI is a set of framework-agnostic web components built with [Lit](https://l
 - **Modal, inline and headless** usage, plus `<authui-show when="signed-in">` for conditional content.
 
 ```html
-<style>
-  authui-show:not([ready]) {
-    display: none;
-  }
-  authui-button:not(:defined),
-  authui-user-button:not(:defined) {
-    visibility: hidden;
-  }
-</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.31/dist/fouc.css" />
 <!-- ESM CDN: defines custom elements only (no window.AuthUI). -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.30"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.31"></script>
 
 <authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>
 <authui-show when="signed-out"><authui-button>Sign in</authui-button></authui-show>

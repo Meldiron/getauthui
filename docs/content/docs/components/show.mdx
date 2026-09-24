@@ -49,19 +49,13 @@ Both accept a single value or a comma separated list. Valid values:
 
 - Children stay hidden until the initial status is known. Only `when="loading"` renders during that window.
 - The in-module FOUC guard uses a constructable stylesheet (`document.adoptedStyleSheets`) so it still works under CSP `style-src 'self'`. It cannot run until the script loads.
-- **CDN users:** put this critical CSS in your page `<head>` so protected content stays hidden before the module executes (same string as the exported `CRITICAL_FOUC_CSS` from `@getauthui/core`):
+- **CDN / script-tag users:** load the shipped FOUC stylesheet in `<head>` before the Auth UI script so protected content stays hidden before the module executes (same rules as `CRITICAL_FOUC_CSS`):
 
 ```html
-<style>
-  authui-show:not([ready]) {
-    display: none;
-  }
-  authui-button:not(:defined),
-  authui-user-button:not(:defined) {
-    visibility: hidden;
-  }
-</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.31/dist/fouc.css" />
 ```
+
+With a bundler: `import "@getauthui/core/fouc.css"`. The JS string exports `FOUC_CSS` / `CRITICAL_FOUC_CSS` and the in-module auto-inject remain for ESM; prefer the CSS file for script-tag installs.
 
 Prefer the `[ready]` attribute selector (not `:defined`) so the same rule works in React, where custom elements can be defined before Auth UI sets `ready`.
 

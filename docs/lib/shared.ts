@@ -11,14 +11,13 @@ export const gitConfig = {
   branch: "main",
 };
 
-export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.30";
+export const cdnUrl = "https://unpkg.com/@getauthui/core@0.1.31";
 
-/** Critical CSS for the page <head> so <authui-show> stays hidden before the CDN module runs. */
-export const criticalCss =
-  "authui-show:not([ready]){display:none}" +
-  "authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}";
+/** CDN URL for the shipped FOUC stylesheet (same rules as CRITICAL_FOUC_CSS). */
+export const foucCssUrl = `${cdnUrl}/dist/fouc.css`;
 
-export const criticalCssTag = `<style>${criticalCss}</style>`;
+/** <link> tag for the page <head> so <authui-show> stays hidden before the CDN module runs. */
+export const criticalCssTag = `<link rel="stylesheet" href="${foucCssUrl}" />`;
 
 const getContentUrl = createGetUrl(docsContentRoute);
 

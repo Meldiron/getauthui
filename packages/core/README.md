@@ -6,16 +6,8 @@
 **Drop-in authentication for Appwrite. One script tag, every sign-in method, MFA, sessions and account management, running on your own domain.**
 
 ```html
-<style>
-  authui-show:not([ready]) {
-    display: none;
-  }
-  authui-button:not(:defined),
-  authui-user-button:not(:defined) {
-    visibility: hidden;
-  }
-</style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.30"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.31/dist/fouc.css" />
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.31"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -56,24 +48,16 @@ v2 runs inside your page. Its requests to Appwrite are indistinguishable from yo
 CDN:
 
 ```html
-<style>
-  authui-show:not([ready]) {
-    display: none;
-  }
-  authui-button:not(:defined),
-  authui-user-button:not(:defined) {
-    visibility: hidden;
-  }
-</style>
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.30"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@getauthui/core@0.1.31/dist/fouc.css" />
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.31"></script>
 ```
 
-The `<style>` keeps `<authui-show>` and the buttons hidden until the module defines them. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
+The `fouc.css` link keeps `<authui-show>` and the buttons hidden until the module defines them. With a bundler, `import "@getauthui/core/fouc.css"`. See [`<authui-show>`](https://getauthui.appwrite.network/docs/components/show).
 
 The default CDN URL (bare unpkg / jsDelivr package, or `…/dist/authui.cdn.mjs`) is an ESM module: it defines the elements but does **not** set `window.AuthUI`. For `AuthUI.init` / `AuthUI.on` from a classic script, use the IIFE build:
 
 ```html
-<script src="https://unpkg.com/@getauthui/core@0.1.30/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.31/dist/authui.cdn.js"></script>
 ```
 
 Do **not** point a `<script type="module">` at `…/dist/authui.js`. That path is the bundler entry and fails on CDNs with `Failed to resolve module specifier "appwrite"` (custom elements never upgrade).
