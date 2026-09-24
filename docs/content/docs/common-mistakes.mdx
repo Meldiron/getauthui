@@ -33,24 +33,24 @@ Bare unpkg / jsDelivr package URLs and the dedicated CDN files are safe in a `<s
 
 | URL                                                                 | Use                                                                 |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `https://unpkg.com/@getauthui/core@0.1.38` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`.                         |
+| `https://unpkg.com/@getauthui/core@0.1.39` (or jsDelivr equivalent) | CDN ESM. Elements only. No `window.AuthUI`.                         |
 | `…/dist/authui.cdn.mjs`                                             | Same CDN ESM entry, explicit path.                                  |
 | `…/dist/authui.cdn.js`                                              | CDN IIFE. Elements plus `window.AuthUI` for `init` / `on` / `open`. |
 | `…/dist/authui.js`                                                  | **Not for CDN.** Bundler / npm import only.                         |
 
 ```html
 <!-- Safe ESM CDN: elements only. Configure with <authui-config>. -->
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.38"></script>
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.39"></script>
 <authui-config endpoint="…" project="…"></authui-config>
 
 <!-- Safe IIFE CDN: use window.AuthUI from a classic script. -->
-<script src="https://unpkg.com/@getauthui/core@0.1.38/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.39/dist/authui.cdn.js"></script>
 <script>
   AuthUI.init({ endpoint: "…", project: "…" });
 </script>
 
 <!-- Wrong: package main / bundler build on a CDN -->
-<!-- <script type="module" src="https://unpkg.com/@getauthui/core@0.1.38/dist/authui.js"></script> -->
+<!-- <script type="module" src="https://unpkg.com/@getauthui/core@0.1.39/dist/authui.js"></script> -->
 ```
 
 With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version on the CDN in production.
@@ -60,7 +60,7 @@ With a bundler, prefer `import { AuthUI } from "@getauthui/core"`. Pin a version
 The in-module FOUC guard cannot run until the script loads. Load the shipped FOUC stylesheet in `<head>` before the Auth UI script so `<authui-show>` children stay hidden (same rules as `CRITICAL_FOUC_CSS`):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.38/dist/fouc.css" />
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.39/dist/fouc.css" />
 ```
 
 Bundlers: `import "@getauthui/core/fouc.css"`.

@@ -358,6 +358,36 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
     expect(authStore.getState().status).toBe("signed-in");
   });
 
+  it("REST fallback for createIdTokenSession sends X-Appwrite-Project", async () => {
+    // appwrite@27 has no Account.createIdTokenSession; force the REST path.
+    delete (account as AccountMock & { createIdTokenSession?: unknown }).createIdTokenSession;
+    const clientCall = (account as AccountMock & { clientCall: ReturnType<typeof vi.fn> })
+      .clientCall;
+    clientCall.mockImplementation(async () => {
+      account.state.user = {
+        $id: "u-idtoken",
+        email: "idtoken@example.com",
+        name: "",
+        phone: "",
+      };
+      return { $id: "s-idtoken" };
+    });
+    authStore.configure(config);
+    await tick();
+    await authStore.createIdTokenSession({ provider: "google", idToken: "jwt.here" });
+    expect(clientCall).toHaveBeenCalled();
+    const [method, uri, headers, payload] = clientCall.mock.calls[0]!;
+    expect(method).toBe("post");
+    expect(String(uri)).toContain("/account/sessions/id-token");
+    expect(headers).toMatchObject({
+      "X-Appwrite-Project": config.project,
+      "content-type": "application/json",
+      accept: "application/json",
+    });
+    expect(payload).toMatchObject({ provider: "google", idToken: "jwt.here" });
+    expect(authStore.getState().status).toBe("signed-in");
+  });
+
   it("lists consents when the route exists", async () => {
     account.listConsents.mockResolvedValueOnce({
       total: 1,
@@ -400,8 +430,12 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
     expect(app.name).toBe("Acme Docs");
     expect(app.logoUri).toBe("https://example.com/acme.png");
     expect(clientCall).toHaveBeenCalled();
-    const [, uri] = clientCall.mock.calls[0]!;
+    const [, uri, headers] = clientCall.mock.calls[0]!;
     expect(String(uri)).toContain("/apps/app1");
+    expect(headers).toMatchObject({
+      "X-Appwrite-Project": config.project,
+      accept: "application/json",
+    });
     // Cached: second call does not hit the network again.
     clientCall.mockClear();
     const again = await authStore.getApp("app1");

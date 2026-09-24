@@ -268,6 +268,7 @@ export class AuthStore {
     const endpoint = String(client.config.endpoint).replace(/\/+$/, "");
     const uri = new URL(endpoint + opts.path);
     const apiHeaders: Record<string, string> = {
+      "X-Appwrite-Project": String(client.config.project ?? ""),
       "content-type": "application/json",
       accept: "application/json",
     };
@@ -947,6 +948,7 @@ export class AuthStore {
     const endpoint = String(client.config.endpoint).replace(/\/+$/, "");
     const uri = new URL(`${endpoint}/apps/${encodeURIComponent(appId)}`);
     const apiHeaders: Record<string, string> = {
+      "X-Appwrite-Project": String(client.config.project ?? ""),
       accept: "application/json",
     };
     const app = (await client.call("get", uri, apiHeaders, {})) as AuthUIApp;
