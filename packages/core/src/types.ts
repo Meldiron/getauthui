@@ -242,6 +242,7 @@ export interface AuthUIStrings {
   /** Account Security: password changed while signed in. */
   passwordChanged: string;
   sendResetLink: string;
+  resendResetLink: string;
   requestNewLink: string;
   agreeTo: string;
   terms: string;

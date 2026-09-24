@@ -1894,3 +1894,119 @@ describe("email prefill / login-hint", () => {
     expect(el.email).toBe("typed@example.com");
   });
 });
+
+describe("0.1.27 sign-in fixes", () => {
+  it("keeps forgot-password form when setPending notice arrives while signed-out", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("forgot-password");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "wipe-test@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("forgot-password");
+    expect((el as any).email).toBe("wipe-test@example.com");
+
+    authStore.setPending({
+      type: "notice",
+      tone: "info",
+      message: "Forgot notice should not wipe",
+    });
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("forgot-password");
+    expect((el as any).email).toBe("wipe-test@example.com");
+    expect(shadowText(el)).toMatch(/Reset password/i);
+    expect(shadowText(el)).toMatch(/Send reset link/i);
+    expect(shadowText(el)).toContain("Forgot notice should not wipe");
+  });
+
+  it("keeps sign-up passwords when setPending notice arrives while signed-out", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("sign-up");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "signup@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    const password = el.shadowRoot!.querySelector("#authui-password") as HTMLInputElement;
+    password.value = "CorrectHorse1!";
+    password.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("sign-up");
+    expect((el as any).password).toBe("CorrectHorse1!");
+
+    authStore.setPending({
+      type: "notice",
+      tone: "info",
+      message: "Sign-up notice should not wipe",
+    });
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("sign-up");
+    expect((el as any).password).toBe("CorrectHorse1!");
+    expect((el as any).email).toBe("signup@example.com");
+    expect(shadowText(el)).toContain("Sign-up notice should not wipe");
+  });
+
+  it("shows forgot-password Resend + cooldown after send", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("forgot-password");
+    await (el as any).updateComplete;
+    const email = el.shadowRoot!.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "reset@example.com";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    el.shadowRoot!.querySelector("form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).step).toBe("forgot-password");
+    expect((el as any).recoverySentTo).toBe("reset@example.com");
+    expect((el as any).resendCooldownUntil).toBeGreaterThan(Date.now());
+    expect(shadowText(el)).toMatch(/reset link is on its way/i);
+    expect(shadowText(el)).toMatch(/Resend link/i);
+    expect(shadowText(el)).toMatch(/Use a different email/i);
+    const resend = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Resend link/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(resend).toBeTruthy();
+    expect(resend.disabled).toBe(true);
+  });
+
+  it("uses Send magic link as the magic-url step title", async () => {
+    authStore.configure({
+      ...config,
+      methods: { emailPassword: true, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).go("magic-url");
+    await (el as any).updateComplete;
+    const title = el.shadowRoot!.querySelector("#authui-title")?.textContent?.trim();
+    expect(title).toBe("Send magic link");
+    expect(shadowText(el)).toMatch(/Send magic link/i);
+  });
+});

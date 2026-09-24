@@ -70,6 +70,8 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private token: PendingToken | null = null;
   private focusOnStep = false;
   @state() private resendCooldownUntil = 0;
+  /** Email a password-recovery link was last sent to (dedicated sent UI + cooldown). */
+  @state() private recoverySentTo: string | null = null;
 
   @state() private challenge: { id: string; factor: MfaFactor } | null = null;
   /** Prevents duplicate auto-start challenges on re-render. */
@@ -216,10 +218,15 @@ export class AuthUISignIn extends AuthUIElement {
       this.step === "email-otp" ||
       this.step === "magic-url" ||
       this.token !== null;
+    // Forgot-password and sign-up share the same wipe root as passwordless: any
+    // signed-out store update (e.g. setPending notice) used to call go() and clear
+    // the form mid-typing. Guard them the same way passwordless was in 0.1.18.
+    const formMidFlow =
+      passwordlessMidFlow || this.step === "forgot-password" || this.step === "sign-up";
     if ((status === "signed-in" || status === "signed-out") && !holdingRecovery) {
-      // Keep passwordless mid-flow across signed-out store updates (e.g. setPending
-      // notices). User-initiated Back / Use different email still clear via go().
-      if (!(status === "signed-out" && passwordlessMidFlow)) {
+      // Keep mid-flow screens across signed-out store updates. User-initiated
+      // Back / Use different email still clear via go().
+      if (!(status === "signed-out" && formMidFlow)) {
         const stuck =
           this.step === "mfa" ||
           passwordlessMidFlow ||
@@ -274,6 +281,7 @@ export class AuthUISignIn extends AuthUIElement {
     this.showPasswordConfirm = false;
     this.password = "";
     this.passwordConfirm = "";
+    this.recoverySentTo = null;
     this.legalAccepted = false;
     this.legalErrorFromOAuth = false;
     if (step !== "mfa") {
@@ -364,9 +372,22 @@ export class AuthUISignIn extends AuthUIElement {
     if (!this.requireValid(e)) return;
     void this.run(async () => {
       await authStore.sendPasswordRecovery(this.email);
-      this.notice = { tone: "success", message: this.t("resetLinkSent", { email: this.email }) };
+      this.recoverySentTo = this.email;
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
     });
   };
+
+  private async onResendRecovery(): Promise<void> {
+    const target = this.recoverySentTo;
+    if (!target || Date.now() < this.resendCooldownUntil) return;
+    this.error = "";
+    await this.run(async () => {
+      await authStore.sendPasswordRecovery(target);
+      this.resendCooldownUntil = Date.now() + 30000;
+      window.setTimeout(() => this.requestUpdate(), 30000);
+    });
+  }
 
   private onReset = (e: Event) => {
     e.preventDefault();
@@ -566,6 +587,8 @@ export class AuthUISignIn extends AuthUIElement {
           title = this.t("resetPassword");
           break;
         case "magic-url":
+          title = this.t("sendMagicLink");
+          break;
         case "email-otp":
           title = this.t("continueWithEmail");
           break;
@@ -1152,6 +1175,37 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderForgot(): TemplateResult {
+    if (this.recoverySentTo) {
+      const cooling = Date.now() < this.resendCooldownUntil;
+      return html`<div class="stack">
+        <div class="alert alert-success" role="status">
+          ${icons.mail}
+          <div class="alert-body">${this.t("resetLinkSent", { email: this.recoverySentTo })}</div>
+        </div>
+        <div class="links">
+          <button
+            type="button"
+            class="btn btn-link"
+            ?disabled=${cooling || this.busy}
+            @click=${() => void this.onResendRecovery()}
+          >
+            ${this.t("resendResetLink")}
+          </button>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            class="btn btn-link"
+            @click=${() => {
+              this.recoverySentTo = null;
+              this.error = "";
+            }}
+          >
+            ${this.t("useDifferentEmail")}
+          </button>
+        </div>
+        ${this.backLink()}
+      </div>`;
+    }
     return html`
       <div class="stack">
         <form class="form" @submit=${this.onForgot} novalidate>

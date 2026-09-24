@@ -45,6 +45,7 @@ export const defaultStrings: AuthUIStrings = {
   passwordUpdated: "Your password was updated. You can sign in now.",
   passwordChanged: "Your password was updated.",
   sendResetLink: "Send reset link",
+  resendResetLink: "Resend link",
   requestNewLink: "Request a new link",
   agreeTo: "By continuing you agree to our",
   terms: "Terms of Service",
