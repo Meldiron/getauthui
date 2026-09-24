@@ -388,8 +388,10 @@ export class AuthUIAccount extends AuthUIElement {
       (changed.has("confirmRemoveAuthenticator") && this.confirmRemoveAuthenticator);
     if (confirmOpened) {
       requestAnimationFrame(() => {
+        // Only [autofocus] — bare .inline .btn-outline matches "View recovery codes"
+        // earlier in the DOM than Cancel inside the confirm chrome.
         const cancel = this.renderRoot.querySelector(
-          ".card-footer [autofocus], .row-actions [autofocus], .inline [autofocus], .card-footer .btn-outline, .row-actions .btn-outline, .inline .btn-outline"
+          ".card-footer [autofocus], .row-actions [autofocus], .inline [autofocus]"
         ) as HTMLButtonElement | null;
         cancel?.focus({ preventScroll: true });
       });
@@ -528,6 +530,8 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onUpdatePhone = (e: Event) => {
     e.preventDefault();
+    // Do not updatePhone while an OTP for the previous number is outstanding.
+    if (this.phoneCodeSent) return;
     if (!this.requireValid(e)) return;
     void this.run(
       "phone",
@@ -607,7 +611,11 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onConfirmPhoneVerification = (e: Event) => {
     e.preventDefault();
-    if (!this.requireValid(e)) return;
+    // Verify is type=button outside the form submit path, so requireValid(e) on the
+    // button never runs HTML5 checks on #acc-phone-code. Validate the OTP input.
+    const input = this.renderRoot.querySelector("#acc-phone-code") as HTMLInputElement | null;
+    if (input && typeof input.reportValidity === "function" && !input.reportValidity()) return;
+    if (!this.phoneCode.trim()) return;
     void this.run(
       "verify-phone-code",
       async () => {
@@ -1388,7 +1396,7 @@ export class AuthUIAccount extends AuthUIElement {
                     class="btn btn-outline btn-sm"
                     type="button"
                     @click=${this.onConfirmPhoneVerification}
-                    ?disabled=${!!this.busy}
+                    ?disabled=${!!this.busy || !this.phoneCode.trim()}
                   >
                     ${this.spinner("verify-phone-code")} ${this.t("verifyCode")}
                   </button>
@@ -1406,7 +1414,12 @@ export class AuthUIAccount extends AuthUIElement {
             class="btn btn-primary btn-sm"
             type="submit"
             form="phone-form"
-            ?disabled=${!!this.busy || !this.phoneInput.trim() || this.phoneInput === u.phone}
+            ?disabled=${
+              !!this.busy ||
+              this.phoneCodeSent ||
+              !this.phoneInput.trim() ||
+              this.phoneInput === u.phone
+            }
           >
             ${this.spinner("phone")} ${this.t("update")}
           </button>

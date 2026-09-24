@@ -2010,3 +2010,133 @@ describe("0.1.27 sign-in fixes", () => {
     expect(shadowText(el)).toMatch(/Send magic link/i);
   });
 });
+
+describe("0.1.28 account fixes", () => {
+  it("focuses Cancel (not View recovery codes) when regenerate confirm opens", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: true,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    account.listMFAFactors.mockResolvedValue({
+      totp: true,
+      email: true,
+      phone: false,
+      recoveryCode: true,
+    });
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="security"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    // Ensure View recovery codes (outline) is present before confirm opens.
+    expect(shadowText(el)).toMatch(/View recovery codes/i);
+
+    (el as any).confirmRegenerate = true;
+    await (el as any).updateComplete;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const focused = el.shadowRoot!.activeElement as HTMLButtonElement | null;
+    expect(focused).toBeTruthy();
+    expect(focused!.textContent?.trim()).toMatch(/^Cancel$/i);
+    expect(focused!.hasAttribute("autofocus")).toBe(true);
+    // Must not land on the still-visible View recovery codes outline button.
+    expect(focused!.textContent?.trim()).not.toMatch(/View recovery codes/i);
+  });
+
+  it("blocks empty phone Verify (disabled + no API call)", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /send code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).phoneCodeSent).toBe(true);
+    const verify = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^Verify code$/i.test((b.textContent ?? "").replace(/\s+/g, " ").trim())
+    ) as HTMLButtonElement;
+    expect(verify).toBeTruthy();
+    expect(verify.disabled).toBe(true);
+
+    account.updatePhoneVerification.mockClear();
+    // Force-click path still must not hit the API with an empty code.
+    verify.disabled = false;
+    verify.click();
+    await tick();
+    await tick();
+    expect(account.updatePhoneVerification).not.toHaveBeenCalled();
+    expect((el as any).phoneCodeSent).toBe(true);
+  });
+
+  it("keeps phone Update disabled while OTP mid-flow even after editing the number", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /send code/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).phoneCodeSent).toBe(true);
+
+    // Edit national number while Resend/Verify/Use different phone are up.
+    const national = el.shadowRoot!.querySelector("#acc-phone") as HTMLInputElement;
+    expect(national).toBeTruthy();
+    national.value = "5555550199";
+    national.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+
+    const update = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^Update$/i.test((b.textContent ?? "").replace(/\s+/g, " ").trim())
+    ) as HTMLButtonElement;
+    expect(update).toBeTruthy();
+    expect(update.disabled).toBe(true);
+
+    // Submitting the form must also no-op while phoneCodeSent.
+    el.shadowRoot!.querySelector("#phone-form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    expect((el as any).phoneCodeSent).toBe(true);
+  });
+});

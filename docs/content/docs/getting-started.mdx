@@ -17,7 +17,7 @@ Then enable the sign-in methods you plan to use under **Auth** → **Settings**.
 
     ```html
     <style>authui-show:not([ready]){display:none}authui-button:not(:defined),authui-user-button:not(:defined){visibility:hidden}</style>
-    <script src="https://unpkg.com/@getauthui/core@0.1.27/dist/authui.cdn.js"></script>
+    <script src="https://unpkg.com/@getauthui/core@0.1.28/dist/authui.cdn.js"></script>
     ```
 
     The IIFE build registers the custom elements and sets `window.AuthUI`, so classic scripts can call `AuthUI.init` / `AuthUI.on`. The default unpkg / jsDelivr ESM entry (`type="module"` on the bare package URL, or `…/dist/authui.cdn.mjs`) only defines the elements; it does not set a global. Pin a version in production.
