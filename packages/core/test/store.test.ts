@@ -238,6 +238,21 @@ describe("AuthStore", () => {
     expect(authStore.getStrings().signIn).toBe("Log in");
     expect(authStore.getStrings().signUp).toBe("Sign up");
   });
+
+  it("applies locale pack before strings override", () => {
+    authStore.configure({
+      ...config,
+      locale: "cs",
+      strings: { signIn: "Custom CZ" },
+    });
+    expect(authStore.getStrings().signIn).toBe("Custom CZ");
+    expect(authStore.getStrings().continue).toBe("Pokračovat");
+  });
+
+  it("falls back to English for unknown locale", () => {
+    authStore.configure({ ...config, locale: "ja" });
+    expect(authStore.getStrings().signIn).toBe("Sign in");
+  });
 });
 
 describe("handleRedirect notices", () => {

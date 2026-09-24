@@ -2434,3 +2434,89 @@ describe("user-button teams menu a11y", () => {
     spy.mockRestore();
   });
 });
+
+describe("locale / one-tap / identifier-first config", () => {
+  it("parses locale, one-tap, google-client-id and identifier-first", async () => {
+    await mount(
+      `<authui-config endpoint="https://x/v1" project="p" locale="de" one-tap="true" google-client-id="abc.apps.googleusercontent.com" identifier-first="true"></authui-config>`
+    );
+    const cfg = authStore.getConfig()!;
+    expect(cfg.locale).toBe("de");
+    expect(cfg.oneTap).toBe(true);
+    expect(cfg.googleClientId).toBe("abc.apps.googleusercontent.com");
+    expect(cfg.identifierFirst).toBe(true);
+    expect(authStore.getStrings().signIn).toBe("Anmelden");
+  });
+});
+
+describe("identifier-first sign-in", () => {
+  it("keeps email+password together when identifierFirst is false", async () => {
+    authStore.configure({ ...config, methods: { emailPassword: true } });
+    await tick();
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await el.updateComplete;
+    const root = el.shadowRoot!;
+    expect(root.querySelector("#authui-email")).toBeTruthy();
+    expect(root.querySelector("#authui-password")).toBeTruthy();
+    expect(root.textContent).toMatch(/Sign in/i);
+  });
+
+  it("shows email then Continue, then password after Continue", async () => {
+    authStore.configure({
+      ...config,
+      identifierFirst: true,
+      methods: { emailPassword: true, oauth: ["google"] },
+    });
+    await tick();
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await el.updateComplete;
+    const root = el.shadowRoot!;
+    expect(root.querySelector("#authui-email")).toBeTruthy();
+    expect(root.querySelector("#authui-password")).toBeNull();
+    // OAuth visible on step 1
+    expect(
+      [...root.querySelectorAll("button")].some((b) => /google/i.test(b.textContent ?? ""))
+    ).toBe(true);
+    const email = root.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    root
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    await el.updateComplete;
+    expect(el.identifierPhase).toBe("password");
+    expect(root.querySelector("#authui-password")).toBeTruthy();
+    // OAuth hidden on password step
+    expect(
+      [...root.querySelectorAll("button")].some((b) =>
+        /Continue with Google/i.test(b.textContent ?? "")
+      )
+    ).toBe(false);
+    const back = [...root.querySelectorAll("button")].find((b) =>
+      /different email/i.test(b.textContent ?? "")
+    );
+    expect(back).toBeTruthy();
+    back!.click();
+    await el.updateComplete;
+    expect(el.identifierPhase).toBe("email");
+    expect(root.querySelector("#authui-password")).toBeNull();
+  });
+
+  it("resets identifier phase when navigating away", async () => {
+    authStore.configure({
+      ...config,
+      identifierFirst: true,
+      methods: { emailPassword: true },
+      signUp: true,
+    });
+    await tick();
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await el.updateComplete;
+    el.identifierPhase = "password";
+    el.go("sign-up");
+    await el.updateComplete;
+    expect(el.identifierPhase).toBe("email");
+    // Sign-up still shows password on the same form
+    expect(el.shadowRoot!.querySelector("#authui-password")).toBeTruthy();
+  });
+});

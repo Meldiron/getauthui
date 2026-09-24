@@ -8,8 +8,8 @@ Auth UI ships standard custom elements, so every framework can render them. Impo
 ## Plain HTML
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.37/dist/fouc.css" />
-<script type="module" src="https://unpkg.com/@getauthui/core@0.1.37"></script>
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.38/dist/fouc.css" />
+<script type="module" src="https://unpkg.com/@getauthui/core@0.1.38"></script>
 <authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>
 <authui-button>Sign in</authui-button>
 ```
@@ -17,7 +17,7 @@ Auth UI ships standard custom elements, so every framework can render them. Impo
 The default unpkg / jsDelivr ESM entry (`type="module"` on the bare package URL, or `…/dist/authui.cdn.mjs`) registers the custom elements only. It does not set `window.AuthUI`. For classic scripts that call `AuthUI.init` / `AuthUI.on` / `AuthUI.open`, load the IIFE build instead:
 
 ```html
-<script src="https://unpkg.com/@getauthui/core@0.1.37/dist/authui.cdn.js"></script>
+<script src="https://unpkg.com/@getauthui/core@0.1.38/dist/authui.cdn.js"></script>
 ```
 
 Do not load `…/dist/authui.js` from a CDN (that path is the bundler entry). See [Common mistakes](/docs/common-mistakes).

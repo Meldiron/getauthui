@@ -16,13 +16,15 @@ description: What Auth UI does and does not do with credentials and sessions.
 ```http
 Content-Security-Policy:
   default-src 'self';
-  script-src 'self' https://unpkg.com;
-  connect-src 'self' https://cloud.appwrite.io https://*.cloud.appwrite.io https://fra.cloud.appwrite.io;
+  script-src 'self' https://unpkg.com https://accounts.google.com;
+  connect-src 'self' https://cloud.appwrite.io https://*.cloud.appwrite.io https://fra.cloud.appwrite.io https://accounts.google.com;
   style-src 'self' https://unpkg.com;
   img-src 'self' data: https:;
-  frame-src 'none';
+  frame-src https://accounts.google.com;
 ```
+
+When Google One Tap is enabled (`oneTap` / `one-tap`), allow `https://accounts.google.com` in `script-src`, `frame-src` and typically `connect-src`. Without One Tap you can keep `frame-src 'none'` and omit the Google hosts from `script-src` / `connect-src`.
 
 Replace the `connect-src` hosts with your Appwrite endpoint's origin. Allowlist the CDN host you pin in both `script-src` and `style-src`, or self-host `fouc.css` under `'self'` and omit the CDN from `style-src`. The in-module FOUC guard uses `document.adoptedStyleSheets` (CSP-exempt). Browsers without constructable stylesheets fall back to an inline `<style>` tag and need `style-src 'unsafe-inline'` for that fallback and for Lit's own fallback. Prefer the shipped `fouc.css` in your page `<head>` (see [`<authui-show>`](/docs/components/show)); load it as a static stylesheet and drop `'unsafe-inline'` from `style-src` if you can.
 
-- **Pin versions in production.** Use `@getauthui/core@0.1.37` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.
+- **Pin versions in production.** Use `@getauthui/core@0.1.38` (or newer) on the CDN, or install from npm, so a release cannot change your login flow without a deploy.

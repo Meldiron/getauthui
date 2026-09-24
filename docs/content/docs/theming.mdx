@@ -63,9 +63,35 @@ authui-sign-in::part(panel) {
 }
 ```
 
+## Locale
+
+Set `locale` (attribute `locale`) to a BCP-47 short tag. Auth UI ships English defaults plus packs for **cs**, **de** and **fr**. Unknown tags fall back to English. Missing keys inside a pack also fall back to English.
+
+Merge order: **English defaults ← locale pack ← `strings` override**.
+
+```html
+<authui-config locale="cs" endpoint="https://cloud.appwrite.io/v1" project="p"></authui-config>
+```
+
+```ts
+AuthUI.init({
+  // ...
+  locale: "de",
+  strings: { signIn: "Einloggen" }, // wins over the German pack for this key
+});
+```
+
+### Adding a pack
+
+1. Add `packages/core/src/locales/<tag>.ts` exporting a full or partial `AuthUIStrings` object (reuse placeholders like `{provider}`).
+2. Register it in `packages/core/src/locales/index.ts` (`localePacks`).
+3. Keep tone Concise and avoid em dashes.
+
+`supportedLocales`, `localePacks`, `resolveLocale`, `getLocalePack` and `mergeStrings` are exported from `@getauthui/core` for tooling and tests.
+
 ## Strings
 
-Every visible string can be replaced through `strings`. Placeholders in braces are substituted at render time.
+Every visible string can be replaced through `strings`. Placeholders in braces are substituted at render time. Overrides apply after the locale pack.
 
 ```ts
 AuthUI.init({

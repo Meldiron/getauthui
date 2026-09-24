@@ -32,6 +32,7 @@ import {
   defaultMfaFactor,
   mfaFactorHintKey,
 } from "../mfa.js";
+import { promptGoogleOneTap } from "../one-tap.js";
 
 type Step = Exclude<AuthUIView, "account">;
 
@@ -118,6 +119,13 @@ export class AuthUISignIn extends AuthUIElement {
   @state() private legalAccepted = false;
   /** True when the legal-required error was raised by an OAuth click (show near providers). */
   @state() private legalErrorFromOAuth = false;
+  /**
+   * Identifier-first sign-in phase. `email` = identifier + Continue; `password` = password.
+   * Only used when config.identifierFirst is true.
+   */
+  @state() private identifierPhase: "email" | "password" = "email";
+  /** Guard so One Tap is only attempted once per mount. */
+  private oneTapStarted = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -125,6 +133,7 @@ export class AuthUISignIn extends AuthUIElement {
     this.applyEmailPrefillOnce();
     this.applyLastPasswordlessStepOnce();
     this.syncFromStore();
+    this.maybePromptOneTap();
   }
 
   protected willUpdate(changed: Map<string, unknown>): void {
@@ -149,6 +158,7 @@ export class AuthUISignIn extends AuthUIElement {
       requestAnimationFrame(() => this.firstInput?.focus());
     }
     this.maybeAutoStartMfa();
+    if (changed.has("auth") || changed.has("step")) this.maybePromptOneTap();
   }
 
   /** Apply email / login_hint attribute and ?login_hint= / ?email= once. */
@@ -182,6 +192,37 @@ export class AuthUISignIn extends AuthUIElement {
     // Defer so we do not schedule another update from inside `updated()`.
     queueMicrotask(() => {
       if (!this.challenge && this.step === "mfa") this.onChooseFactor(def);
+    });
+  }
+
+  /**
+   * Soft-prompt Google One Tap when enabled. Never breaks email/password or OAuth;
+   * GIS missing, dismissals and cool-downs are ignored.
+   */
+  private maybePromptOneTap(): void {
+    if (this.oneTapStarted) return;
+    if (!this.config?.oneTap) return;
+    if (this.auth.status !== "signed-out") return;
+    if (this.step !== "sign-in" && this.step !== "sign-up") return;
+    const clientId = (this.config.googleClientId ?? "").trim();
+    if (!clientId) {
+      this.oneTapStarted = true;
+      console.warn(
+        "[authui] oneTap is enabled but googleClientId is missing. " +
+          "Pass the Google OAuth Web client ID from Google Cloud Console " +
+          "(Appwrite does not expose provider client IDs to the browser)."
+      );
+      return;
+    }
+    this.oneTapStarted = true;
+    void promptGoogleOneTap({
+      clientId,
+      onSuccess: () => {
+        this.fire("authui-success", { method: "oauth" });
+      },
+      onSoftFail: (reason) => {
+        console.warn(`[authui] ${reason}`);
+      },
     });
   }
 
@@ -232,8 +273,15 @@ export class AuthUISignIn extends AuthUIElement {
     // Forgot-password and sign-up share the same wipe root as passwordless: any
     // signed-out store update (e.g. setPending notice) used to call go() and clear
     // the form mid-typing. Guard them the same way passwordless was in 0.1.18.
+    const identifierMidFlow =
+      !!this.config?.identifierFirst &&
+      this.step === "sign-in" &&
+      this.identifierPhase === "password";
     const formMidFlow =
-      passwordlessMidFlow || this.step === "forgot-password" || this.step === "sign-up";
+      passwordlessMidFlow ||
+      this.step === "forgot-password" ||
+      this.step === "sign-up" ||
+      identifierMidFlow;
     if ((status === "signed-in" || status === "signed-out") && !holdingRecovery) {
       // Keep mid-flow screens across signed-out store updates. User-initiated
       // Back / Use different email still clear via go().
@@ -297,6 +345,7 @@ export class AuthUISignIn extends AuthUIElement {
     this.recoveryCode = "";
     this.legalAccepted = false;
     this.legalErrorFromOAuth = false;
+    this.identifierPhase = "email";
     if (step !== "mfa") {
       this.challenge = null;
       this.mfaAutoStarted = false;
@@ -333,9 +382,19 @@ export class AuthUISignIn extends AuthUIElement {
     void this.run(async () => {
       await authStore.signInWithEmailPassword(this.email, this.password);
       this.password = "";
+      this.identifierPhase = "email";
       rememberLastMethod("email-password");
       this.fire("authui-success", { method: "email-password" });
     });
+  };
+
+  /** Identifier-first: email step → Continue advances to the password step. */
+  private onIdentifierContinue = (e: Event) => {
+    e.preventDefault();
+    if (!this.requireValid(e)) return;
+    this.error = "";
+    this.identifierPhase = "password";
+    this.focusOnStep = true;
   };
 
   private onSignUp = (e: Event) => {
@@ -1115,6 +1174,8 @@ export class AuthUISignIn extends AuthUIElement {
     const emailPassword = m.emailPassword !== false;
     const hasProviders = (m.oauth?.length ?? 0) > 0;
     const markLast = showLastUsedBadge(m) ? getLastMethod() : null;
+    const identifierFirst = !!this.config?.identifierFirst;
+    const onPasswordStep = identifierFirst && this.identifierPhase === "password";
     const passwordless = [
       m.magicUrl
         ? { step: "magic-url" as Step, icon: icons.link, label: this.t("sendMagicLink") }
@@ -1127,36 +1188,41 @@ export class AuthUISignIn extends AuthUIElement {
         : null,
     ].filter(Boolean) as { step: Step; icon: TemplateResult; label: string }[];
 
+    // OAuth + passwordless + guest stay on the identifier step (Clerk-like).
+    const showChrome = !onPasswordStep;
+
     return html`
       <div class="stack">
-        ${this.renderProviders()}
+        ${showChrome ? this.renderProviders() : nothing}
         ${
-          hasProviders && (emailPassword || passwordless.length > 0)
+          showChrome && hasProviders && (emailPassword || passwordless.length > 0)
             ? html`<div class="separator-text">${this.t("or")}</div>`
             : nothing
         }
         ${
           emailPassword
-            ? html`<form
-                class="form ${markLast === "email-password" ? "last-used-form" : ""}"
-                @submit=${this.onSignIn}
-                novalidate
-              >
-                ${
-                  markLast === "email-password"
-                    ? html`<p class="hint">
-                        <span class="last-used-badge">${this.t("lastUsed")}</span>
-                      </p>`
-                    : nothing
-                }
-                ${this.emailField()}
-                ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
-                ${this.renderError()} ${this.submitButton(this.t("signIn"))}
-              </form>`
+            ? identifierFirst
+              ? this.renderIdentifierFirstForm(markLast)
+              : html`<form
+                  class="form ${markLast === "email-password" ? "last-used-form" : ""}"
+                  @submit=${this.onSignIn}
+                  novalidate
+                >
+                  ${
+                    markLast === "email-password"
+                      ? html`<p class="hint">
+                          <span class="last-used-badge">${this.t("lastUsed")}</span>
+                        </p>`
+                      : nothing
+                  }
+                  ${this.emailField()}
+                  ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
+                  ${this.renderError()} ${this.submitButton(this.t("signIn"))}
+                </form>`
             : this.renderError()
         }
         ${
-          passwordless.length > 0
+          showChrome && passwordless.length > 0
             ? html`<div class="stack-sm">
                 ${passwordless.map((p) => {
                   const isLast = markLast === p.step;
@@ -1174,7 +1240,7 @@ export class AuthUISignIn extends AuthUIElement {
             : nothing
         }
         ${
-          m.anonymous
+          showChrome && m.anonymous
             ? html`<button
                 type="button"
                 class="btn btn-ghost btn-block ${markLast === "anonymous" ? "last-used" : ""}"
@@ -1203,6 +1269,55 @@ export class AuthUISignIn extends AuthUIElement {
         ${this.legal()}
       </div>
     `;
+  }
+
+  /** Identifier-first email → Continue → password form. */
+  private renderIdentifierFirstForm(markLast: string | null): TemplateResult {
+    if (this.identifierPhase === "email") {
+      return html`<form
+        class="form ${markLast === "email-password" ? "last-used-form" : ""}"
+        @submit=${this.onIdentifierContinue}
+        novalidate
+      >
+        ${
+          markLast === "email-password"
+            ? html`<p class="hint">
+                <span class="last-used-badge">${this.t("lastUsed")}</span>
+              </p>`
+            : nothing
+        }
+        ${this.emailField()} ${this.renderError()} ${this.submitButton(this.t("continue"))}
+      </form>`;
+    }
+    return html`<form class="form" @submit=${this.onSignIn} novalidate>
+      <div class="field">
+        <label class="label" for="authui-email">${this.t("email")}</label>
+        <input
+          class="input"
+          id="authui-email"
+          type="email"
+          autocomplete="username"
+          readonly
+          .value=${this.email}
+        />
+      </div>
+      ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
+      ${this.renderError()} ${this.submitButton(this.t("signIn"))}
+      <div class="links">
+        <button
+          type="button"
+          class="btn btn-link"
+          @click=${() => {
+            this.identifierPhase = "email";
+            this.password = "";
+            this.error = "";
+            this.focusOnStep = true;
+          }}
+        >
+          ${this.t("useDifferentEmail")}
+        </button>
+      </div>
+    </form>`;
   }
 
   private renderSignUp(): TemplateResult {

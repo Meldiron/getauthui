@@ -70,3 +70,11 @@ With three or more providers the default layout is an accordion of compact butto
 ## Legal acceptance
 
 When `legal.requireAcceptance` is true and at least one of `termsUrl` / `privacyUrl` is set, sign-up shows a required checkbox. Submit and OAuth stay blocked until it is checked. Other screens keep the passive legal footer.
+
+## Identifier-first
+
+When the store config has `identifierFirst: true` (set on `<authui-config identifier-first>` or `AuthUI.init`), this panel shows email then Continue, then password. OAuth and passwordless stay on the first step. See [Sign-in methods](/docs/sign-in-methods#identifier-first-sign-in).
+
+## Google One Tap
+
+When `oneTap` is enabled with `googleClientId`, this panel soft-prompts Google One Tap while signed out on sign-in and sign-up. See [Sign-in methods](/docs/sign-in-methods#google-one-tap).

@@ -37,6 +37,18 @@ export { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 export type { PasswordStrength, PasswordStrengthLevel } from "./password-strength.js";
 export { PreviewAccount } from "./preview.js";
 export { defaultStrings, providerLabel } from "./i18n.js";
+export {
+  getLocalePack,
+  localePacks,
+  mergeStrings,
+  resolveLocale,
+  supportedLocales,
+} from "./locales/index.js";
+export {
+  loadGoogleIdentityServices,
+  promptGoogleOneTap,
+  resetOneTapPromptState,
+} from "./one-tap.js";
 
 /**
  * The Appwrite Web SDK Auth UI is built on, re-exported so script-tag users can reach

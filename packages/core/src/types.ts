@@ -156,6 +156,30 @@ export interface AuthUIConfig {
   /** Override any UI string. */
   strings?: Partial<AuthUIStrings>;
   /**
+   * Built-in locale pack (BCP-47 short tag). Shipped: `en` (default), `cs`, `de`, `fr`.
+   * Merge order: English defaults ← locale pack ← `strings` override.
+   * Unknown tags fall back to English.
+   */
+  locale?: string;
+  /**
+   * When true, prompt Google One Tap on signed-out sign-in / sign-up mounts.
+   * Requires `googleClientId`. Soft-fails if GIS is blocked or the user dismisses.
+   * Does not replace the Google OAuth button. Default: false.
+   */
+  oneTap?: boolean;
+  /**
+   * Google OAuth 2.0 Web client ID for One Tap (from Google Cloud Console).
+   * Appwrite stores its own Google provider credentials server-side and does not
+   * expose them to the client, so this must be set explicitly when `oneTap` is on.
+   */
+  googleClientId?: string;
+  /**
+   * When true, sign-in shows email then Continue, then password (Clerk-style).
+   * OAuth and passwordless stay on step 1. Sign-up keeps email+password together.
+   * Default: false.
+   */
+  identifierFirst?: boolean;
+  /**
    * Preview mode: no requests are made. Any email, password or code is accepted and a
    * sample user with sessions, identities, MFA and logs is used, so every screen can be
    * explored in a playground, design review or Storybook. Never enable in production.

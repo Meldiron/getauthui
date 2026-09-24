@@ -46,6 +46,14 @@ export class AuthUIConfigElement extends LitElement {
   /** OAuth button layout: stack | accordion | icon | horizontal. */
   @property({ type: String, attribute: "oauth-layout" }) oauthLayout = "";
   @property({ type: String }) preview = "";
+  /** Built-in locale pack: en (default), cs, de, fr. */
+  @property({ type: String }) locale = "";
+  /** When "true", auto-prompt Google One Tap on signed-out sign-in/sign-up. */
+  @property({ type: String, attribute: "one-tap" }) oneTap = "";
+  /** Google OAuth Web client ID for One Tap (required when one-tap is on). */
+  @property({ type: String, attribute: "google-client-id" }) googleClientId = "";
+  /** When "true", sign-in uses email → Continue → password. */
+  @property({ type: String, attribute: "identifier-first" }) identifierFirst = "";
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -113,6 +121,11 @@ export class AuthUIConfigElement extends LitElement {
           this.requireAcceptance !== "" && this.requireAcceptance !== "false" ? true : undefined,
       },
       preview: this.preview === "" || this.preview === "false" ? undefined : true,
+      locale: this.locale.trim() || undefined,
+      oneTap: this.oneTap !== "" && this.oneTap !== "false" ? true : undefined,
+      googleClientId: this.googleClientId.trim() || undefined,
+      identifierFirst:
+        this.identifierFirst !== "" && this.identifierFirst !== "false" ? true : undefined,
     };
   }
 }

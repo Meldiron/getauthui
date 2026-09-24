@@ -5,7 +5,7 @@ description: What each method does, what Appwrite needs for it, and how the user
 
 ## Email and password
 
-The default. The sign-in screen shows email and password fields with a "Forgot password?" link and, when `signUp` is enabled, a link to the sign-up screen. Sign up creates the account with `account.create()` and immediately signs in.
+The default. The sign-in screen shows email and password fields with a "Forgot password?" link and, when `signUp` is enabled, a link to the sign-up screen. Sign up creates the account with `account.create()` and immediately signs in. Set `identifierFirst` to split sign-in into email → Continue → password (see below); sign-up stays one step.
 
 Password rules come from your project: minimum length, dictionary check, personal data check, password history and the breached-password check are all enforced by Appwrite. Auth UI maps each rejection to a specific message.
 
@@ -35,9 +35,33 @@ Configure the provider's client ID and secret in the Appwrite Console under **Au
 
 Signed-in users can connect additional providers from the **Connections** tab of the account screen and disconnect them again. Third-party apps the user has authorized appear under **Authorized apps** (OAuth2 consents) when the server exposes `/account/consents`.
 
+## Google One Tap
+
+Optional auto-prompt on signed-out **sign-in** and **sign-up** mounts. Enable with `oneTap: true` and pass your Google OAuth **Web** client ID as `googleClientId` (from Google Cloud Console → Credentials). Appwrite stores Google provider secrets server-side and does not expose them to the browser, so the client ID must be set explicitly.
+
+```html
+<authui-config
+  endpoint="https://cloud.appwrite.io/v1"
+  project="YOUR_PROJECT_ID"
+  methods="email-password oauth:google"
+  one-tap="true"
+  google-client-id="YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
+></authui-config>
+```
+
+Auth UI loads `https://accounts.google.com/gsi/client` once, calls `google.accounts.id.initialize` + `prompt`, and on credential passes the ID token into `createIdTokenSession({ provider: "google", idToken })` then discards it from component state. Keep `oauth:google` as a visible fallback: One Tap is passive and browsers may hide it (FedCM cool-down, dismissed, third-party cookies). Soft-fails never break email/password or OAuth buttons.
+
+**CSP:** allow `https://accounts.google.com` in `script-src` and `frame-src` (and often `connect-src`). See [Security notes](/docs/guides/security).
+
+**Manual QA:** signed-out mount with Google account in the browser → One Tap chrome appears → credential creates an Appwrite session. Dismiss or block GIS → form still works. Missing `googleClientId` → console warning, no prompt.
+
 ## Native ID token (bridges)
 
-For Capacitor, WebView or Google One Tap style bridges, call `authStore.createIdTokenSession({ provider, idToken, nonce?, accessToken?, accessTokenExpiry?, name? })` after the native SDK returns an OIDC JWT. This is not a sign-in button in Auth UI; it creates a session the same way other sign-in paths do, then refreshes state and fires `signed-in`. Soft-detects missing routes on older Appwrite.
+For Capacitor, WebView or custom One Tap bridges, call `authStore.createIdTokenSession({ provider, idToken, nonce?, accessToken?, accessTokenExpiry?, name? })` after the native SDK returns an OIDC JWT. The built-in `oneTap` attribute covers the browser GIS prompt; use this API for native shells. Soft-detects missing routes on older Appwrite.
+
+## Identifier-first sign-in
+
+When `identifierFirst` is true (attribute `identifier-first`), sign-in shows **email → Continue → password** instead of both fields at once. OAuth, magic URL, email OTP, phone and guest stay on step 1. The password step shows the email (read-only), password, Sign in, and a "Use a different email" control. Sign-up keeps email and password together so account creation stays a single form. Pure client progressive disclosure; no Appwrite user-lookup API.
 
 ## MFA
 

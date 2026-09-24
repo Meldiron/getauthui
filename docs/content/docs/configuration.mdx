@@ -7,30 +7,34 @@ Call `AuthUI.init(config)` or place an `<authui-config>` element. Both write to 
 
 ## Options
 
-| Option                       | Attribute            | Type                                          | Default        | Description                                                                                                      |
-| ---------------------------- | -------------------- | --------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `endpoint`                   | `endpoint`           | `string`                                      | required       | Appwrite API endpoint, e.g. `https://cloud.appwrite.io/v1`.                                                      |
-| `project`                    | `project`            | `string`                                      | required       | Appwrite project ID.                                                                                             |
-| `redirectUrl`                | `redirect-url`       | `string`                                      | current page   | Absolute URL that email links and OAuth return to. Must be on a registered platform.                             |
-| `successUrl`                 | `success-url`        | `string`                                      | none           | Navigate here after a successful sign in. Without it the page stays put and the modal closes.                    |
-| `methods`                    | `methods`            | object / list                                 | email-password | Which sign-in methods to show. See below.                                                                        |
-| `signUp`                     | `sign-up`            | `boolean`                                     | `true`         | Show the sign-up link and screen.                                                                                |
-| `requireName`                | `require-name`       | `boolean`                                     | `true`         | Ask for a display name during sign up.                                                                           |
-| `mfa`                        | `mfa`                | `boolean`                                     | `true`         | Let users enroll and manage MFA from the account screen.                                                         |
-| `securityPhrase`             | `security-phrase`    | `boolean`                                     | `true`         | Request a security phrase for magic URL and email OTP and show it in the UI.                                     |
-| `oauthScopes`                | none                 | object                                        | none           | Extra scopes per provider, e.g. `{ google: ["profile"] }`.                                                       |
-| `branding.name`              | `name`               | `string`                                      | none           | Product name used in headings.                                                                                   |
-| `branding.logo`              | `logo`               | `string`                                      | none           | Logo URL rendered above the form.                                                                                |
-| `branding.theme`             | `theme`              | `light` / `dark` / `auto`                     | `auto`         | Colour scheme. `auto` follows an `html.dark` class, then `prefers-color-scheme`.                                 |
-| `branding.radius`            | `radius`             | `none` / `sm` / `md` / `lg` / `xl` / `full`   | `md`           | Corner radius scale.                                                                                             |
-| `branding.primary`           | `primary`            | CSS colour                                    | zinc           | Primary button colour.                                                                                           |
-| `branding.primaryForeground` | `primary-foreground` | CSS colour                                    | white          | Text colour on primary buttons.                                                                                  |
-| `legal.termsUrl`             | `terms-url`          | `string`                                      | none           | Adds a Terms of Service link under the form.                                                                     |
-| `legal.privacyUrl`           | `privacy-url`        | `string`                                      | none           | Adds a Privacy Policy link under the form.                                                                       |
-| `legal.requireAcceptance`    | `require-acceptance` | `boolean`                                     | `false`        | On sign-up, require a checkbox accepting terms/privacy before submit or OAuth.                                   |
-| `methods.oauthLayout`        | `oauth-layout`       | `stack` / `accordion` / `icon` / `horizontal` | auto           | OAuth button layout. Default: stack for 1–2 providers, accordion for 3+. `icon` / `horizontal` = icon row.       |
-| `strings`                    | none                 | object                                        | English        | Override any UI string. See [Theming](/docs/theming#strings).                                                    |
-| `preview`                    | `preview`            | `boolean`                                     | `false`        | Preview mode: no requests, any credentials accepted, sample data. See [Preview mode](/docs/guides/preview-mode). |
+| Option                       | Attribute            | Type                                          | Default        | Description                                                                                                        |
+| ---------------------------- | -------------------- | --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `endpoint`                   | `endpoint`           | `string`                                      | required       | Appwrite API endpoint, e.g. `https://cloud.appwrite.io/v1`.                                                        |
+| `project`                    | `project`            | `string`                                      | required       | Appwrite project ID.                                                                                               |
+| `redirectUrl`                | `redirect-url`       | `string`                                      | current page   | Absolute URL that email links and OAuth return to. Must be on a registered platform.                               |
+| `successUrl`                 | `success-url`        | `string`                                      | none           | Navigate here after a successful sign in. Without it the page stays put and the modal closes.                      |
+| `methods`                    | `methods`            | object / list                                 | email-password | Which sign-in methods to show. See below.                                                                          |
+| `signUp`                     | `sign-up`            | `boolean`                                     | `true`         | Show the sign-up link and screen.                                                                                  |
+| `requireName`                | `require-name`       | `boolean`                                     | `true`         | Ask for a display name during sign up.                                                                             |
+| `mfa`                        | `mfa`                | `boolean`                                     | `true`         | Let users enroll and manage MFA from the account screen.                                                           |
+| `securityPhrase`             | `security-phrase`    | `boolean`                                     | `true`         | Request a security phrase for magic URL and email OTP and show it in the UI.                                       |
+| `oauthScopes`                | none                 | object                                        | none           | Extra scopes per provider, e.g. `{ google: ["profile"] }`.                                                         |
+| `branding.name`              | `name`               | `string`                                      | none           | Product name used in headings.                                                                                     |
+| `branding.logo`              | `logo`               | `string`                                      | none           | Logo URL rendered above the form.                                                                                  |
+| `branding.theme`             | `theme`              | `light` / `dark` / `auto`                     | `auto`         | Colour scheme. `auto` follows an `html.dark` class, then `prefers-color-scheme`.                                   |
+| `branding.radius`            | `radius`             | `none` / `sm` / `md` / `lg` / `xl` / `full`   | `md`           | Corner radius scale.                                                                                               |
+| `branding.primary`           | `primary`            | CSS colour                                    | zinc           | Primary button colour.                                                                                             |
+| `branding.primaryForeground` | `primary-foreground` | CSS colour                                    | white          | Text colour on primary buttons.                                                                                    |
+| `legal.termsUrl`             | `terms-url`          | `string`                                      | none           | Adds a Terms of Service link under the form.                                                                       |
+| `legal.privacyUrl`           | `privacy-url`        | `string`                                      | none           | Adds a Privacy Policy link under the form.                                                                         |
+| `legal.requireAcceptance`    | `require-acceptance` | `boolean`                                     | `false`        | On sign-up, require a checkbox accepting terms/privacy before submit or OAuth.                                     |
+| `methods.oauthLayout`        | `oauth-layout`       | `stack` / `accordion` / `icon` / `horizontal` | auto           | OAuth button layout. Default: stack for 1–2 providers, accordion for 3+. `icon` / `horizontal` = icon row.         |
+| `strings`                    | none                 | object                                        | English        | Override any UI string. Applied after the locale pack. See [Theming](/docs/theming#strings).                       |
+| `locale`                     | `locale`             | `en` / `cs` / `de` / `fr`                     | `en`           | Built-in locale pack. Unknown tags fall back to English. See [Theming](/docs/theming#locale).                      |
+| `oneTap`                     | `one-tap`            | `boolean`                                     | `false`        | Auto-prompt Google One Tap on signed-out sign-in/sign-up. Requires `googleClientId`. Soft-fails if GIS is blocked. |
+| `googleClientId`             | `google-client-id`   | `string`                                      | none           | Google OAuth Web client ID for One Tap (from Google Cloud). Appwrite does not expose provider client IDs.          |
+| `identifierFirst`            | `identifier-first`   | `boolean`                                     | `false`        | Sign-in shows email then Continue, then password. OAuth stays on step 1. Sign-up keeps email+password together.    |
+| `preview`                    | `preview`            | `boolean`                                     | `false`        | Preview mode: no requests, any credentials accepted, sample data. See [Preview mode](/docs/guides/preview-mode).   |
 
 ## Methods
 
@@ -72,6 +76,10 @@ AuthUI.init({
   signUp: true,
   branding: { name: "Acme", logo: "/logo.svg", theme: "auto", radius: "lg", primary: "#fd366e" },
   legal: { termsUrl: "/terms", privacyUrl: "/privacy", requireAcceptance: true },
+  locale: "de",
+  oneTap: true,
+  googleClientId: "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+  identifierFirst: true,
   strings: { signIn: "Log in", continueAsGuest: "Try without an account" },
 });
 ```

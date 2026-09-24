@@ -19,6 +19,7 @@ function call<T>(target: object, names: string[], args: unknown[]): Promise<T> {
 
 export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
 import { defaultStrings } from "./i18n.js";
+import { mergeStrings } from "./locales/index.js";
 import { PreviewAccount } from "./preview.js";
 import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
@@ -178,7 +179,7 @@ export class AuthStore {
   }
 
   getStrings(): AuthUIStrings {
-    return { ...defaultStrings, ...(this.config?.strings ?? {}) };
+    return mergeStrings(defaultStrings, this.config?.locale, this.config?.strings);
   }
 
   getState(): AuthUIState {
