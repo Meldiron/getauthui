@@ -368,4 +368,29 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
     expect(list).toHaveLength(1);
     expect(list[0]!.appId).toBe("app1");
   });
+
+  it("loads app branding via REST when Apps SDK is not exported", async () => {
+    const clientCall = (account as AccountMock & { clientCall: ReturnType<typeof vi.fn> })
+      .clientCall;
+    clientCall.mockResolvedValueOnce({
+      $id: "app1",
+      name: "Acme Docs",
+      logoUri: "https://example.com/acme.png",
+      tagline: "Ship faster",
+    });
+    account.state.user = { $id: "u1", email: "a@b.co", name: "Test" };
+    authStore.configure(config);
+    await authStore.refresh();
+    const app = await authStore.getApp("app1");
+    expect(app.name).toBe("Acme Docs");
+    expect(app.logoUri).toBe("https://example.com/acme.png");
+    expect(clientCall).toHaveBeenCalled();
+    const [, uri] = clientCall.mock.calls[0]!;
+    expect(String(uri)).toContain("/apps/app1");
+    // Cached: second call does not hit the network again.
+    clientCall.mockClear();
+    const again = await authStore.getApp("app1");
+    expect(again.name).toBe("Acme Docs");
+    expect(clientCall).not.toHaveBeenCalled();
+  });
 });

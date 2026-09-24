@@ -391,6 +391,15 @@ export class PreviewAccount {
     return this.delay({});
   }
 
+  async getApp(appId: string) {
+    return this.delay(() => ({
+      $id: appId,
+      name: "Preview App",
+      logoUri: "",
+      tagline: "",
+    }));
+  }
+
   async getPrefs() {
     return this.delay(() => ({ ...(this.requireUser().prefs as object) }) as Models.Preferences);
   }

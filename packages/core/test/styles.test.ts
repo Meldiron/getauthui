@@ -22,6 +22,12 @@ describe("shared layout styles", () => {
     );
   });
 
+  it("positions alert dismiss absolutely so it is not a third grid item", () => {
+    const cssText = String(base);
+    expect(cssText).toMatch(/\.alert\s+\.dismiss\s*\{[^}]*position:\s*absolute/s);
+    expect(cssText).toMatch(/\.alert:has\(\.dismiss\)\s*\{[^}]*padding-inline-end:\s*36px/s);
+  });
+
   it("keeps error alert body on the full error foreground for contrast", () => {
     const cssText = String(base);
     expect(cssText).toMatch(

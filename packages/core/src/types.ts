@@ -163,6 +163,14 @@ export interface AuthUIConfig {
   preview?: boolean;
 }
 
+/** Minimal OAuth2 app branding from GET /v1/apps/{appId} (Apps.get). */
+export interface AuthUIApp {
+  $id: string;
+  name: string;
+  logoUri?: string;
+  tagline?: string;
+}
+
 export type AuthUIStatus = "loading" | "signed-out" | "signed-in" | "mfa-required";
 
 /** Something the widget must finish after a redirect, e.g. password reset. */

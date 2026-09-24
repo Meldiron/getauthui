@@ -1,4 +1,5 @@
 import { Account, Client, ID, Teams, type Models } from "appwrite";
+import * as AppwriteSdk from "appwrite";
 
 /**
  * Appwrite renamed several Account methods in 1.8 (e.g. createMfaAuthenticator became
@@ -23,6 +24,7 @@ import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } 
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 import { clearPendingOAuth, rememberLastMethod, rememberPendingOAuth } from "./last-method.js";
 import type {
+  AuthUIApp,
   AuthUIConfig,
   AuthUIEventMap,
   AuthUIEventName,
@@ -75,6 +77,7 @@ export class AuthStore {
     this.preview = config.preview ? new PreviewAccount() : null;
     this.account = this.preview ? (this.preview as unknown as Account) : new Account(this.client);
     this.teams = null;
+    this.appCache.clear();
     this.activeTeamId = getStoredActiveTeamId(config.project);
     this.setState({ configured: true, status: "loading", configError: null });
     if (this.preview) {
@@ -140,6 +143,8 @@ export class AuthStore {
 
   private teams: Teams | null = null;
   private activeTeamId: string | null = null;
+  /** In-flight / resolved Apps.get lookups keyed by appId. */
+  private appCache = new Map<string, Promise<AuthUIApp>>();
 
   /** List teams the signed-in user belongs to. Empty in preview or when signed out. */
   async listTeams(): Promise<Models.Team<Models.Preferences>[]> {
@@ -894,6 +899,64 @@ export class AuthStore {
     }
   }
 
+  /**
+   * Fetch OAuth2 app branding (name, logoUri, tagline) for authorized-apps rows.
+   * Soft-detects an Apps SDK service when the host's appwrite package exports it;
+   * otherwise GET /apps/{appId} via Client.call (SDK 27 does not ship Apps yet).
+   * Does not emit a global error on failure; callers soft-fail per appId.
+   */
+  async getApp(appId: string): Promise<AuthUIApp> {
+    const trimmed = appId.trim();
+    if (!trimmed) throw new Error(this.getStrings().errorNotConfigured);
+
+    const cached = this.appCache.get(trimmed);
+    if (cached) return cached;
+
+    const pending = this.fetchApp(trimmed);
+    this.appCache.set(trimmed, pending);
+    pending.catch(() => {
+      // Allow a later retry after a transient failure.
+      if (this.appCache.get(trimmed) === pending) this.appCache.delete(trimmed);
+    });
+    return pending;
+  }
+
+  private async fetchApp(appId: string): Promise<AuthUIApp> {
+    if (this.preview) {
+      return this.preview.getApp(appId);
+    }
+    const client = this.accountClient();
+
+    // Soft-detect Apps when the installed SDK exports it (absent in appwrite@27).
+    const AppsCtor = Reflect.get(AppwriteSdk, "Apps") as
+      (new (c: Client) => { get(p: { appId: string }): Promise<AuthUIApp> }) | undefined;
+    if (typeof AppsCtor === "function") {
+      const apps = new AppsCtor(client);
+      if (typeof apps.get === "function") {
+        const app = await apps.get({ appId });
+        return {
+          $id: app.$id,
+          name: app.name,
+          logoUri: app.logoUri || undefined,
+          tagline: app.tagline || undefined,
+        };
+      }
+    }
+
+    const endpoint = String(client.config.endpoint).replace(/\/+$/, "");
+    const uri = new URL(`${endpoint}/apps/${encodeURIComponent(appId)}`);
+    const apiHeaders: Record<string, string> = {
+      accept: "application/json",
+    };
+    const app = (await client.call("get", uri, apiHeaders, {})) as AuthUIApp;
+    return {
+      $id: app.$id,
+      name: app.name,
+      logoUri: app.logoUri || undefined,
+      tagline: app.tagline || undefined,
+    };
+  }
+
   /** Blocks the account and ends the session. Appwrite keeps the record so an admin can restore it. */
   async deleteAccount(): Promise<void> {
     try {
@@ -1012,6 +1075,7 @@ export class AuthStore {
     this.client = null;
     this.account = null;
     this.teams = null;
+    this.appCache.clear();
     this.activeTeamId = null;
     this.preview = null;
     this.config = null;

@@ -511,6 +511,19 @@ export const base = css`
     background: var(--authui-card);
     color: var(--authui-card-foreground);
   }
+  /* Keep dismiss out of the 2-column grid (icon + body). Absolute top-right. */
+  .alert .dismiss {
+    position: absolute;
+    top: 4px;
+    inset-inline-end: 4px;
+    width: 28px;
+    height: 28px;
+  }
+  .alert .dismiss svg {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+  }
   .alert svg {
     width: 16px;
     height: 16px;

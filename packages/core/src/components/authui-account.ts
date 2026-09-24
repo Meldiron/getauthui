@@ -8,7 +8,6 @@ import { describeError, ErrorTypes, isErrorType } from "../errors.js";
 import { avatarPhotoUrl } from "../avatar-photo.js";
 import { avatarInitial, icons, providerIcon } from "../icons.js";
 import { providerLabel } from "../i18n.js";
-import { scorePassword } from "../password-strength.js";
 import {
   PHONE_COUNTRIES,
   defaultPhoneCountryIso,
@@ -19,6 +18,7 @@ import {
 import { otpInput } from "../otp-input.js";
 import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
 import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
+import type { AuthUIApp } from "../types.js";
 
 type Tab = "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
 
@@ -186,6 +186,9 @@ export class AuthUIAccount extends AuthUIElement {
         width: 10px;
         height: 10px;
       }
+      .consents-list .row {
+        padding: 8px 0;
+      }
       .session-dates {
         display: block;
         font-size: 11px;
@@ -295,6 +298,9 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private consentsSupported: boolean | null = null;
   private consentsProbeStarted = false;
   @state() private confirmRevokeConsentId: string | null = null;
+  /** appId -> branding from apps.get; null means fetch failed (soft-fallback). */
+  @state() private consentApps: Record<string, AuthUIApp | null> = {};
+  @state() private consentLogoFailed: Record<string, true> = {};
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -514,6 +520,7 @@ export class AuthUIAccount extends AuthUIElement {
     try {
       this.consents = await authStore.listConsents();
       this.consentsSupported = true;
+      await this.enrichConsentsApps(this.consents);
     } catch {
       this.consentsSupported = false;
       this.consents = [];
@@ -530,6 +537,7 @@ export class AuthUIAccount extends AuthUIElement {
     try {
       this.consents = await authStore.listConsents();
       this.consentsSupported = true;
+      await this.enrichConsentsApps(this.consents);
     } catch {
       this.consentsSupported = false;
       this.consents = [];
@@ -537,6 +545,26 @@ export class AuthUIAccount extends AuthUIElement {
     } finally {
       this.busy = "";
     }
+  }
+
+  /** Parallel apps.get for each distinct appId; soft-fail and cache per id. */
+  private async enrichConsentsApps(list: Models.Oauth2Consent[]): Promise<void> {
+    const ids = [...new Set(list.map((c) => (c.appId || "").trim()).filter((id) => id.length > 0))];
+    const missing = ids.filter((id) => !(id in this.consentApps));
+    if (missing.length === 0) return;
+    const results = await Promise.all(
+      missing.map(async (appId) => {
+        try {
+          const app = await authStore.getApp(appId);
+          return [appId, app] as const;
+        } catch {
+          return [appId, null] as const;
+        }
+      })
+    );
+    const next = { ...this.consentApps };
+    for (const [appId, app] of results) next[appId] = app;
+    this.consentApps = next;
   }
 
   private factorsLoading = false;
@@ -1223,28 +1251,7 @@ export class AuthUIAccount extends AuthUIElement {
                 @input=${this.bind("emailPassword")}
                 autocomplete="new-password"
               />
-              ${
-                this.emailPassword
-                  ? (() => {
-                      const strength = scorePassword(this.emailPassword);
-                      return html`<div class="strength" aria-live="polite">
-                        <div
-                          class="strength-meter"
-                          data-level=${String(strength.level)}
-                          role="meter"
-                          aria-label=${this.t("passwordStrengthLabel")}
-                          aria-valuemin="0"
-                          aria-valuemax="4"
-                          aria-valuenow=${String(strength.level)}
-                          aria-valuetext=${this.t(strength.labelKey)}
-                        >
-                          <span></span><span></span><span></span><span></span>
-                        </div>
-                        <p class="strength-label">${this.t(strength.labelKey)}</p>
-                      </div>`;
-                    })()
-                  : html`<p class="hint">${this.t("passwordHint")}</p>`
-              }
+              <p class="hint">${this.t("passwordHint")}</p>
             </div>
             ${this.error("guest")}
           </form>`,
@@ -1686,28 +1693,7 @@ export class AuthUIAccount extends AuthUIElement {
                       ${this.showNewPassword ? icons.eyeOff : icons.eye}
                     </button>
                   </div>
-                  ${
-                    this.newPassword
-                      ? (() => {
-                          const strength = scorePassword(this.newPassword);
-                          return html`<div class="strength" aria-live="polite">
-                            <div
-                              class="strength-meter"
-                              data-level=${String(strength.level)}
-                              role="meter"
-                              aria-label=${this.t("passwordStrengthLabel")}
-                              aria-valuemin="0"
-                              aria-valuemax="4"
-                              aria-valuenow=${String(strength.level)}
-                              aria-valuetext=${this.t(strength.labelKey)}
-                            >
-                              <span></span><span></span><span></span><span></span>
-                            </div>
-                            <p class="strength-label">${this.t(strength.labelKey)}</p>
-                          </div>`;
-                        })()
-                      : html`<p class="hint">${this.t("passwordHint")}</p>`
-                  }
+                  <p class="hint">${this.t("passwordHint")}</p>
                 </div>
                 <div class="field">
                   <label class="label" for="acc-new-password-confirm"
@@ -2492,7 +2478,12 @@ export class AuthUIAccount extends AuthUIElement {
   // ── Consents ──
 
   private consentClientLabel(c: Models.Oauth2Consent): string {
-    if (c.appId) return c.appId;
+    const appId = (c.appId || "").trim();
+    if (appId) {
+      const app = this.consentApps[appId];
+      if (app?.name) return app.name;
+      return appId;
+    }
     if (c.cimdUrl) {
       try {
         return new URL(c.cimdUrl).hostname || c.cimdUrl;
@@ -2501,6 +2492,24 @@ export class AuthUIAccount extends AuthUIElement {
       }
     }
     return this.t("consents");
+  }
+
+  private consentAppIcon(c: Models.Oauth2Consent): TemplateResult {
+    const appId = (c.appId || "").trim();
+    const app = appId ? this.consentApps[appId] : null;
+    const logoUri = app?.logoUri?.trim() || "";
+    if (logoUri && !this.consentLogoFailed[logoUri]) {
+      return html`<span class="device"
+        ><img
+          class="device-img"
+          src=${logoUri}
+          alt=""
+          @error=${() => {
+            this.consentLogoFailed = { ...this.consentLogoFailed, [logoUri]: true };
+          }}
+      /></span>`;
+    }
+    return html`<span class="device">${icons.globe}</span>`;
   }
 
   private renderConsents(): TemplateResult {
@@ -2515,52 +2524,56 @@ export class AuthUIAccount extends AuthUIElement {
             ? html`<div class="empty"><span class="spinner"></span></div>`
             : list.length === 0
               ? this.emptyState(icons.globe, this.t("noConsents"), this.t("noConsentsDescription"))
-              : list.map((c) => {
-                  const createdRel = this.formatRelativeLabel(c.$createdAt);
-                  const scopes = (c.scopes ?? []).filter(Boolean);
-                  return html`<div class="row">
-                    <div class="inline">
-                      <span class="device">${icons.globe}</span>
-                      <div class="row-main">
-                        <span class="row-title">${this.consentClientLabel(c)}</span>
-                        ${
-                          scopes.length
-                            ? html`<span class="row-sub"
-                                >${this.t("consentScopes", {
-                                  scopes: scopes.join(", "),
-                                })}</span
-                              >`
-                            : nothing
-                        }
-                        ${
-                          createdRel
-                            ? html`<span class="row-sub"
-                                ><time datetime=${createdRel.iso} title=${createdRel.absolute}
-                                  >${this.t("consentCreated", {
-                                    date: createdRel.label,
-                                  })}</time
-                                ></span
-                              >`
-                            : nothing
-                        }
+              : html`<div class="consents-list">
+                  ${list.map((c) => {
+                    const createdRel = this.formatRelativeLabel(c.$createdAt);
+                    return html`<div class="row">
+                      <div class="inline">
+                        ${this.consentAppIcon(c)}
+                        <div class="row-main">
+                          <span class="row-title">${this.consentClientLabel(c)}</span>
+                          ${
+                            createdRel
+                              ? html`<span class="row-sub"
+                                  ><time datetime=${createdRel.iso} title=${createdRel.absolute}
+                                    >${this.t("consentCreated", {
+                                      date: createdRel.label,
+                                    })}</time
+                                  ></span
+                                >`
+                              : nothing
+                          }
+                        </div>
                       </div>
-                    </div>
-                    <div class="row-actions">
-                      ${
-                        this.confirmRevokeConsentId === c.$id
-                          ? html`<div class="inline">
-                              <button
-                                type="button"
-                                class="btn btn-outline btn-sm"
-                                autofocus
-                                ?disabled=${!!this.busy}
-                                @click=${() => (this.confirmRevokeConsentId = null)}
-                              >
-                                ${this.t("cancel")}
-                              </button>
-                              <button
-                                type="button"
-                                class="btn btn-destructive btn-sm"
+                      <div class="row-actions">
+                        ${
+                          this.confirmRevokeConsentId === c.$id
+                            ? html`<div class="inline">
+                                <button
+                                  type="button"
+                                  class="btn btn-outline btn-sm"
+                                  autofocus
+                                  ?disabled=${!!this.busy}
+                                  @click=${() => (this.confirmRevokeConsentId = null)}
+                                >
+                                  ${this.t("cancel")}
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-destructive btn-sm"
+                                  @click=${() => this.onDeleteConsent(c.$id)}
+                                  ?disabled=${!!this.busy}
+                                >
+                                  ${
+                                    this.busy === `consent-${c.$id}`
+                                      ? html`<span class="spinner"></span>`
+                                      : nothing
+                                  }
+                                  ${this.t("revokeConsent")}
+                                </button>
+                              </div>`
+                            : html`<button
+                                class="btn btn-ghost btn-sm"
                                 @click=${() => this.onDeleteConsent(c.$id)}
                                 ?disabled=${!!this.busy}
                               >
@@ -2570,24 +2583,12 @@ export class AuthUIAccount extends AuthUIElement {
                                     : nothing
                                 }
                                 ${this.t("revokeConsent")}
-                              </button>
-                            </div>`
-                          : html`<button
-                              class="btn btn-ghost btn-sm"
-                              @click=${() => this.onDeleteConsent(c.$id)}
-                              ?disabled=${!!this.busy}
-                            >
-                              ${
-                                this.busy === `consent-${c.$id}`
-                                  ? html`<span class="spinner"></span>`
-                                  : nothing
-                              }
-                              ${this.t("revokeConsent")}
-                            </button>`
-                      }
-                    </div>
-                  </div>`;
-                })
+                              </button>`
+                        }
+                      </div>
+                    </div>`;
+                  })}
+                </div>`
         }`
       )}
     </div>`;

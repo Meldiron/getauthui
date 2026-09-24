@@ -157,14 +157,20 @@ export type AccountMock = ReturnType<typeof createAccountMock>;
 /** Mock the `appwrite` package so no network is touched. Returns the shared account mock. */
 export function mockAppwrite() {
   const account = createAccountMock();
+  const clientCall = vi.fn(async (_method: string, _uri: URL) => ({}));
+  (account as AccountMock & { clientCall: typeof clientCall }).clientCall = clientCall;
   vi.doMock("appwrite", () => ({
     Client: class {
-      setEndpoint() {
+      config = { endpoint: "", project: "" };
+      setEndpoint(endpoint: string) {
+        this.config.endpoint = endpoint;
         return this;
       }
-      setProject() {
+      setProject(project: string) {
+        this.config.project = project;
         return this;
       }
+      call = clientCall;
     },
     Teams: class {
       list = vi.fn(async () => ({ teams: [] }));
@@ -192,6 +198,8 @@ export function mockAppwrite() {
       }
     },
     ID: { unique: () => "unique()" },
+    // Soft-exported by newer SDKs; absent in 27. Keep undefined so namespace reads are safe.
+    Apps: undefined,
   }));
   return account;
 }
