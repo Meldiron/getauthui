@@ -1,16 +1,5 @@
 import { Avatars, type Client, type Models } from "appwrite";
 
-type GetPhoto = (params?: {
-  width?: number;
-  height?: number;
-  quality?: number;
-  output?: string;
-  rating?: string;
-  userId?: string;
-  emailHash?: string;
-  name?: string;
-}) => string;
-
 /**
  * Build an Appwrite avatars.getPhoto URL for a signed-in user.
  *
@@ -30,10 +19,21 @@ export function avatarPhotoUrl(
 ): string | null {
   if (!client || !user?.$id) return null;
   try {
-    const avatars = new Avatars(client);
-    const getPhoto = (avatars as { getPhoto?: GetPhoto }).getPhoto;
-    if (typeof getPhoto !== "function") return null;
-    const url = getPhoto({
+    const avatars = new Avatars(client) as Avatars & {
+      getPhoto?: (params?: {
+        width?: number;
+        height?: number;
+        quality?: number;
+        output?: string;
+        rating?: string;
+        userId?: string;
+        emailHash?: string;
+        name?: string;
+      }) => string;
+    };
+    // Keep the method call on the instance so `this.client` stays bound.
+    if (typeof avatars.getPhoto !== "function") return null;
+    const url = avatars.getPhoto({
       width: size,
       height: size,
       userId: user.$id,

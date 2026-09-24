@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("appwrite", () => {
   class Avatars {
+    client: unknown;
+    constructor(client: unknown) {
+      this.client = client;
+    }
     getPhoto(params: { width?: number; height?: number; userId?: string } = {}) {
+      if (!this || !this.client) throw new Error("getPhoto missing this.client");
       const id = params.userId ?? "current";
       return `https://cloud.appwrite.io/v1/avatars/photo?userId=${id}&width=${params.width ?? 64}&height=${params.height ?? 64}`;
     }
