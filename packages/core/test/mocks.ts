@@ -81,6 +81,8 @@ export function createAccountMock() {
       throw err("general_route_not_found", 404);
     }),
     deleteConsent: vi.fn(async () => ({})),
+    listConsentTokens: vi.fn(async () => ({ total: 0, tokens: [] })),
+    deleteConsentToken: vi.fn(async () => ({})),
     listMFAFactors: vi.fn(async () => ({
       totp: true,
       email: true,
@@ -174,6 +176,20 @@ export function mockAppwrite() {
     },
     Teams: class {
       list = vi.fn(async () => ({ teams: [] }));
+      create = vi.fn(async ({ teamId, name }: { teamId: string; name: string }) => ({
+        $id: teamId,
+        name,
+        total: 1,
+      }));
+      listMemberships = vi.fn(async () => ({ memberships: [] }));
+      createMembership = vi.fn(async () => ({ $id: "m1", confirm: false }));
+      deleteMembership = vi.fn(async () => ({}));
+      updateMembershipStatus = vi.fn(async () => ({
+        $id: "m1",
+        teamId: "t1",
+        teamName: "Acme",
+        confirm: true,
+      }));
     },
     Account: class {
       constructor() {

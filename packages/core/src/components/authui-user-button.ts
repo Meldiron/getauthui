@@ -468,6 +468,20 @@ export class AuthUIUserButton extends AuthUIElement {
               }
               ${this.renderCustomMenuItems()}
               <slot name="menu-items"></slot>
+              ${
+                this.showTeams
+                  ? html`<button
+                      class="menu-item"
+                      role="menuitem"
+                      @click=${() => {
+                        this.menuOpen = false;
+                        openModal("account", "teams");
+                      }}
+                    >
+                      ${icons.users} ${this.t("manageTeams")}
+                    </button>`
+                  : nothing
+              }
               <button
                 class="menu-item"
                 role="menuitem"

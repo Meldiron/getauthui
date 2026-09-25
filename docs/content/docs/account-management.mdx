@@ -33,7 +33,11 @@ Lists connected OAuth identities with the provider's email or user ID, offers to
 
 ## Authorized apps
 
-When Appwrite exposes OAuth2 consents (`listConsents`), the account screen shows an **Authorized apps** tab. Users can review client apps and scopes they granted and revoke access. The tab hides itself on servers without the route.
+When Appwrite exposes OAuth2 consents (`listConsents`), the account screen shows an **Authorized apps** tab. Users can review client apps, the scopes they granted, and revoke access. When the server also exposes consent token families (`listConsentTokens`), each app row can list and revoke individual devices without revoking the whole consent. The tab hides itself on servers without the route.
+
+## Teams
+
+Create teams, leave teams, and (as an owner) invite members by email. Invite links use Auth UI's redirect handler so recipients land back on your page and join automatically. The same surface is linked from **Manage teams** on `<authui-user-button show-teams>`.
 
 ## Activity
 

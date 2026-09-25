@@ -8,6 +8,7 @@ import "./authui-account.js";
 
 export interface AuthUIOpenDetail {
   view?: AuthUIView;
+  tab?: string;
 }
 
 /**
@@ -118,6 +119,7 @@ export class AuthUIModal extends AuthUIElement {
   @property({ type: Boolean, reflect: true }) open = false;
   /** Which screen to show. */
   @property({ type: String }) view: AuthUIView = "sign-in";
+  @state() private accountTab: string | undefined;
   /**
    * Close automatically after a successful sign in. Default: true.
    * Accepts the string `"false"` / `"0"` / `"off"` / `"no"` so HTML can turn it
@@ -161,16 +163,17 @@ export class AuthUIModal extends AuthUIElement {
 
   private onOpenEvent = (e: Event) => {
     const detail = (e as CustomEvent<AuthUIOpenDetail>).detail ?? {};
-    this.show(detail.view);
+    this.show(detail.view, detail.tab);
   };
 
   private onCloseEvent = () => this.hide();
 
-  show(view?: AuthUIView): void {
+  show(view?: AuthUIView, tab?: string): void {
     if (view === "account" && this.auth.status !== "signed-in") this.view = "sign-in";
     else if (view) this.view = view;
     else if (this.auth.status === "signed-in") this.view = "account";
     else this.view = "sign-in";
+    this.accountTab = this.view === "account" ? tab : undefined;
     this.open = true;
   }
 
@@ -309,7 +312,10 @@ export class AuthUIModal extends AuthUIElement {
               !this.open
                 ? nothing
                 : account
-                  ? html`<authui-account embedded></authui-account>`
+                  ? html`<authui-account
+                      embedded
+                      tab=${this.accountTab || nothing}
+                    ></authui-account>`
                   : html`<authui-sign-in
                       embedded
                       .view=${this.view === "account" ? "sign-in" : this.view}

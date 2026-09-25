@@ -392,6 +392,17 @@ export class PreviewAccount {
     return this.delay({});
   }
 
+  async listConsentTokens() {
+    return this.delay(() => {
+      this.requireUser();
+      return { total: 0, tokens: [] as never[] };
+    });
+  }
+
+  async deleteConsentToken() {
+    return this.delay({});
+  }
+
   async getApp(appId: string) {
     return this.delay(() => ({
       $id: appId,

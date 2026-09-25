@@ -52,7 +52,7 @@ Or project markup with the named slot:
 
 ## Teams switcher
 
-Set `show-teams` to list the signed-in user's Appwrite teams in the menu and let them pick an active team. The choice is stored in `localStorage` (`authui:active-team:<projectId>`) and Auth UI emits `authui:active-team` on `window` (and `authui-active-team` on the element) with `{ teamId, team }`. This is not team administration; create and invite members in the Appwrite Console or your own UI.
+Set `show-teams` to list the signed-in user's Appwrite teams in the menu and let them pick an active team. The choice is stored in `localStorage` (`authui:active-team:<projectId>`) and Auth UI emits `authui:active-team` on `window` (and `authui-active-team` on the element) with `{ teamId, team }`. Use **Manage teams** in the menu (or the Teams tab on the account screen) to create teams, invite members, and leave teams. Invite emails return through Auth UI's redirect handler (`authui=team-invite`).
 
 ```html
 <authui-user-button show-teams></authui-user-button>

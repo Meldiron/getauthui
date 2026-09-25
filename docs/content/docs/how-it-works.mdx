@@ -16,12 +16,13 @@ Because nothing is shared across sites, third-party cookie blocking in Safari, F
 
 Some methods leave the page and come back:
 
-| Flow               | Where the user goes     | How they return                                                 |
-| ------------------ | ----------------------- | --------------------------------------------------------------- |
-| OAuth2             | Provider consent screen | Appwrite redirects to your page with `userId` and `secret`      |
-| Magic URL          | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
-| Password recovery  | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
-| Email verification | Their email inbox       | The emailed link points at your page with `userId` and `secret` |
+| Flow               | Where the user goes     | How they return                                                                            |
+| ------------------ | ----------------------- | ------------------------------------------------------------------------------------------ |
+| OAuth2             | Provider consent screen | Appwrite redirects to your page with `userId` and `secret`                                 |
+| Magic URL          | Their email inbox       | The emailed link points at your page with `userId` and `secret`                            |
+| Password recovery  | Their email inbox       | The emailed link points at your page with `userId` and `secret`                            |
+| Email verification | Their email inbox       | The emailed link points at your page with `userId` and `secret`                            |
+| Team invite        | Their email inbox       | The emailed link points at your page with `teamId`, `membershipId`, `userId`, and `secret` |
 
 Appwrite appends the same parameters to every flow, so Auth UI adds one of its own, `authui=<flow>`, to the URL it registers with Appwrite. On load it reads that marker, finishes the right flow, and removes all auth parameters from the address bar with `history.replaceState`:
 
@@ -29,6 +30,7 @@ Appwrite appends the same parameters to every flow, so Auth UI adds one of its o
 - `authui=recovery` opens the modal on the **Reset password** screen.
 - `authui=verify-email` confirms the address and shows a success notice.
 - `authui=oauth-failed` shows an error notice.
+- `authui=team-invite` (or an invite URL with `teamId`, `membershipId`, `userId`, and `secret`) accepts the team membership via `teams.updateMembershipStatus()` and signs the user in.
 
 OAuth uses Appwrite's **token** endpoint (`createOAuth2Token`) rather than the older session redirect, because the token flow is the one that works when the API host is not same-site with your app.
 

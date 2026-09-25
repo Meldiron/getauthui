@@ -20,7 +20,7 @@ import { alternateMfaFactors, mfaFactorHintKey } from "../mfa.js";
 import { relativeTimeParts, type RelativeUnit } from "../relative-time.js";
 import type { AuthUILog, AuthUIApp } from "../types.js";
 
-type Tab = "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
+type Tab = "profile" | "security" | "sessions" | "connections" | "consents" | "teams" | "activity";
 
 interface Notice {
   tone: "success" | "error" | "info";
@@ -186,6 +186,17 @@ export class AuthUIAccount extends AuthUIElement {
         width: 10px;
         height: 10px;
       }
+      .consent-tokens {
+        width: 100%;
+        margin-top: 8px;
+        padding: 8px 0 0 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .consent-row {
+        flex-wrap: wrap;
+      }
       .consents-list .row {
         padding: 8px 0;
       }
@@ -304,6 +315,18 @@ export class AuthUIAccount extends AuthUIElement {
   /** appId -> branding from apps.get; null means fetch failed (soft-fallback). */
   @state() private consentApps: Record<string, AuthUIApp | null> = {};
   @state() private consentLogoFailed: Record<string, true> = {};
+  /** consentId -> token families; undefined = not loaded, null = unsupported/failed. */
+  @state() private consentTokens: Record<string, Models.Oauth2ConsentToken[] | null | undefined> =
+    {};
+  @state() private expandedConsentId: string | null = null;
+  @state() private confirmRevokeConsentTokenKey: string | null = null;
+  @state() private teams: Models.Team<Models.Preferences>[] | null = null;
+  @state() private teamMemberships: Record<string, Models.Membership[]> = {};
+  @state() private expandedTeamId: string | null = null;
+  @state() private newTeamName = "";
+  @state() private inviteEmail = "";
+  @state() private confirmLeaveTeamId: string | null = null;
+  @state() private confirmRemoveMemberKey: string | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -352,6 +375,7 @@ export class AuthUIAccount extends AuthUIElement {
     else if (this.active === "activity" && this.logsSupported === true && this.logs === null)
       void this.loadLogs();
     else if (this.active === "activity" && this.logsSupported === false) this.active = "profile";
+    else if (this.active === "teams" && this.teams === null) void this.loadTeams();
     else if (this.active === "security" && this.factors === null) void this.loadFactors();
   }
 
@@ -1015,6 +1039,148 @@ export class AuthUIAccount extends AuthUIElement {
     });
   };
 
+  private onToggleConsentTokens = (consentId: string) => {
+    if (this.expandedConsentId === consentId) {
+      this.expandedConsentId = null;
+      return;
+    }
+    this.expandedConsentId = consentId;
+    if (this.consentTokens[consentId] === undefined) void this.loadConsentTokens(consentId);
+  };
+
+  private async loadConsentTokens(consentId: string): Promise<void> {
+    try {
+      const tokens = await authStore.listConsentTokens(consentId);
+      this.consentTokens = { ...this.consentTokens, [consentId]: tokens };
+    } catch {
+      this.consentTokens = { ...this.consentTokens, [consentId]: null };
+    }
+  }
+
+  private onDeleteConsentToken = (consentId: string, tokenId: string) => {
+    const key = `${consentId}:${tokenId}`;
+    if (this.confirmRevokeConsentTokenKey !== key) {
+      this.confirmRevokeConsentTokenKey = key;
+      return;
+    }
+    this.confirmRevokeConsentTokenKey = null;
+    void this.run(`consent-token-${tokenId}`, async () => {
+      await authStore.deleteConsentToken(consentId, tokenId);
+      const list = this.consentTokens[consentId];
+      if (Array.isArray(list)) {
+        this.consentTokens = {
+          ...this.consentTokens,
+          [consentId]: list.filter((t) => t.$id !== tokenId),
+        };
+      }
+    });
+  };
+
+  private async loadTeams(): Promise<void> {
+    this.busy = "teams";
+    try {
+      this.teams = await authStore.listTeams();
+    } catch (err) {
+      this.teams = [];
+      this.errors = { ...this.errors, teams: describeError(err, this.strings) };
+    } finally {
+      this.busy = "";
+    }
+  }
+
+  private onCreateTeam = (e: Event) => {
+    e.preventDefault();
+    const name = this.newTeamName.trim();
+    if (!name) return;
+    void this.run(
+      "create-team",
+      async () => {
+        await authStore.createTeam(name);
+        this.newTeamName = "";
+        this.teams = await authStore.listTeams();
+      },
+      this.t("teamCreated")
+    );
+  };
+
+  private onLeaveTeam = (teamId: string) => {
+    if (this.confirmLeaveTeamId !== teamId) {
+      this.confirmLeaveTeamId = teamId;
+      return;
+    }
+    this.confirmLeaveTeamId = null;
+    void this.run(
+      `leave-team-${teamId}`,
+      async () => {
+        await authStore.leaveTeam(teamId);
+        this.teams = (this.teams ?? []).filter((t) => t.$id !== teamId);
+        if (this.expandedTeamId === teamId) this.expandedTeamId = null;
+        const { [teamId]: _, ...rest } = this.teamMemberships;
+        this.teamMemberships = rest;
+      },
+      this.t("teamLeft")
+    );
+  };
+
+  private onToggleTeam = (teamId: string) => {
+    if (this.expandedTeamId === teamId) {
+      this.expandedTeamId = null;
+      return;
+    }
+    this.expandedTeamId = teamId;
+    this.inviteEmail = "";
+    if (!this.teamMemberships[teamId]) void this.loadTeamMemberships(teamId);
+  };
+
+  private async loadTeamMemberships(teamId: string): Promise<void> {
+    try {
+      const list = await authStore.listTeamMemberships(teamId);
+      this.teamMemberships = { ...this.teamMemberships, [teamId]: list };
+    } catch (err) {
+      this.errors = { ...this.errors, teams: describeError(err, this.strings) };
+      this.teamMemberships = { ...this.teamMemberships, [teamId]: [] };
+    }
+  }
+
+  private isTeamOwner(teamId: string): boolean {
+    const userId = this.user?.$id;
+    if (!userId) return false;
+    const list = this.teamMemberships[teamId] ?? [];
+    const mine = list.find((m) => m.userId === userId);
+    return !!mine?.roles?.includes("owner");
+  }
+
+  private onInviteMember = (e: Event, teamId: string) => {
+    e.preventDefault();
+    const email = this.inviteEmail.trim();
+    if (!email) return;
+    void this.run(
+      `invite-${teamId}`,
+      async () => {
+        await authStore.createTeamMembership(teamId, email);
+        this.inviteEmail = "";
+        await this.loadTeamMemberships(teamId);
+      },
+      this.t("inviteSent")
+    );
+  };
+
+  private onRemoveMember = (teamId: string, membershipId: string) => {
+    const key = `${teamId}:${membershipId}`;
+    if (this.confirmRemoveMemberKey !== key) {
+      this.confirmRemoveMemberKey = key;
+      return;
+    }
+    this.confirmRemoveMemberKey = null;
+    void this.run(`remove-member-${membershipId}`, async () => {
+      await authStore.deleteTeamMembership(teamId, membershipId);
+      this.teamMemberships = {
+        ...this.teamMemberships,
+        [teamId]: (this.teamMemberships[teamId] ?? []).filter((m) => m.$id !== membershipId),
+      };
+    });
+  };
+
   private onDeleteAccount = () => {
     void this.run("delete", () => authStore.deleteAccount());
   };
@@ -1065,6 +1231,7 @@ export class AuthUIAccount extends AuthUIElement {
       { id: "sessions", label: this.t("sessions") },
       { id: "connections", label: this.t("connections") },
       ...(this.consentsSupported ? [{ id: "consents" as Tab, label: this.t("consents") }] : []),
+      { id: "teams" as Tab, label: this.t("teamsLabel") },
       ...(this.logsSupported ? [{ id: "activity" as Tab, label: this.t("activity") }] : []),
     ];
 
@@ -1179,6 +1346,8 @@ export class AuthUIAccount extends AuthUIElement {
         return this.renderConnections();
       case "consents":
         return this.renderConsents();
+      case "teams":
+        return this.renderTeams();
       case "activity":
         return this.renderActivity();
       default:
@@ -2694,7 +2863,10 @@ export class AuthUIAccount extends AuthUIElement {
               : html`<div class="consents-list">
                   ${list.map((c) => {
                     const createdRel = this.formatRelativeLabel(c.$createdAt);
-                    return html`<div class="row">
+                    const scopes = (c.scopes ?? []).filter(Boolean);
+                    const expanded = this.expandedConsentId === c.$id;
+                    const tokens = this.consentTokens[c.$id];
+                    return html`<div class="row consent-row">
                       <div class="inline">
                         ${this.consentAppIcon(c)}
                         <div class="row-main">
@@ -2710,9 +2882,26 @@ export class AuthUIAccount extends AuthUIElement {
                                 >`
                               : nothing
                           }
+                          ${
+                            scopes.length
+                              ? html`<span class="row-sub"
+                                  >${this.t("consentScopes", {
+                                    scopes: scopes.join(", "),
+                                  })}</span
+                                >`
+                              : nothing
+                          }
                         </div>
                       </div>
                       <div class="row-actions">
+                        <button
+                          type="button"
+                          class="btn btn-ghost btn-sm"
+                          ?disabled=${!!this.busy}
+                          @click=${() => this.onToggleConsentTokens(c.$id)}
+                        >
+                          ${expanded ? this.t("hideConsentTokens") : this.t("showConsentTokens")}
+                        </button>
                         ${
                           this.confirmRevokeConsentId === c.$id
                             ? html`<div class="inline">
@@ -2753,10 +2942,307 @@ export class AuthUIAccount extends AuthUIElement {
                               </button>`
                         }
                       </div>
+                      ${
+                        expanded
+                          ? html`<div class="consent-tokens">
+                              <div class="row-title">${this.t("consentTokens")}</div>
+                              ${
+                                tokens === undefined
+                                  ? html`<div class="empty"><span class="spinner"></span></div>`
+                                  : tokens === null
+                                    ? nothing
+                                    : tokens.length === 0
+                                      ? html`<span class="row-sub"
+                                          >${this.t("noConsentTokens")}</span
+                                        >`
+                                      : html`<div class="consents-list">
+                                          ${tokens.map((tok) => {
+                                            const expRel = tok.expire
+                                              ? this.formatRelativeLabel(tok.expire)
+                                              : null;
+                                            const key = `${c.$id}:${tok.$id}`;
+                                            return html`<div class="row">
+                                              <div class="row-main">
+                                                <span class="row-title"
+                                                  >${(tok.scopes ?? []).join(", ") || tok.$id}</span
+                                                >
+                                                ${
+                                                  expRel
+                                                    ? html`<span class="row-sub"
+                                                        >${this.t("consentTokenExpires", {
+                                                          date: expRel.label,
+                                                        })}</span
+                                                      >`
+                                                    : nothing
+                                                }
+                                              </div>
+                                              <div class="row-actions">
+                                                ${
+                                                  this.confirmRevokeConsentTokenKey === key
+                                                    ? html`<div class="inline">
+                                                        <button
+                                                          type="button"
+                                                          class="btn btn-outline btn-sm"
+                                                          autofocus
+                                                          ?disabled=${!!this.busy}
+                                                          @click=${() =>
+                                                            (this.confirmRevokeConsentTokenKey =
+                                                              null)}
+                                                        >
+                                                          ${this.t("cancel")}
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          class="btn btn-destructive btn-sm"
+                                                          @click=${() =>
+                                                            this.onDeleteConsentToken(
+                                                              c.$id,
+                                                              tok.$id
+                                                            )}
+                                                          ?disabled=${!!this.busy}
+                                                        >
+                                                          ${this.t("revokeConsentToken")}
+                                                        </button>
+                                                      </div>`
+                                                    : html`<button
+                                                        class="btn btn-ghost btn-sm"
+                                                        @click=${() =>
+                                                          this.onDeleteConsentToken(c.$id, tok.$id)}
+                                                        ?disabled=${!!this.busy}
+                                                      >
+                                                        ${this.t("revokeConsentToken")}
+                                                      </button>`
+                                                }
+                                              </div>
+                                            </div>`;
+                                          })}
+                                        </div>`
+                              }
+                            </div>`
+                          : nothing
+                      }
                     </div>`;
                   })}
                 </div>`
         }`
+      )}
+    </div>`;
+  }
+
+  private renderTeams(): TemplateResult {
+    const list = this.teams;
+    return html`<div class="section">
+      ${this.card(
+        this.t("teamsLabel"),
+        this.t("teamsDescription"),
+        html`${this.error("teams")}
+          <form class="stack" @submit=${this.onCreateTeam}>
+            <label class="field">
+              <span class="label">${this.t("teamNamePlaceholder")}</span>
+              <input
+                class="input"
+                type="text"
+                name="teamName"
+                autocomplete="organization"
+                required
+                maxlength="128"
+                .value=${this.newTeamName}
+                @input=${this.bind("newTeamName")}
+                ?disabled=${!!this.busy}
+              />
+            </label>
+            <button
+              class="btn btn-primary btn-sm"
+              type="submit"
+              ?disabled=${!!this.busy || !this.newTeamName.trim()}
+            >
+              ${this.busy === "create-team" ? html`<span class="spinner"></span>` : nothing}
+              ${this.t("createTeamButton")}
+            </button>
+          </form>
+          ${
+            list === null
+              ? html`<div class="empty"><span class="spinner"></span></div>`
+              : list.length === 0
+                ? this.emptyState(icons.users, this.t("noTeams"), this.t("teamsEmptyDescription"))
+                : html`<div class="consents-list">
+                    ${list.map((team) => {
+                      const expanded = this.expandedTeamId === team.$id;
+                      const memberships = this.teamMemberships[team.$id];
+                      const owner = expanded && this.isTeamOwner(team.$id);
+                      return html`<div class="row">
+                        <div class="inline">
+                          <span class="device">${icons.users}</span>
+                          <div class="row-main">
+                            <span class="row-title">${team.name}</span>
+                            <span class="row-sub"
+                              >${
+                                team.total === 1
+                                  ? this.t("teamMembers")
+                                  : `${team.total} ${this.t("teamMembers").toLowerCase()}`
+                              }</span
+                            >
+                          </div>
+                        </div>
+                        <div class="row-actions">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm"
+                            ?disabled=${!!this.busy}
+                            @click=${() => this.onToggleTeam(team.$id)}
+                          >
+                            ${expanded ? this.t("hideConsentTokens") : this.t("teamMembers")}
+                          </button>
+                          ${
+                            this.confirmLeaveTeamId === team.$id
+                              ? html`<div class="inline">
+                                  <button
+                                    type="button"
+                                    class="btn btn-outline btn-sm"
+                                    autofocus
+                                    ?disabled=${!!this.busy}
+                                    @click=${() => (this.confirmLeaveTeamId = null)}
+                                  >
+                                    ${this.t("cancel")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="btn btn-destructive btn-sm"
+                                    @click=${() => this.onLeaveTeam(team.$id)}
+                                    ?disabled=${!!this.busy}
+                                  >
+                                    ${this.t("leaveTeamConfirm")}
+                                  </button>
+                                </div>`
+                              : html`<button
+                                  class="btn btn-ghost btn-sm"
+                                  @click=${() => this.onLeaveTeam(team.$id)}
+                                  ?disabled=${!!this.busy}
+                                >
+                                  ${this.t("leaveTeam")}
+                                </button>`
+                          }
+                        </div>
+                        ${
+                          expanded
+                            ? html`<div class="consent-tokens">
+                                ${
+                                  memberships === undefined
+                                    ? html`<div class="empty"><span class="spinner"></span></div>`
+                                    : memberships.length === 0
+                                      ? html`<span class="row-sub"
+                                          >${this.t("noTeamMembers")}</span
+                                        >`
+                                      : html`<div class="consents-list">
+                                          ${memberships.map((mem) => {
+                                            const key = `${team.$id}:${mem.$id}`;
+                                            const label =
+                                              mem.userName || mem.userEmail || mem.userId;
+                                            const isOwner = mem.roles?.includes("owner");
+                                            const pending = !mem.confirm;
+                                            return html`<div class="row">
+                                              <div class="row-main">
+                                                <span class="row-title">${label}</span>
+                                                <span class="row-sub"
+                                                  >${[
+                                                    isOwner ? this.t("teamRoleOwner") : nothing,
+                                                    pending ? this.t("teamMemberPending") : nothing,
+                                                  ]
+                                                    .filter((x) => x !== nothing)
+                                                    .join(" · ")}</span
+                                                >
+                                              </div>
+                                              ${
+                                                owner && mem.userId !== this.user?.$id
+                                                  ? html`<div class="row-actions">
+                                                      ${
+                                                        this.confirmRemoveMemberKey === key
+                                                          ? html`<div class="inline">
+                                                              <button
+                                                                type="button"
+                                                                class="btn btn-outline btn-sm"
+                                                                autofocus
+                                                                ?disabled=${!!this.busy}
+                                                                @click=${() =>
+                                                                  (this.confirmRemoveMemberKey =
+                                                                    null)}
+                                                              >
+                                                                ${this.t("cancel")}
+                                                              </button>
+                                                              <button
+                                                                type="button"
+                                                                class="btn btn-destructive btn-sm"
+                                                                @click=${() =>
+                                                                  this.onRemoveMember(
+                                                                    team.$id,
+                                                                    mem.$id
+                                                                  )}
+                                                                ?disabled=${!!this.busy}
+                                                              >
+                                                                ${this.t("removeMemberConfirm")}
+                                                              </button>
+                                                            </div>`
+                                                          : html`<button
+                                                              class="btn btn-ghost btn-sm"
+                                                              @click=${() =>
+                                                                this.onRemoveMember(
+                                                                  team.$id,
+                                                                  mem.$id
+                                                                )}
+                                                              ?disabled=${!!this.busy}
+                                                            >
+                                                              ${this.t("removeMember")}
+                                                            </button>`
+                                                      }
+                                                    </div>`
+                                                  : nothing
+                                              }
+                                            </div>`;
+                                          })}
+                                        </div>`
+                                }
+                                ${
+                                  owner
+                                    ? html`<form
+                                        class="stack"
+                                        @submit=${(e: Event) => this.onInviteMember(e, team.$id)}
+                                      >
+                                        <label class="field">
+                                          <span class="label">${this.t("inviteMember")}</span>
+                                          <input
+                                            class="input"
+                                            type="email"
+                                            name="inviteEmail"
+                                            autocomplete="email"
+                                            required
+                                            .value=${this.inviteEmail}
+                                            @input=${this.bind("inviteEmail")}
+                                            placeholder=${this.t("inviteEmailPlaceholder")}
+                                            ?disabled=${!!this.busy}
+                                          />
+                                        </label>
+                                        <button
+                                          class="btn btn-primary btn-sm"
+                                          type="submit"
+                                          ?disabled=${!!this.busy || !this.inviteEmail.trim()}
+                                        >
+                                          ${
+                                            this.busy === `invite-${team.$id}`
+                                              ? html`<span class="spinner"></span>`
+                                              : nothing
+                                          }
+                                          ${this.t("inviteSend")}
+                                        </button>
+                                      </form>`
+                                    : nothing
+                                }
+                              </div>`
+                            : nothing
+                        }
+                      </div>`;
+                    })}
+                  </div>`
+          }`
       )}
     </div>`;
   }

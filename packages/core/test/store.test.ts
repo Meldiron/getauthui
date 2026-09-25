@@ -461,3 +461,70 @@ describe("recovery OTP, email verify OTP, id token, consents", () => {
     expect(clientCall).not.toHaveBeenCalled();
   });
 });
+
+describe("team invite redirect, team CRUD, consent tokens", () => {
+  it("accepts a team invite from URL params without the authui marker", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/app?teamId=t1&membershipId=m1&userId=u9&secret=invite-secret&teamName=Acme"
+    );
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(window.location.search).toBe("");
+    expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "success" });
+  });
+
+  it("accepts a team invite when authui=team-invite is present", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/app?authui=team-invite&teamId=t1&membershipId=m1&userId=u9&secret=invite-secret&teamName=Acme"
+    );
+    authStore.configure(config);
+    await tick();
+    await tick();
+    expect(window.location.search).toBe("");
+    expect(authStore.getState().pending).toMatchObject({ type: "notice", tone: "success" });
+  });
+
+  it("creates a team and lists memberships when signed in", async () => {
+    account.state.user = { $id: "u1", email: "a@b.co", name: "A" };
+    authStore.configure(config);
+    await authStore.refresh();
+    const team = await authStore.createTeam("Ops");
+    expect(team.name).toBe("Ops");
+    const memberships = await authStore.listTeamMemberships(team.$id);
+    expect(Array.isArray(memberships)).toBe(true);
+  });
+
+  it("lists and deletes consent tokens", async () => {
+    account.listConsentTokens.mockResolvedValueOnce({
+      total: 1,
+      tokens: [
+        {
+          $id: "tok1",
+          $createdAt: "2026-01-01T00:00:00.000Z",
+          $updatedAt: "2026-01-01T00:00:00.000Z",
+          consentId: "c1",
+          userId: "u1",
+          appId: "app1",
+          cimdUrl: "",
+          scopes: ["openid"],
+          resources: [],
+          authorizationDetails: "",
+          expire: "2026-02-01T00:00:00.000Z",
+        },
+      ],
+    });
+    account.state.user = { $id: "u1", email: "a@b.co", name: "A" };
+    authStore.configure(config);
+    await authStore.refresh();
+    const tokens = await authStore.listConsentTokens("c1");
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]!.$id).toBe("tok1");
+    await authStore.deleteConsentToken("c1", "tok1");
+    expect(account.deleteConsentToken).toHaveBeenCalled();
+  });
+});

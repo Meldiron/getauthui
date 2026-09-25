@@ -11,22 +11,29 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 
 ## State
 
-| Method                     | Returns                                                                                                                                        |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `configure(config)`        | `void`. Also runs `handleRedirect()` then `refresh()`.                                                                                         |
-| `getState()`               | `AuthUIState`                                                                                                                                  |
-| `getConfig()`              | `AuthUIConfig \| null`                                                                                                                         |
-| `getClient()`              | `Client \| null`                                                                                                                               |
-| `getAccount()`             | `Account \| null`, the service every method above calls                                                                                        |
-| `getStrings()`             | merged `AuthUIStrings`                                                                                                                         |
-| `refresh()`                | `Promise<void>`. Re-fetches the user and derives `status`.                                                                                     |
-| `on(event, listener)`      | unsubscribe function                                                                                                                           |
-| `getActiveTeamId()`        | `string \| null`. Local active team id for the project.                                                                                        |
-| `setActiveTeam(team)`      | `void`. Remember `{ $id, name }` or `null`; emits `active-team`. Does not call Appwrite.                                                       |
-| `listTeams()`              | `Promise<Models.Team[]>`. Teams the signed-in user belongs to; empty when signed out or in preview. What `show-teams` on the user button uses. |
-| `previewSignIn()`          | `Promise<void>`. Preview mode only: sign the sample user in without a form. Also on `AuthUI`.                                                  |
-| `notifyConfigIncomplete()` | `void`. Called by `<authui-config>` when endpoint or project is missing; clears loading and sets `configError`.                                |
-| `reset()`                  | `void`. Test helper: clear client, config, state and listeners.                                                                                |
+| Method                                                                    | Returns                                                                                                                                        |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure(config)`                                                       | `void`. Also runs `handleRedirect()` then `refresh()`.                                                                                         |
+| `getState()`                                                              | `AuthUIState`                                                                                                                                  |
+| `getConfig()`                                                             | `AuthUIConfig \| null`                                                                                                                         |
+| `getClient()`                                                             | `Client \| null`                                                                                                                               |
+| `getAccount()`                                                            | `Account \| null`, the service every method above calls                                                                                        |
+| `getStrings()`                                                            | merged `AuthUIStrings`                                                                                                                         |
+| `refresh()`                                                               | `Promise<void>`. Re-fetches the user and derives `status`.                                                                                     |
+| `on(event, listener)`                                                     | unsubscribe function                                                                                                                           |
+| `getActiveTeamId()`                                                       | `string \| null`. Local active team id for the project.                                                                                        |
+| `setActiveTeam(team)`                                                     | `void`. Remember `{ $id, name }` or `null`; emits `active-team`. Does not call Appwrite.                                                       |
+| `listTeams()`                                                             | `Promise<Models.Team[]>`. Teams the signed-in user belongs to; empty when signed out or in preview. What `show-teams` on the user button uses. |
+| `createTeam(name)`                                                        | `Promise<Models.Team>`. Creates a team; the signed-in user becomes owner.                                                                      |
+| `listTeamMemberships(teamId)`                                             | `Promise<Models.Membership[]>`. Members of a team.                                                                                             |
+| `createTeamMembership(teamId, email, roles?)`                             | Invite by email. Redirect URL uses `authui=team-invite`.                                                                                       |
+| `deleteTeamMembership(teamId, membershipId)`                              | Leave or remove a member.                                                                                                                      |
+| `leaveTeam(teamId)`                                                       | Leave as the signed-in user.                                                                                                                   |
+| `acceptTeamInvite(teamId, membershipId, userId, secret)`                  | Accept invite via `teams.updateMembershipStatus` (also opens a session).                                                                       |
+| `listConsentTokens(consentId)` / `deleteConsentToken(consentId, tokenId)` | Per-device token families under an OAuth2 consent.                                                                                             |
+| `previewSignIn()`                                                         | `Promise<void>`. Preview mode only: sign the sample user in without a form. Also on `AuthUI`.                                                  |
+| `notifyConfigIncomplete()`                                                | `void`. Called by `<authui-config>` when endpoint or project is missing; clears loading and sets `configError`.                                |
+| `reset()`                                                                 | `void`. Test helper: clear client, config, state and listeners.                                                                                |
 
 ## Sign in
 
@@ -69,17 +76,17 @@ All methods reject with the original `AppwriteException` and emit an `error` eve
 
 ## Account
 
-| Method                                                                                                                       | Description                                      |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `updateName(name)`, `updateEmail(email, password)`, `updatePhone(phone, password)`, `updatePassword(password, oldPassword?)` | profile updates                                  |
-| `convertGuest(email, password, name?)`                                                                                       | upgrade an anonymous account                     |
-| `listSessions()`, `listIdentities()`, `deleteIdentity(id)`, `listLogs()`, `listConsents()`, `deleteConsent(id)`              | lists                                            |
-| `deleteAccount()`                                                                                                            | `updateStatus`; blocks the account and signs out |
+| Method                                                                                                                                                                                    | Description                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `updateName(name)`, `updateEmail(email, password)`, `updatePhone(phone, password)`, `updatePassword(password, oldPassword?)`                                                              | profile updates                                  |
+| `convertGuest(email, password, name?)`                                                                                                                                                    | upgrade an anonymous account                     |
+| `listSessions()`, `listIdentities()`, `deleteIdentity(id)`, `listLogs()`, `listConsents()`, `deleteConsent(id)`, `listConsentTokens(consentId)`, `deleteConsentToken(consentId, tokenId)` | lists                                            |
+| `deleteAccount()`                                                                                                                                                                         | `updateStatus`; blocks the account and signs out |
 
 ## Redirects
 
-| Method                | Description                                                                   |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `redirectUrl(action)` | the URL registered with Appwrite for a flow, with the `authui` marker         |
-| `handleRedirect()`    | finish a flow present in `location.search`; returns `true` if one was handled |
-| `setPending(action)`  | set or clear the pending action shown by the UI                               |
+| Method                | Description                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `redirectUrl(action)` | the URL registered with Appwrite for a flow, with the `authui` marker                                                                       |
+| `handleRedirect()`    | finish a flow present in `location.search` (including team invites with or without `authui=team-invite`); returns `true` if one was handled |
+| `setPending(action)`  | set or clear the pending action shown by the UI                                                                                             |

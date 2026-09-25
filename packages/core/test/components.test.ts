@@ -568,7 +568,7 @@ describe("<authui-account>", () => {
     const tabs = [...el.shadowRoot!.querySelectorAll("[role=tab]")].map((t) =>
       t.textContent!.trim()
     );
-    expect(tabs).toEqual(["Profile", "Security", "Sessions", "Connections"]);
+    expect(tabs).toEqual(["Profile", "Security", "Sessions", "Connections", "Teams"]);
     expect(tabs).not.toContain("Activity");
     // Opened on activity via attr; should fall back to profile after the probe fails.
     const selected = el.shadowRoot!.querySelector('[role=tab][aria-selected="true"]');
@@ -2427,10 +2427,10 @@ describe("user-button teams menu a11y", () => {
     radios[1]!.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, composed: true })
     );
-    const manage = [...root.querySelectorAll('[role="menuitem"]')].find((n) =>
-      /Manage account/i.test(n.textContent ?? "")
+    const manageTeams = [...root.querySelectorAll('[role="menuitem"]')].find((n) =>
+      /Manage teams/i.test(n.textContent ?? "")
     );
-    expect(root.activeElement).toBe(manage);
+    expect(root.activeElement).toBe(manageTeams);
     spy.mockRestore();
   });
 });

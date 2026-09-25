@@ -71,8 +71,8 @@ export function init(config: AuthUIConfig) {
 }
 
 /** Open the modal on a given screen. Creates <authui-modal> if the page has none. */
-export function open(view?: AuthUIView): void {
-  openModal(view);
+export function open(view?: AuthUIView, tab?: string): void {
+  openModal(view, tab);
 }
 
 export function close(): void {

@@ -18,7 +18,7 @@ function call<T>(target: object, names: string[], args: unknown[]): Promise<T> {
 }
 
 export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
-import { defaultStrings } from "./i18n.js";
+import { defaultStrings, format } from "./i18n.js";
 import { mergeStrings } from "./locales/index.js";
 import { PreviewAccount } from "./preview.js";
 import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
@@ -39,7 +39,17 @@ import type {
 /** Query parameter that tells the widget which redirect flow is completing. */
 const MARKER = "authui";
 /** Params Appwrite appends to redirect URLs; removed after handling. */
-const APPWRITE_PARAMS = ["userId", "secret", "expire", "project", "error", MARKER];
+const APPWRITE_PARAMS = [
+  "userId",
+  "secret",
+  "expire",
+  "project",
+  "error",
+  "teamId",
+  "membershipId",
+  "teamName",
+  MARKER,
+];
 
 type Listener<K extends AuthUIEventName> = (detail: AuthUIEventMap[K]) => void;
 
@@ -912,6 +922,139 @@ export class AuthStore {
     }
   }
 
+  /** Token families under a consent (one authorized device/session). Soft-fails via fail(). */
+  async listConsentTokens(consentId: string): Promise<Models.Oauth2ConsentToken[]> {
+    try {
+      const res = await call<{ tokens: Models.Oauth2ConsentToken[] }>(
+        this.acct(),
+        ["listConsentTokens"],
+        [{ consentId }]
+      );
+      return res.tokens ?? [];
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
+  async deleteConsentToken(consentId: string, tokenId: string): Promise<void> {
+    try {
+      await call(this.acct(), ["deleteConsentToken"], [{ consentId, tokenId }]);
+    } catch (err) {
+      this.fail(err);
+    }
+  }
+
+  private teamsSvc(): Teams {
+    if (!this.client) throw new Error(this.getStrings().errorNotConfigured);
+    this.teams ??= new Teams(this.client);
+    return this.teams;
+  }
+
+  /** Create a team; the signed-in user becomes owner. */
+  async createTeam(name: string): Promise<Models.Team<Models.Preferences>> {
+    if (this.preview) {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error(this.getStrings().errorInvalidName);
+      return { $id: "preview-team", name: trimmed, total: 1 } as Models.Team<Models.Preferences>;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error(this.getStrings().errorInvalidName);
+    try {
+      return await this.teamsSvc().create({ teamId: ID.unique(), name: trimmed });
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
+  /** Memberships for a team (owners see everyone; members see themselves depending on privacy). */
+  async listTeamMemberships(teamId: string): Promise<Models.Membership[]> {
+    try {
+      const res = await this.teamsSvc().listMemberships({ teamId });
+      return res.memberships ?? [];
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
+  /**
+   * Invite a member by email. Redirect URL uses `authui=team-invite` so handleRedirect
+   * can accept the invite via updateMembershipStatus.
+   */
+  async createTeamMembership(
+    teamId: string,
+    email: string,
+    roles: string[] = []
+  ): Promise<Models.Membership> {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error(this.getStrings().errorInvalidEmail);
+    try {
+      return await this.teamsSvc().createMembership({
+        teamId,
+        email: trimmed,
+        roles,
+        url: this.redirectUrl("team-invite"),
+      });
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
+  /** Leave a team or remove a member (owners can remove others; anyone can remove themselves). */
+  async deleteTeamMembership(teamId: string, membershipId: string): Promise<void> {
+    const userId = this.state.user?.$id;
+    let leavingSelf = false;
+    if (userId && this.activeTeamId === teamId) {
+      try {
+        const memberships = await this.teamsSvc().listMemberships({ teamId });
+        const target = (memberships.memberships ?? []).find((m) => m.$id === membershipId);
+        leavingSelf = !!target && target.userId === userId;
+      } catch {
+        /* best-effort; still delete */
+      }
+    }
+    try {
+      await this.teamsSvc().deleteMembership({ teamId, membershipId });
+    } catch (err) {
+      this.fail(err);
+    }
+    if (leavingSelf) this.setActiveTeam(null);
+  }
+
+  /** Leave the given team as the signed-in user. */
+  async leaveTeam(teamId: string): Promise<void> {
+    const userId = this.state.user?.$id;
+    if (!userId) return;
+    const memberships = await this.listTeamMemberships(teamId);
+    const mine = memberships.find((m) => m.userId === userId);
+    if (!mine) {
+      this.fail(
+        Object.assign(new Error("Membership not found"), {
+          type: "membership_not_found",
+          code: 404,
+        })
+      );
+    }
+    await this.deleteTeamMembership(teamId, mine.$id);
+  }
+
+  /** Accept a team invite (also creates a session). */
+  async acceptTeamInvite(
+    teamId: string,
+    membershipId: string,
+    userId: string,
+    secret: string
+  ): Promise<Models.Membership> {
+    try {
+      return await call<Models.Membership>(
+        this.teamsSvc(),
+        ["updateMembershipStatus"],
+        [{ teamId, membershipId, userId, secret }]
+      );
+    } catch (err) {
+      return this.fail(err);
+    }
+  }
+
   /**
    * Fetch OAuth2 app branding (name, logoUri, tagline) for authorized-apps rows.
    * Soft-detects an Apps SDK service when the host's appwrite package exports it;
@@ -1007,10 +1150,21 @@ export class AuthStore {
     if (typeof window === "undefined") return false;
     const params = new URLSearchParams(window.location.search);
     const action = params.get(MARKER);
-    if (!action) return false;
-
     const userId = params.get("userId") ?? "";
     const secret = params.get("secret") ?? "";
+    const teamId = params.get("teamId") ?? "";
+    const membershipId = params.get("membershipId") ?? "";
+    const teamName = params.get("teamName") ?? "";
+
+    // Appwrite invite emails merge teamId/membershipId/userId/secret onto the invite URL
+    // without an authui marker unless the inviter used redirectUrl("team-invite").
+    const isTeamInvite =
+      action === "team-invite" ||
+      action === "invite" ||
+      (!action && !!(teamId && membershipId && userId && secret));
+
+    if (!action && !isTeamInvite) return false;
+
     this.cleanUrl();
 
     const incomplete = () => {
@@ -1024,6 +1178,31 @@ export class AuthStore {
     };
 
     try {
+      if (isTeamInvite) {
+        if (teamId && membershipId && userId && secret) {
+          const membership = await this.acceptTeamInvite(teamId, membershipId, userId, secret);
+          const label = teamName || membership.teamName || "";
+          this.setState({
+            pending: {
+              type: "notice",
+              message: label
+                ? format(this.getStrings().teamInviteAccepted, { team: label })
+                : this.getStrings().teamInviteAcceptedGeneric,
+              tone: "success",
+            },
+          });
+          if (membership.teamId) {
+            this.setActiveTeam({
+              $id: membership.teamId,
+              name: membership.teamName || label || membership.teamId,
+            });
+          }
+        } else {
+          incomplete();
+        }
+        return true;
+      }
+
       switch (action) {
         case "oauth":
         case "magic-url":
