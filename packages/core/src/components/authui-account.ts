@@ -294,6 +294,7 @@ export class AuthUIAccount extends AuthUIElement {
   @state() private verifyPhoneCooldownUntil = 0;
   private verifyPhoneCooldownTimer: ReturnType<typeof setInterval> | null = null;
   @state() private emailCodeSent = false;
+  @state() private tabsOverflow = false;
   @state() private emailCode = "";
   @state() private emailVerifyPhrase: string | undefined;
   @state() private consents: Models.Oauth2Consent[] | null = null;
@@ -403,6 +404,13 @@ export class AuthUIAccount extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
+    requestAnimationFrame(() => {
+      const tabs = this.renderRoot.querySelector(".tabs") as HTMLElement | null;
+      if (tabs) {
+        const overflow = tabs.scrollWidth > tabs.clientWidth + 1;
+        if (overflow !== this.tabsOverflow) this.tabsOverflow = overflow;
+      }
+    });
     if (changed.has("active")) {
       requestAnimationFrame(() => {
         const selected = this.renderRoot.querySelector(
@@ -606,6 +614,8 @@ export class AuthUIAccount extends AuthUIElement {
 
   private onUpdateEmail = (e: Event) => {
     e.preventDefault();
+    // Do not updateEmail while an OTP for the previous address is outstanding.
+    if (this.emailCodeSent) return;
     if (!this.requireValid(e)) return;
     void this.run(
       "email",
@@ -899,6 +909,15 @@ export class AuthUIAccount extends AuthUIElement {
     this.errors = { ...this.errors, "verify-phone": "", "verify-phone-code": "" };
   };
 
+  private onCancelEmailVerification = () => {
+    this.emailCodeSent = false;
+    this.emailCode = "";
+    this.emailVerifyPhrase = undefined;
+    this.verifyEmailCooldownUntil = 0;
+    this.clearVerifyEmailCooldownTimer();
+    this.errors = { ...this.errors, verify: "", "verify-email-code": "" };
+  };
+
   private onCopySecret = async () => {
     const secret = this.authenticator?.secret;
     if (!secret) return;
@@ -1052,7 +1071,11 @@ export class AuthUIAccount extends AuthUIElement {
     return html`
       <div class="panel ${this.embedded ? "embedded" : ""}" part="panel">
         ${this.renderIdentity()}
-        <div class="tabs" role="tablist" @keydown=${this.onTabsKeydown}>
+        <div
+          class="tabs ${this.tabsOverflow ? "is-overflow" : ""}"
+          role="tablist"
+          @keydown=${this.onTabsKeydown}
+        >
           ${tabs.map(
             (t) =>
               html`<button
@@ -1239,15 +1262,16 @@ export class AuthUIAccount extends AuthUIElement {
   /** Muted mono click-to-copy for account.$id (Vibes CopyableId). */
   private renderCopyableId(id: string): TemplateResult {
     return html`<button
-      type="button"
-      class="copyable-id ${this.copied ? "copyable-id-copied" : ""}"
-      aria-label=${this.t("copyAccountId")}
-      title=${id}
-      @click=${() => void this.onCopyAccountId()}
-    >
-      <span class="copyable-id-text">${id}</span>
-      ${this.copied ? icons.check : icons.copy}
-    </button>`;
+        type="button"
+        class="copyable-id ${this.copied ? "copyable-id-copied" : ""}"
+        aria-label=${this.t("copyAccountId")}
+        title=${id}
+        @click=${() => void this.onCopyAccountId()}
+      >
+        <span class="copyable-id-text">${id}</span>
+        ${this.copied ? icons.check : icons.copy}
+      </button>
+      <span class="sr-only" aria-live="polite">${this.copied ? this.t("copied") : ""}</span>`;
   }
 
   /**
@@ -1507,6 +1531,14 @@ export class AuthUIAccount extends AuthUIElement {
                     ?disabled=${!!this.busy || !this.emailCode.trim()}
                   >
                     ${this.spinner("verify-email-code")} ${this.t("verifyCode")}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    @click=${this.onCancelEmailVerification}
+                    ?disabled=${!!this.busy}
+                  >
+                    ${this.t("useDifferentEmail")}
                   </button>`
               : nothing
           }
@@ -1514,7 +1546,12 @@ export class AuthUIAccount extends AuthUIElement {
             class="btn btn-primary btn-sm"
             type="submit"
             form="email-form"
-            ?disabled=${!!this.busy || !this.emailInput.trim() || this.emailInput === u.email}
+            ?disabled=${
+              !!this.busy ||
+              this.emailCodeSent ||
+              !this.emailInput.trim() ||
+              this.emailInput === u.email
+            }
           >
             ${this.spinner("email")} ${this.t("update")}
           </button>

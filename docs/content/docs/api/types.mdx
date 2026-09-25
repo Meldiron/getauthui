@@ -87,6 +87,14 @@ import {
   clearLastMethod,
   getStoredActiveTeamId,
   setStoredActiveTeamId,
+  getLocalePack,
+  localePacks,
+  resolveLocale,
+  supportedLocales,
+  mergeStrings,
+  loadGoogleIdentityServices,
+  promptGoogleOneTap,
+  resetOneTapPromptState,
 } from "@getauthui/core";
 ```
 
@@ -101,3 +109,5 @@ import {
 - `digitsOnly(value)` strips non-digits. `toE164(iso, national)` builds an E.164 number, and `parsePhone(input, fallbackIso?)` splits one into `{ iso, national, e164 }` (`ParsedPhone`), using `PhoneCountry` entries for country data.
 - `getLastMethod()` / `rememberLastMethod(method)` / `clearLastMethod()` read and write `localStorage` key `authui:last-method` (what the sign-in form highlights as last used).
 - `getStoredActiveTeamId(project)` / `setStoredActiveTeamId(project, teamId)` read and write `localStorage` key `authui:active-team:<projectId>`. Prefer `AuthUI.store.getActiveTeamId()` / `setActiveTeam()` in app code; these are the underlying helpers.
+- `supportedLocales` lists built-in packs (`cs`, `de`, `fr`). `localePacks` holds the partial string maps. `resolveLocale(tag)` normalises a BCP-47 tag to a pack key (or `null`). `getLocalePack(tag)` returns the pack or `null`. `mergeStrings(defaults, locale, overrides)` applies English defaults ← locale pack ← user `strings`.
+- `loadGoogleIdentityServices()` loads the GIS script once. `promptGoogleOneTap(options)` shows Google One Tap when configured. `resetOneTapPromptState()` clears the in-session prompt guard (useful in tests).

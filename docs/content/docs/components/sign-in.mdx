@@ -11,12 +11,12 @@ Use it on a dedicated login page or anywhere you would rather not use a modal. I
 
 ## Attributes and properties
 
-| Name         | Type                                                                                        | Default     | Description                                                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `view`       | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"magic-url"` / `"email-otp"` / `"phone"` | `"sign-in"` | Initial screen.                                                                                                               |
-| `embedded`   | `boolean`                                                                                   | `false`     | Removes the card border, shadow and padding. The modal sets this.                                                             |
-| `email`      | `string`                                                                                    |             | Prefills the email field. Not overwritten after the user types.                                                               |
-| `login-hint` | `string`                                                                                    |             | Alternate email prefill (WorkOS-style). Applied when `email` is empty. Also reads `?login_hint=` / `?email=` once on connect. |
+| Name         | Type                                                                                                                       | Default     | Description                                                                                                                   |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `view`       | `"sign-in"` / `"sign-up"` / `"forgot-password"` / `"reset-password"` / `"magic-url"` / `"email-otp"` / `"phone"` / `"mfa"` | `"sign-in"` | Initial screen.                                                                                                               |
+| `embedded`   | `boolean`                                                                                                                  | `false`     | Removes the card border, shadow and padding. The modal sets this.                                                             |
+| `email`      | `string`                                                                                                                   |             | Prefills the email field. Not overwritten after the user types.                                                               |
+| `login-hint` | `string`                                                                                                                   |             | Alternate email prefill (WorkOS-style). Applied when `email` is empty. Also reads `?login_hint=` / `?email=` once on connect. |
 
 ## Methods
 

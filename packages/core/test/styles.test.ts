@@ -45,10 +45,12 @@ describe("shared layout styles", () => {
     );
   });
 
-  it("does not fade the account tabs with a right-edge mask", () => {
+  it("fades overflowing account tabs with a right-edge mask on .is-overflow", () => {
     const cssText = String(base);
+    expect(cssText).toMatch(/\.tabs\.is-overflow\s*\{[^}]*mask-image:/s);
+    expect(cssText).toMatch(/\.tabs\.is-overflow\s*\{[^}]*-webkit-mask-image:/s);
+    // Base .tabs itself stays unmasked so non-overflowing labels are not clipped.
     expect(cssText).not.toMatch(/\.tabs\s*\{[^}]*mask-image:/s);
-    expect(cssText).not.toMatch(/\.tabs\s*\{[^}]*-webkit-mask-image:/s);
   });
 
   it("lays out the password label and forgot link as siblings", () => {
@@ -109,6 +111,7 @@ describe("shared layout styles", () => {
     const cssText = String(base);
     expect(cssText).toMatch(/\.providers\.icon\s+\.btn\s*\{[^}]*width:\s*44px/s);
     expect(cssText).toMatch(/\.providers\.icon\s+\.btn\s*\{[^}]*height:\s*44px/s);
+    expect(cssText).toMatch(/\.providers\.icon\s*\{[^}]*gap:\s*4px/s);
   });
 
   it("gives legal-accept checkboxes a 44px hit target around a 16px control", () => {

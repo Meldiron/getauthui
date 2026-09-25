@@ -8,7 +8,8 @@ Open it with `AuthUI.open("account")`, from the `<authui-user-button>` menu, or 
 ## Profile
 
 - **Name**: update the display name.
-- **Email**: change the address (requires the current password) and send a verification email. A badge shows whether the address is verified.
+- **Account ID**: muted mono badge under the profile fields. Click to copy the user `$id` to the clipboard (screen readers hear "Copied").
+- **Email**: change the address (requires the current password). When the address is unverified, Auth UI starts an in-panel email OTP (with an optional security phrase) and falls back to a verification link if the project does not return OTP mode. A badge shows whether the address is verified.
 - **Phone**: change the number (requires the current password), send an SMS code and verify it.
 - **Delete account**: calls `account.updateStatus()`, which blocks the account and ends the session. Appwrite keeps the record so an administrator can restore it. Client-side deletion is not offered by Appwrite; use a server function if you need it.
 

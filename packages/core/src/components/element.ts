@@ -5,6 +5,7 @@ import { format } from "../i18n.js";
 import { themeWatcher, radiusScale } from "../theme.js";
 import { tokens } from "../styles/tokens.js";
 import { base } from "../styles/base.js";
+import { resolveLocale } from "../locales/index.js";
 import type { AuthUIState, AuthUIStrings } from "../types.js";
 
 /**
@@ -71,6 +72,10 @@ export class AuthUIElement extends LitElement {
     const branding = this.config?.branding;
     const dark = themeWatcher.isDark(branding?.theme ?? "auto");
     this.setAttribute("data-theme", dark ? "dark" : "light");
+    // WCAG 3.1.2: expose the active UI language on the host when a pack is used.
+    const locale = resolveLocale(this.config?.locale);
+    if (locale) this.setAttribute("lang", locale);
+    else this.removeAttribute("lang");
     if (branding?.primary) {
       this.style.setProperty("--authui-primary", branding.primary);
       this.style.setProperty(

@@ -46,7 +46,7 @@ Below the "New Game" row in `index.html` there is room for one more row. Reuse t
 Put this in `<head>` so the buttons stay hidden until Auth UI loads (see [`<authui-show>`](/docs/components/show)):
 
 ```html title="index.html"
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.41/dist/fouc.css" />
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.42/dist/fouc.css" />
 ```
 
 Below the "New Game" row:
@@ -70,7 +70,7 @@ Add a module script after the game's own scripts at the bottom of `index.html`:
 
 ```html title="index.html"
 <script type="module">
-  import { AuthUI } from "https://unpkg.com/@getauthui/core@0.1.41";
+  import { AuthUI } from "https://unpkg.com/@getauthui/core@0.1.42";
 
   AuthUI.init({
     endpoint: "https://fra.cloud.appwrite.io/v1",

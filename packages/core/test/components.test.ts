@@ -2520,3 +2520,174 @@ describe("identifier-first sign-in", () => {
     expect(el.shadowRoot!.querySelector("#authui-password")).toBeTruthy();
   });
 });
+
+describe("0.1.42 email verify gate and cancel", () => {
+  async function profileUnverifiedEmail() {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: false,
+      phoneVerification: true,
+      phone: "+15555550100",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+    return el;
+  }
+
+  it("cancels email verify mid-flow and returns to email edit", async () => {
+    const el = await profileUnverifiedEmail();
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /verify email/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    expect(send).toBeTruthy();
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    expect((el as any).emailCodeSent).toBe(true);
+    expect(shadowText(el)).toMatch(/Use a different email/i);
+
+    const cancel = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /use a different email/i.test(b.textContent ?? "")
+    )!;
+    cancel.click();
+    await (el as any).updateComplete;
+
+    expect((el as any).emailCodeSent).toBe(false);
+    expect((el as any).emailCode).toBe("");
+    expect((el as any).emailVerifyPhrase).toBeUndefined();
+    expect(shadowText(el)).toMatch(/Verify email/i);
+    expect(shadowText(el)).not.toMatch(/Use a different email/i);
+  });
+
+  it("keeps email Update disabled while OTP mid-flow even after editing the address", async () => {
+    const el = await profileUnverifiedEmail();
+    const send = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /verify email/i.test(b.textContent ?? "")
+    ) as HTMLButtonElement;
+    send.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+    expect((el as any).emailCodeSent).toBe(true);
+
+    const emailInput = el.shadowRoot!.querySelector("#acc-email") as HTMLInputElement;
+    emailInput.value = "new@b.co";
+    emailInput.dispatchEvent(new Event("input", { bubbles: true }));
+    await (el as any).updateComplete;
+
+    const update = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /^Update$/i.test((b.textContent ?? "").replace(/\s+/g, " ").trim())
+    ) as HTMLButtonElement;
+    expect(update).toBeTruthy();
+    expect(update.disabled).toBe(true);
+
+    account.updateEmail?.mockClear?.();
+    el.shadowRoot!.querySelector("#email-form")!.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true })
+    );
+    await tick();
+    expect((el as any).emailCodeSent).toBe(true);
+  });
+
+  it("announces Copied via aria-live when Account ID is copied", async () => {
+    account.state.user = {
+      $id: "user-abc-123",
+      email: "matej@example.com",
+      name: "Matej",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: true,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const el = await mount<HTMLElement>(`<authui-account tab="profile"></authui-account>`);
+    await tick();
+    await (el as any).updateComplete;
+
+    const live = el.shadowRoot!.querySelector('[aria-live="polite"]') as HTMLElement | null;
+    expect(live).toBeTruthy();
+    expect(live!.textContent?.trim()).toBe("");
+
+    const writeText = vi.fn(async () => {});
+    Object.assign(navigator, { clipboard: { writeText } });
+    const btn = el.shadowRoot!.querySelector(".copyable-id") as HTMLButtonElement;
+    btn.click();
+    await tick();
+    await (el as any).updateComplete;
+    expect(writeText).toHaveBeenCalled();
+    expect(live!.textContent?.trim()).toMatch(/Copied/i);
+  });
+});
+
+describe("0.1.42 identifier-first focus and email-otp chrome", () => {
+  it("focuses the password field after Continue", async () => {
+    authStore.configure({
+      ...config,
+      identifierFirst: true,
+      methods: { emailPassword: true },
+    });
+    await tick();
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await el.updateComplete;
+    const root = el.shadowRoot!;
+    const email = root.querySelector("#authui-email") as HTMLInputElement;
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    root
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    await el.updateComplete;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    expect(el.identifierPhase).toBe("password");
+    const pw = root.querySelector("#authui-password") as HTMLInputElement;
+    expect(root.activeElement).toBe(pw);
+  });
+
+  it("hides Continue with email OTP under identifier-first Email + Continue", async () => {
+    authStore.configure({
+      ...config,
+      identifierFirst: true,
+      methods: { emailPassword: true, emailOtp: true, magicUrl: true },
+    });
+    await tick();
+    const el = await mount<any>(`<authui-sign-in></authui-sign-in>`);
+    await el.updateComplete;
+    const text = el.shadowRoot!.textContent ?? "";
+    expect(text).toMatch(/Continue/i);
+    expect(text).toMatch(/magic link/i);
+    expect(text).not.toMatch(/Continue with email/i);
+  });
+});
+
+describe("0.1.42 host lang from locale", () => {
+  it("sets lang on the host when a locale pack is configured", async () => {
+    authStore.configure({ ...config, locale: "de" });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    expect(el.getAttribute("lang")).toBe("de");
+  });
+
+  it("clears lang when falling back to English", async () => {
+    authStore.configure({ ...config, locale: "de" });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    expect(el.getAttribute("lang")).toBe("de");
+    authStore.configure({ ...config });
+    await tick();
+    await (el as any).updateComplete;
+    expect(el.getAttribute("lang")).toBeNull();
+  });
+});

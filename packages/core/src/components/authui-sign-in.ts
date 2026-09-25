@@ -153,9 +153,25 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("step") && (this.focusOnStep || this.embedded)) {
+    if (
+      (changed.has("step") || changed.has("identifierPhase")) &&
+      (this.focusOnStep || this.embedded)
+    ) {
       this.focusOnStep = false;
-      requestAnimationFrame(() => this.firstInput?.focus());
+      requestAnimationFrame(() => {
+        // Identifier-first password step: #authui-email is readonly and is the
+        // first form input, so focus the password field explicitly.
+        if (
+          this.config?.identifierFirst &&
+          this.identifierPhase === "password" &&
+          this.step === "sign-in"
+        ) {
+          const pw = this.renderRoot.querySelector("#authui-password") as HTMLInputElement | null;
+          pw?.focus();
+          return;
+        }
+        this.firstInput?.focus();
+      });
     }
     this.maybeAutoStartMfa();
     if (changed.has("auth") || changed.has("step")) this.maybePromptOneTap();
@@ -1176,11 +1192,14 @@ export class AuthUISignIn extends AuthUIElement {
     const markLast = showLastUsedBadge(m) ? getLastMethod() : null;
     const identifierFirst = !!this.config?.identifierFirst;
     const onPasswordStep = identifierFirst && this.identifierPhase === "password";
+    // Identifier-first already leads with Email + Continue; hide the redundant
+    // email-otp "Continue with email" button on that phase.
+    const hideEmailOtp = identifierFirst && emailPassword;
     const passwordless = [
       m.magicUrl
         ? { step: "magic-url" as Step, icon: icons.link, label: this.t("sendMagicLink") }
         : null,
-      m.emailOtp
+      m.emailOtp && !hideEmailOtp
         ? { step: "email-otp" as Step, icon: icons.mail, label: this.t("continueWithEmail") }
         : null,
       m.phone

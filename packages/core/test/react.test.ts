@@ -54,6 +54,9 @@ import {
   useAuthUI,
   AuthUIModal,
   AuthUIUserButton,
+  AuthUISignIn,
+  AuthUIAccount,
+  AuthUIButton,
 } from "../src/react/index.js";
 import { authStore } from "../src/store.js";
 
@@ -408,5 +411,102 @@ describe("React AuthUIUserButton showTeams", () => {
     expect(btn).not.toBeNull();
     expect(btn.hasAttribute("show-teams")).toBe(true);
     expect(btn.showTeams).toBe(true);
+  });
+});
+
+describe("React 0.1.42 teams / SignIn / DOM passthrough", () => {
+  it("exposes activeTeamId from the active-team store event", async () => {
+    authStore.configure(config);
+    await tick();
+    let seen: string | null | undefined;
+    function Probe() {
+      const { activeTeamId } = useAuthUI();
+      seen = activeTeamId;
+      return null;
+    }
+    render(createElement(Probe));
+    expect(seen).toBeNull();
+    await act(async () => {
+      authStore.setActiveTeam({ $id: "team-1", name: "Alpha" });
+      await tick();
+    });
+    expect(seen).toBe("team-1");
+  });
+
+  it("bridges authui-active-team to onActiveTeam", async () => {
+    authStore.configure(config);
+    await tick();
+    const calls: unknown[] = [];
+    render(
+      createElement(AuthUIUserButton, {
+        showTeams: true,
+        onActiveTeam: (d) => calls.push(d),
+      })
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const btn = container.querySelector("authui-user-button")!;
+    btn.dispatchEvent(
+      new CustomEvent("authui-active-team", {
+        detail: { teamId: "t1", team: { $id: "t1", name: "T" } },
+        bubbles: true,
+      })
+    );
+    expect(calls).toEqual([{ teamId: "t1", team: { $id: "t1", name: "T" } }]);
+  });
+
+  it("forwards SignIn onSuccess method and onView", async () => {
+    authStore.configure(config);
+    await tick();
+    const successes: unknown[] = [];
+    const views: unknown[] = [];
+    render(
+      createElement(AuthUISignIn, {
+        onSuccess: (d) => successes.push(d),
+        onView: (d) => views.push(d),
+      })
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const el = container.querySelector("authui-sign-in")!;
+    // Mount may emit an initial authui-view; clear before asserting the bridge.
+    views.length = 0;
+    el.dispatchEvent(
+      new CustomEvent("authui-success", { detail: { method: "email-password" }, bubbles: true })
+    );
+    el.dispatchEvent(
+      new CustomEvent("authui-view", { detail: { view: "sign-up" }, bubbles: true })
+    );
+    expect(successes).toEqual([{ method: "email-password" }]);
+    expect(views).toEqual([{ view: "sign-up" }]);
+  });
+
+  it("forwards className, style and id onto wrappers", async () => {
+    authStore.configure(config);
+    await tick();
+    render(
+      createElement(AuthUIAccount, {
+        className: "my-account",
+        id: "acc-1",
+        style: { marginTop: 8 },
+      })
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const el = container.querySelector("authui-account") as HTMLElement;
+    expect(el.className).toContain("my-account");
+    expect(el.id).toBe("acc-1");
+    expect(el.style.marginTop).toBe("8px");
+
+    render(createElement(AuthUIButton, { className: "my-btn", id: "btn-1" }, "Go"));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const btn = container.querySelector("authui-button") as HTMLElement;
+    expect(btn.className).toContain("my-btn");
+    expect(btn.id).toBe("btn-1");
   });
 });

@@ -646,6 +646,16 @@ export const base = css`
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  /* Right-edge fade only while scrollWidth exceeds the viewport (is-overflow). */
+  .tabs.is-overflow {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 28px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
+  }
   :host([data-theme="dark"]) .tabs {
     background: color-mix(in oklab, var(--authui-muted) 55%, transparent);
   }
@@ -1045,7 +1055,8 @@ export const base = css`
   .providers.icon {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    /* Tighter than 8px so six 44px icons fit a ~320px content row without an orphan. */
+    gap: 4px;
     justify-content: center;
   }
   .providers.icon .btn {

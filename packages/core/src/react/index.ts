@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -11,7 +12,28 @@ import { authStore } from "../store.js";
 import { openModal, closeModal } from "../modal-controller.js";
 import { matchesAuthStatus } from "../components/authui-show.js";
 import type { Models } from "appwrite";
-import type { AuthUIConfig, AuthUIMenuItem, AuthUIState, AuthUIView } from "../types.js";
+import type {
+  AuthUIConfig,
+  AuthUIMenuItem,
+  AuthUIState,
+  AuthUIStatus,
+  AuthUIView,
+} from "../types.js";
+
+/** DOM props forwarded onto the underlying authui-* custom element. */
+type HostDomProps = {
+  className?: string;
+  style?: CSSProperties;
+  id?: string;
+};
+
+function hostDom(props: HostDomProps): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (props.className !== undefined) out.className = props.className;
+  if (props.style !== undefined) out.style = props.style;
+  if (props.id !== undefined) out.id = props.id;
+  return out;
+}
 
 // Register the custom elements when this module loads.
 import "../components/authui-config.js";
@@ -25,9 +47,20 @@ import "../components/authui-user-button.js";
 /** Subscribe to Auth UI state and get the imperative helpers. */
 export function useAuthUI() {
   const [state, setState] = useState<AuthUIState>(() => authStore.getState());
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(() =>
+    authStore.getActiveTeamId()
+  );
   useEffect(() => authStore.on("change", setState), []);
+  useEffect(
+    () =>
+      authStore.on("active-team", (detail) => {
+        setActiveTeamId(detail.teamId);
+      }),
+    []
+  );
   return {
     ...state,
+    activeTeamId,
     open: openModal,
     close: closeModal,
     signOut: () => authStore.signOut(),
@@ -88,17 +121,19 @@ export function AuthUIProvider({
 
 type AuthUIModalElement = HTMLElement & { closeOnSuccess: boolean; open: boolean };
 
-export function AuthUIModal(props: {
-  view?: AuthUIView;
-  open?: boolean;
-  closeOnSuccess?: boolean;
-  /** Called when the dialog wants to change open state (e.g. Esc, backdrop, X). */
-  onOpenChange?: (open: boolean) => void;
-  /** Fired when a sign-in flow inside the modal completes. */
-  onSignedIn?: (user: Models.User<Models.Preferences>) => void;
-  /** Fired when the modal closes (Esc, backdrop, X, hide, or closeOnSuccess). */
-  onClose?: () => void;
-}): ReactElement {
+export function AuthUIModal(
+  props: {
+    view?: AuthUIView;
+    open?: boolean;
+    closeOnSuccess?: boolean;
+    /** Called when the dialog wants to change open state (e.g. Esc, backdrop, X). */
+    onOpenChange?: (open: boolean) => void;
+    /** Fired when a sign-in flow inside the modal completes. */
+    onSignedIn?: (user: Models.User<Models.Preferences>) => void;
+    /** Fired when the modal closes (Esc, backdrop, X, hide, or closeOnSuccess). */
+    onClose?: () => void;
+  } & HostDomProps
+): ReactElement {
   const [el, setEl] = useState<AuthUIModalElement | null>(null);
   useEffect(() => {
     if (!el || props.closeOnSuccess === undefined) return;
@@ -136,58 +171,84 @@ export function AuthUIModal(props: {
     // and React can turn the default off. Also set the JS property above.
     "close-on-success":
       props.closeOnSuccess === false ? "false" : props.closeOnSuccess === true ? "" : undefined,
+    ...hostDom(props),
   });
 }
 
-export function AuthUIButton(props: {
-  view?: AuthUIView;
-  variant?: "primary" | "brand" | "outline" | "secondary" | "ghost" | "link";
-  size?: "sm" | "md" | "lg";
-  children?: ReactNode;
-}): ReactElement {
+export function AuthUIButton(
+  props: {
+    view?: AuthUIView;
+    variant?: "primary" | "brand" | "outline" | "secondary" | "ghost" | "link";
+    size?: "sm" | "md" | "lg";
+    children?: ReactNode;
+  } & HostDomProps
+): ReactElement {
   return createElement(
     "authui-button",
-    { view: props.view, variant: props.variant, size: props.size },
+    { view: props.view, variant: props.variant, size: props.size, ...hostDom(props) },
     props.children
   );
 }
 
-export function AuthUISignIn(props: {
-  view?: Exclude<AuthUIView, "account">;
-  /** Prefill the email field. */
-  email?: string;
-  /** Alternate email prefill (WorkOS-style login_hint). */
-  loginHint?: string;
-  onSuccess?: () => void;
-}): ReactElement {
+export function AuthUISignIn(
+  props: {
+    view?: Exclude<AuthUIView, "account">;
+    /** Prefill the email field. */
+    email?: string;
+    /** Alternate email prefill (WorkOS-style login_hint). */
+    loginHint?: string;
+    /** Fired when a sign-in flow completes. Receives Lit's `{ method }` detail. */
+    onSuccess?: (detail: { method: string }) => void;
+    /** Fired when the visible screen changes (`authui-view`). */
+    onView?: (detail: { view: string }) => void;
+  } & HostDomProps
+): ReactElement {
   return createElement(SignInBridge, props);
 }
 
-function SignInBridge(props: {
-  view?: Exclude<AuthUIView, "account">;
-  email?: string;
-  loginHint?: string;
-  onSuccess?: () => void;
-}): ReactElement {
+function SignInBridge(
+  props: {
+    view?: Exclude<AuthUIView, "account">;
+    email?: string;
+    loginHint?: string;
+    onSuccess?: (detail: { method: string }) => void;
+    onView?: (detail: { view: string }) => void;
+  } & HostDomProps
+): ReactElement {
   const [el, setEl] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!el || !props.onSuccess) return;
-    const handler = () => props.onSuccess?.();
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ method?: string }>).detail ?? { method: "" };
+      props.onSuccess?.({ method: detail.method ?? "" });
+    };
     el.addEventListener("authui-success", handler);
     return () => el.removeEventListener("authui-success", handler);
   }, [el, props.onSuccess]);
+  useEffect(() => {
+    if (!el || !props.onView) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ view?: string }>).detail ?? { view: "" };
+      props.onView?.({ view: detail.view ?? "" });
+    };
+    el.addEventListener("authui-view", handler);
+    return () => el.removeEventListener("authui-view", handler);
+  }, [el, props.onView]);
   return createElement("authui-sign-in", {
     ref: setEl,
     view: props.view,
     email: props.email,
     "login-hint": props.loginHint,
+    ...hostDom(props),
   });
 }
 
-export function AuthUIAccount(props: {
-  tab?: "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
-}): ReactElement {
-  return createElement("authui-account", { tab: props.tab });
+export function AuthUIAccount(
+  props: {
+    tab?: "profile" | "security" | "sessions" | "connections" | "consents" | "activity";
+  } & HostDomProps
+): ReactElement {
+  return createElement("authui-account", { tab: props.tab, ...hostDom(props) });
 }
 
 type AuthUIUserButtonElement = HTMLElement & {
@@ -195,13 +256,20 @@ type AuthUIUserButtonElement = HTMLElement & {
   menuItems: AuthUIMenuItem[];
 };
 
-export function AuthUIUserButton(props: {
-  src?: string;
-  showTeams?: boolean;
-  menuItems?: AuthUIMenuItem[];
-  onMenuAction?: (actionId: string) => void;
-  children?: ReactNode;
-}): ReactElement {
+export function AuthUIUserButton(
+  props: {
+    src?: string;
+    showTeams?: boolean;
+    menuItems?: AuthUIMenuItem[];
+    onMenuAction?: (actionId: string) => void;
+    /** Fired when the user picks an active team (`authui-active-team`). */
+    onActiveTeam?: (detail: {
+      teamId: string | null;
+      team: { $id: string; name: string } | null;
+    }) => void;
+    children?: ReactNode;
+  } & HostDomProps
+): ReactElement {
   const [el, setEl] = useState<AuthUIUserButtonElement | null>(null);
   useEffect(() => {
     if (!el || props.showTeams === undefined) return;
@@ -220,6 +288,23 @@ export function AuthUIUserButton(props: {
     el.addEventListener("authui-menu-action", handler);
     return () => el.removeEventListener("authui-menu-action", handler);
   }, [el, props.onMenuAction]);
+  useEffect(() => {
+    if (!el || !props.onActiveTeam) return;
+    const handler = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          teamId?: string | null;
+          team?: { $id: string; name: string } | null;
+        }>
+      ).detail;
+      props.onActiveTeam?.({
+        teamId: detail?.teamId ?? null,
+        team: detail?.team ?? null,
+      });
+    };
+    el.addEventListener("authui-active-team", handler);
+    return () => el.removeEventListener("authui-active-team", handler);
+  }, [el, props.onActiveTeam]);
   return createElement(
     "authui-user-button",
     {
@@ -227,6 +312,7 @@ export function AuthUIUserButton(props: {
       src: props.src,
       // Lit boolean attrs treat presence as true; omit when false/undefined.
       "show-teams": props.showTeams === true ? "" : undefined,
+      ...hostDom(props),
     },
     props.children
   );
@@ -241,11 +327,23 @@ export function AuthUIUserButton(props: {
  * React wrapper returns `null` so children are not mounted while hidden.
  */
 export function Show(props: {
-  when?: string;
-  unless?: string;
+  when?: AuthUIStatus | AuthUIStatus[] | (string & {});
+  unless?: AuthUIStatus | AuthUIStatus[] | (string & {});
   children?: ReactNode;
 }): ReactElement | null {
   const { status } = useAuthUI();
-  if (!matchesAuthStatus(status, props.when, props.unless)) return null;
+  const when =
+    props.when === undefined
+      ? undefined
+      : Array.isArray(props.when)
+        ? props.when.join(",")
+        : props.when;
+  const unless =
+    props.unless === undefined
+      ? undefined
+      : Array.isArray(props.unless)
+        ? props.unless.join(",")
+        : props.unless;
+  if (!matchesAuthStatus(status, when, unless)) return null;
   return createElement(Fragment, null, props.children);
 }
