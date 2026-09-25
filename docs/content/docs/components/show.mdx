@@ -52,7 +52,7 @@ Both accept a single value or a comma separated list. Valid values:
 - **CDN / script-tag users:** load the shipped FOUC stylesheet in `<head>` before the Auth UI script so protected content stays hidden before the module executes (same rules as `CRITICAL_FOUC_CSS`):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.43/dist/fouc.css" />
+<link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.44/dist/fouc.css" />
 ```
 
 With a bundler: `import "@getauthui/core/fouc.css"`. The JS string exports `FOUC_CSS` / `CRITICAL_FOUC_CSS` and the in-module auto-inject remain for ESM; prefer the CSS file for script-tag installs.

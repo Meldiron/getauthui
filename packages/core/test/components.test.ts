@@ -2012,6 +2012,191 @@ describe("0.1.21 Vibes design polish", () => {
     }
   });
 
+  it("renders membership avatar, status/role badges, joined date, and Hide members", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "ada@example.com",
+      name: "Ada Lovelace",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const teamsSpy = vi.spyOn(authStore, "listTeams").mockResolvedValue([
+      {
+        $id: "t1",
+        name: "Acme Engineering",
+        total: 3,
+        $createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        $updatedAt: new Date().toISOString(),
+        prefs: {},
+      } as any,
+    ]);
+    const memSpy = vi.spyOn(authStore, "listTeamMemberships").mockResolvedValue([
+      {
+        $id: "m1",
+        userId: "u1",
+        userName: "Ada Lovelace",
+        userEmail: "ada@example.com",
+        roles: ["owner"],
+        confirm: true,
+        $createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any,
+      {
+        $id: "m2",
+        userId: "u2",
+        userName: "Bob Builder",
+        userEmail: "bob@example.com",
+        roles: ["developer"],
+        confirm: true,
+        $createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any,
+      {
+        $id: "m3",
+        userId: "u3",
+        userName: "Cara Pending",
+        userEmail: "cara@example.com",
+        roles: ["member"],
+        confirm: false,
+        $createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any,
+    ]);
+    const el = await mount<HTMLElement>(`<authui-account tab="teams"></authui-account>`);
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const membersBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Members/i.test(b.textContent ?? "")
+    );
+    expect(membersBtn).toBeTruthy();
+    membersBtn!.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    const text = shadowText(el);
+    expect(text).toMatch(/Hide members/i);
+    expect(text).not.toMatch(/Hide devices/i);
+    expect(text).toMatch(/Active/);
+    expect(text).toMatch(/Pending/);
+    expect(text).toMatch(/Owner/);
+    expect(text).toMatch(/developer/);
+    expect(text).toMatch(/member/);
+    expect(text).toMatch(/Joined /);
+    expect(el.shadowRoot!.querySelectorAll(".avatar").length).toBeGreaterThanOrEqual(3);
+    expect(el.shadowRoot!.querySelectorAll(".member-badges .badge").length).toBeGreaterThanOrEqual(
+      4
+    );
+    expect(el.shadowRoot!.querySelectorAll(".member-dates time").length).toBeGreaterThanOrEqual(1);
+    teamsSpy.mockRestore();
+    memSpy.mockRestore();
+  });
+
+  it("renders consent scopes as chips and token Issued/Expired labels", async () => {
+    account.state.user = {
+      $id: "u1",
+      email: "a@b.co",
+      name: "Test",
+      mfa: false,
+      emailVerification: true,
+      phoneVerification: false,
+      phone: "",
+      passwordUpdate: "2024-01-01T00:00:00.000Z",
+    };
+    authStore.configure(config);
+    await authStore.refresh();
+    const past = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const future = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString();
+    const created = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const consentsSpy = vi.spyOn(authStore, "listConsents").mockResolvedValue([
+      {
+        $id: "c1",
+        clientId: "app1",
+        scopes: ["account", "account.read", "teams.read"],
+        $createdAt: created,
+      } as any,
+    ]);
+    const tokensSpy = vi.spyOn(authStore, "listConsentTokens").mockResolvedValue([
+      {
+        $id: "tok1",
+        scopes: ["account", "account.read"],
+        $createdAt: created,
+        expire: future,
+      } as any,
+      {
+        $id: "tok2",
+        scopes: ["teams.read"],
+        $createdAt: created,
+        expire: past,
+      } as any,
+    ]);
+
+    const el = await mount<HTMLElement>(`<authui-account tab="consents"></authui-account>`);
+    // Force consents supported path (probe may race).
+    (el as any).consentsSupported = true;
+    (el as any).consents = [
+      {
+        $id: "c1",
+        clientId: "app1",
+        scopes: ["account", "account.read", "teams.read"],
+        $createdAt: created,
+      },
+    ];
+    (el as any).active = "consents";
+    await (el as any).updateComplete;
+    await tick();
+
+    expect(
+      el.shadowRoot!.querySelectorAll(".scope-chips .badge-outline").length
+    ).toBeGreaterThanOrEqual(3);
+    expect(shadowText(el)).not.toMatch(/Scopes: account,/);
+
+    const showBtn = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Show devices/i.test(b.textContent ?? "")
+    );
+    expect(showBtn).toBeTruthy();
+    showBtn!.click();
+    await tick();
+    await tick();
+    await (el as any).updateComplete;
+
+    // If tokens did not load via click, inject them.
+    if (!(el as any).consentTokens?.c1) {
+      (el as any).consentTokens = {
+        c1: [
+          {
+            $id: "tok1",
+            scopes: ["account", "account.read"],
+            $createdAt: created,
+            expire: future,
+          },
+          {
+            $id: "tok2",
+            scopes: ["teams.read"],
+            $createdAt: created,
+            expire: past,
+          },
+        ],
+      };
+      (el as any).expandedConsentId = "c1";
+      await (el as any).updateComplete;
+    }
+
+    const text = shadowText(el);
+    expect(text).toMatch(/Issued /);
+    expect(text).toMatch(/Expires /);
+    expect(text).toMatch(/Expired /);
+    expect(
+      el.shadowRoot!.querySelectorAll(".consent-token-dates time").length
+    ).toBeGreaterThanOrEqual(2);
+    consentsSpy.mockRestore();
+    tokensSpy.mockRestore();
+  });
+
   it("shows relative activity timestamps with absolute title detail", async () => {
     account.listLogs.mockResolvedValue({
       logs: [

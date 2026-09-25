@@ -186,6 +186,44 @@ export class AuthUIAccount extends AuthUIElement {
         width: 10px;
         height: 10px;
       }
+      .member-badges {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+      }
+      .member-badges .badge {
+        font-size: 10px;
+        padding: 0 6px;
+        height: 18px;
+        gap: 3px;
+      }
+      .scope-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        margin-top: 4px;
+      }
+      .scope-chips .badge {
+        font-size: 10px;
+        padding: 0 6px;
+        height: 18px;
+        font-weight: 400;
+      }
+      .member-dates,
+      .consent-token-dates {
+        display: block;
+        font-size: 11px;
+        color: var(--authui-muted-foreground);
+        margin-top: 2px;
+      }
+      .member-dates time,
+      .consent-token-dates time {
+        cursor: default;
+        border-bottom: 1px dotted
+          color-mix(in oklab, var(--authui-muted-foreground) 50%, transparent);
+      }
       .consent-tokens {
         width: 100%;
         margin-top: 8px;
@@ -2471,11 +2509,16 @@ export class AuthUIAccount extends AuthUIElement {
   /** Relative primary label with absolute detail for title tooltips (Vibes DateTooltip). */
   private formatRelativeLabel(
     iso: string | undefined
-  ): { label: string; absolute: string; iso: string } | null {
+  ): { label: string; absolute: string; iso: string; isFuture: boolean } | null {
     const parts = relativeTimeParts(iso);
     if (!parts) return null;
     if (parts.justNow) {
-      return { label: this.t("relativeJustNow"), absolute: parts.absolute, iso: parts.iso };
+      return {
+        label: this.t("relativeJustNow"),
+        absolute: parts.absolute,
+        iso: parts.iso,
+        isFuture: parts.isFuture,
+      };
     }
     const unitKey = (
       {
@@ -2505,7 +2548,7 @@ export class AuthUIAccount extends AuthUIElement {
     const label = parts.isFuture
       ? this.t("relativeFuture", { count: parts.count, unit })
       : this.t("relativePast", { count: parts.count, unit });
-    return { label, absolute: parts.absolute, iso: parts.iso };
+    return { label, absolute: parts.absolute, iso: parts.iso, isFuture: parts.isFuture };
   }
 
   private browserIconUrl(s: Models.Session): string | null {
@@ -2884,11 +2927,12 @@ export class AuthUIAccount extends AuthUIElement {
                           }
                           ${
                             scopes.length
-                              ? html`<span class="row-sub"
-                                  >${this.t("consentScopes", {
-                                    scopes: scopes.join(", "),
-                                  })}</span
-                                >`
+                              ? html`<div class="scope-chips">
+                                  ${scopes.map(
+                                    (scope) =>
+                                      html`<span class="badge badge-outline">${scope}</span>`
+                                  )}
+                                </div>`
                               : nothing
                           }
                         </div>
@@ -2957,21 +3001,57 @@ export class AuthUIAccount extends AuthUIElement {
                                         >`
                                       : html`<div class="consents-list">
                                           ${tokens.map((tok) => {
+                                            const issuedRel = this.formatRelativeLabel(
+                                              tok.$createdAt
+                                            );
                                             const expRel = tok.expire
                                               ? this.formatRelativeLabel(tok.expire)
                                               : null;
+                                            const tokScopes = (tok.scopes ?? []).filter(Boolean);
                                             const key = `${c.$id}:${tok.$id}`;
                                             return html`<div class="row">
                                               <div class="row-main">
-                                                <span class="row-title"
-                                                  >${(tok.scopes ?? []).join(", ") || tok.$id}</span
-                                                >
                                                 ${
-                                                  expRel
-                                                    ? html`<span class="row-sub"
-                                                        >${this.t("consentTokenExpires", {
-                                                          date: expRel.label,
-                                                        })}</span
+                                                  tokScopes.length
+                                                    ? html`<div class="scope-chips">
+                                                        ${tokScopes.map(
+                                                          (scope) =>
+                                                            html`<span class="badge badge-outline"
+                                                              >${scope}</span
+                                                            >`
+                                                        )}
+                                                      </div>`
+                                                    : html`<span class="row-title"
+                                                        >${tok.$id}</span
+                                                      >`
+                                                }
+                                                ${
+                                                  issuedRel || expRel
+                                                    ? html`<span class="consent-token-dates"
+                                                        >${
+                                                          issuedRel
+                                                            ? html`<time
+                                                                datetime=${issuedRel.iso}
+                                                                title=${issuedRel.absolute}
+                                                                >${this.t("consentTokenIssued", {
+                                                                  date: issuedRel.label,
+                                                                })}</time
+                                                              >`
+                                                            : nothing
+                                                        }${issuedRel && expRel ? " · " : ""}${
+                                                          expRel
+                                                            ? html`<time
+                                                                datetime=${expRel.iso}
+                                                                title=${expRel.absolute}
+                                                                >${this.t(
+                                                                  expRel.isFuture
+                                                                    ? "consentTokenExpires"
+                                                                    : "consentTokenExpired",
+                                                                  { date: expRel.label }
+                                                                )}</time
+                                                              >`
+                                                            : nothing
+                                                        }</span
                                                       >`
                                                     : nothing
                                                 }
@@ -3091,7 +3171,7 @@ export class AuthUIAccount extends AuthUIElement {
                             ?disabled=${!!this.busy}
                             @click=${() => this.onToggleTeam(team.$id)}
                           >
-                            ${expanded ? this.t("hideConsentTokens") : this.t("teamMembers")}
+                            ${expanded ? this.t("hideTeamMembers") : this.t("teamMembers")}
                           </button>
                           ${
                             this.confirmLeaveTeamId === team.$id
@@ -3136,21 +3216,70 @@ export class AuthUIAccount extends AuthUIElement {
                                       : html`<div class="consents-list">
                                           ${memberships.map((mem) => {
                                             const key = `${team.$id}:${mem.$id}`;
-                                            const label =
-                                              mem.userName || mem.userEmail || mem.userId;
-                                            const isOwner = mem.roles?.includes("owner");
+                                            const name = (mem.userName || "").trim();
+                                            const email = (mem.userEmail || "").trim();
+                                            const label = name || email || mem.userId;
+                                            const roles = (mem.roles ?? []).filter(Boolean);
                                             const pending = !mem.confirm;
+                                            const joinedRel = this.formatRelativeLabel(
+                                              mem.$createdAt
+                                            );
+                                            const roleBadges = roles
+                                              .slice(0, 2)
+                                              .map(
+                                                (role) =>
+                                                  html`<span class="badge badge-info"
+                                                    >${
+                                                      role === "owner"
+                                                        ? this.t("teamRoleOwner")
+                                                        : role
+                                                    }</span
+                                                  >`
+                                              );
+                                            const roleOverflow =
+                                              roles.length > 2
+                                                ? html`<span class="badge badge-info"
+                                                    >+${roles.length - 2}</span
+                                                  >`
+                                                : nothing;
                                             return html`<div class="row">
-                                              <div class="row-main">
-                                                <span class="row-title">${label}</span>
-                                                <span class="row-sub"
-                                                  >${[
-                                                    isOwner ? this.t("teamRoleOwner") : nothing,
-                                                    pending ? this.t("teamMemberPending") : nothing,
-                                                  ]
-                                                    .filter((x) => x !== nothing)
-                                                    .join(" · ")}</span
-                                                >
+                                              <div class="inline">
+                                                <span class="avatar">${avatarInitial(label)}</span>
+                                                <div class="row-main">
+                                                  <span class="row-title">
+                                                    ${label}
+                                                    <span class="member-badges">
+                                                      ${
+                                                        pending
+                                                          ? html`<span class="badge badge-warning"
+                                                              >${this.t("teamMemberPending")}</span
+                                                            >`
+                                                          : html`<span class="badge badge-success"
+                                                              >${this.t("teamMemberActive")}</span
+                                                            >`
+                                                      }
+                                                      ${roleBadges}${roleOverflow}
+                                                    </span>
+                                                  </span>
+                                                  ${
+                                                    name && email
+                                                      ? html`<span class="row-sub">${email}</span>`
+                                                      : nothing
+                                                  }
+                                                  ${
+                                                    joinedRel
+                                                      ? html`<span class="member-dates"
+                                                          ><time
+                                                            datetime=${joinedRel.iso}
+                                                            title=${joinedRel.absolute}
+                                                            >${this.t("teamJoined", {
+                                                              date: joinedRel.label,
+                                                            })}</time
+                                                          ></span
+                                                        >`
+                                                      : nothing
+                                                  }
+                                                </div>
                                               </div>
                                               ${
                                                 owner && mem.userId !== this.user?.$id
