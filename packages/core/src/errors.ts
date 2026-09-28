@@ -133,6 +133,24 @@ export function describeError(
   return e.message || s.errorGeneric;
 }
 
+/**
+ * Friendly message for sticky config / bootstrap failures.
+ * CORS-masked bad projects surface as Failed to fetch; prefer errorConfig over errorNetwork
+ * so guestbook chrome does not blame the user's connection.
+ */
+export function describeConfigError(err: unknown, s: AuthUIStrings): string {
+  const e = toAuthUIError(err);
+  if (e.type === ErrorTypes.projectNotFound || e.type === ErrorTypes.unknownOrigin) {
+    return s.errorConfig;
+  }
+  if (e.type === ErrorTypes.routeNotFound) return s.errorConfigEndpoint;
+  if (!e.message && e.code === 404) return s.errorConfigEndpoint;
+  if (e.code === 0 && /fetch|network|load failed|failed to fetch/i.test(e.message)) {
+    return s.errorConfig;
+  }
+  return describeError(err, s) || s.errorConfig;
+}
+
 /** True when the error points at a wrong project, origin, endpoint or a dead network on first contact. */
 export function isConfigError(err: unknown): boolean {
   const e = toAuthUIError(err);

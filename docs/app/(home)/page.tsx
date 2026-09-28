@@ -9,7 +9,7 @@ import { cdnUrl, criticalCssTag, gitConfig } from "@/lib/shared";
 const Underscore = () => <span className="text-brand">_</span>;
 
 const heroSnippet = `${criticalCssTag}
-<script type="module" src="${cdnUrl}"></script>
+<script src="${cdnUrl}/dist/authui.cdn.js"></script>
 
 <authui-config
   endpoint="https://cloud.appwrite.io/v1"
@@ -133,13 +133,11 @@ const steps = [
   {
     n: "03",
     title: "Sign in to your app",
-    desc: "Your users pick a method and sign in. The session belongs to your page, so the Appwrite SDK in your own code sees it right away.",
+    desc: "Your users pick a method and sign in. The session belongs to your page. With the IIFE CDN script above, AuthUI is on window; with npm, import it.",
     code: (
       <>
-        {T.kw("import")} {T.pl("{")} {T.fn("AuthUI")} {T.pl("}")} {T.kw("from")}{" "}
-        {T.str('"@getauthui/core"')}
-        {T.pl(";")}
-        {"\n\n"}
+        {T.cm("// CDN IIFE (hero script): AuthUI is already global")}
+        {"\n"}
         {T.fn("AuthUI")}
         {T.pl(".")}
         {T.fn("on")}
@@ -150,9 +148,15 @@ const steps = [
         {T.cm("// user.email, user.name, ...")}
         {"\n"}
         {T.pl("});")}
+        {"\n\n"}
+        {T.cm("// npm / bundler")}
+        {"\n"}
+        {T.kw("import")} {T.pl("{")} {T.fn("AuthUI")} {T.pl("}")} {T.kw("from")}{" "}
+        {T.str('"@getauthui/core"')}
+        {T.pl(";")}
       </>
     ),
-    raw: `import { AuthUI } from "@getauthui/core";\n\nAuthUI.on("signed-in", (user) => {\n  // user.email, user.name, ...\n});`,
+    raw: `// CDN IIFE (hero script): AuthUI is already global\nAuthUI.on("signed-in", (user) => {\n  // user.email, user.name, ...\n});\n\n// npm / bundler\nimport { AuthUI } from "@getauthui/core";`,
   },
 ];
 
@@ -221,8 +225,7 @@ export default function HomePage() {
             {T.tag("<link")} {T.attr("rel")}={T.str('"stylesheet"')} {T.attr("href")}=
             {T.str(`"${cdnUrl}/dist/fouc.css"`)} {T.tag("/>")}
             {"\n"}
-            {T.tag("<script")} {T.attr("type")}={T.str('"module"')} {T.attr("src")}=
-            {T.str(`"${cdnUrl}"`)}
+            {T.tag("<script")} {T.attr("src")}={T.str(`"${cdnUrl}/dist/authui.cdn.js"`)}
             {T.tag(">")}
             {T.tag("</script>")}
             {"\n\n"}

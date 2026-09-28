@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeError, isConfigError, toAuthUIError } from "../src/errors.js";
+import { describeConfigError, describeError, isConfigError, toAuthUIError } from "../src/errors.js";
 import { defaultStrings, format } from "../src/i18n.js";
 
 describe("errors", () => {
@@ -112,6 +112,16 @@ describe("errors", () => {
     expect(isConfigError({ type: "user_invalid_credentials", message: "x", code: 401 })).toBe(
       false
     );
+    expect(isConfigError(new TypeError("Failed to fetch"))).toBe(true);
+  });
+
+  it("describeConfigError maps Failed to fetch to errorConfig (CORS-masked project)", () => {
+    expect(describeConfigError(new TypeError("Failed to fetch"), defaultStrings)).toBe(
+      defaultStrings.errorConfig
+    );
+    expect(
+      describeConfigError({ type: "project_not_found", message: "x", code: 404 }, defaultStrings)
+    ).toBe(defaultStrings.errorConfig);
   });
 
   it("formats placeholders", () => {

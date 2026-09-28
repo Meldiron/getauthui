@@ -70,6 +70,9 @@ export type AuthUIRadius = "none" | "sm" | "md" | "lg" | "xl" | "full";
 /** How OAuth provider buttons are laid out. */
 export type AuthUIOauthLayout = "stack" | "accordion" | "icon" | "horizontal";
 
+/** Where OAuth buttons sit relative to the credential form. Default: top. */
+export type AuthUIOauthPosition = "top" | "bottom";
+
 export interface AuthUIMethods {
   /** Email + password sign in and sign up. Default: true. */
   emailPassword?: boolean;
@@ -113,6 +116,8 @@ export interface AuthUILegal {
    * email sign-up or OAuth. Client-only gate; nothing is sent to Appwrite.
    */
   requireAcceptance?: boolean;
+  /** Optional help / support URL. Shown in the legal footer and blocked-user contact link. */
+  helpUrl?: string;
 }
 
 /** Custom item in the <authui-user-button> account menu. */
@@ -143,6 +148,18 @@ export interface AuthUIConfig {
   methods?: AuthUIMethods;
   /** Show the "Sign up" option. Default: true. */
   signUp?: boolean;
+  /**
+   * External sign-up URL when `signUp` is false. Keeps the "Don't have an account?"
+   * row and links out (Clerk `signUpUrl` / Auth0 `signUpLink`). Ignored when `signUp` is true.
+   */
+  signUpUrl?: string;
+  /** Show the Forgot password link on sign-in. Default: true. */
+  forgotPassword?: boolean;
+  /**
+   * Place OAuth buttons above (`top`) or below (`bottom`) the credential form.
+   * Default: `top`. Independent of `methods.oauthLayout`.
+   */
+  oauthPosition?: AuthUIOauthPosition;
   /** Ask for a display name during sign up. Default: true. */
   requireName?: boolean;
   /** Let users enroll and manage MFA from the account screen. Default: true. */
@@ -260,6 +277,11 @@ export interface AuthUIStrings {
   forgotPassword: string;
   noAccount: string;
   haveAccount: string;
+  /** Soft handoff on sign-up when the email already exists. */
+  switchToSignIn: string;
+  /** Legal footer / blocked-user support link label. */
+  help: string;
+  contactSupport: string;
   or: string;
   continueWith: string;
   continueWithEmail: string;
@@ -464,6 +486,8 @@ export interface AuthUIStrings {
   errorConfigIncomplete: string;
   /** Wrong project, origin, endpoint, or unreachable API during the first refresh. */
   errorConfig: string;
+  /** Compact chrome banner for launcher / guestbook headers. */
+  errorConfigShort: string;
   /** Hint when the endpoint looks like it is missing /v1. */
   errorConfigEndpoint: string;
   passwordHint: string;

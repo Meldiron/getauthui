@@ -272,27 +272,29 @@ export class PreviewAccount {
     }, 800);
   }
 
-  async createMagicURLToken(userId: string, email: string) {
+  async createMagicURLToken(userId: string, email: string, _url?: string, phraseEnabled?: boolean) {
     this.tokens.set(userId, { email });
+    const wantPhrase = phraseEnabled !== false;
     return this.delay({
       $id: id(),
       $createdAt: now(),
       userId,
       secret: "",
       expire: "",
-      phrase: phrase(),
+      phrase: wantPhrase ? phrase() : "",
     });
   }
 
-  async createEmailToken(userId: string, email: string) {
+  async createEmailToken(userId: string, email: string, phraseEnabled?: boolean) {
     this.tokens.set(userId, { email });
+    const wantPhrase = phraseEnabled !== false;
     return this.delay({
       $id: id(),
       $createdAt: now(),
       userId,
       secret: "",
       expire: "",
-      phrase: phrase(),
+      phrase: wantPhrase ? phrase() : "",
     });
   }
 

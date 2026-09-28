@@ -21,7 +21,14 @@ export type MfaFactor = "totp" | "email" | "phone" | "recoverycode";
 import { defaultStrings, format } from "./i18n.js";
 import { mergeStrings } from "./locales/index.js";
 import { PreviewAccount } from "./preview.js";
-import { describeError, ErrorTypes, isConfigError, isErrorType, toAuthUIError } from "./errors.js";
+import {
+  describeConfigError,
+  describeError,
+  ErrorTypes,
+  isConfigError,
+  isErrorType,
+  toAuthUIError,
+} from "./errors.js";
 import { getStoredActiveTeamId, setStoredActiveTeamId } from "./active-team.js";
 import { clearPendingOAuth, rememberLastMethod, rememberPendingOAuth } from "./last-method.js";
 import type {
@@ -328,8 +335,7 @@ export class AuthStore {
           });
           if (wasSignedIn) this.emit("signed-out", undefined);
         } else if (!wasSignedIn && isConfigError(err)) {
-          const message = describeError(err, this.getStrings());
-          const hint = message || this.getStrings().errorConfig;
+          const hint = describeConfigError(err, this.getStrings());
           console.warn(
             `[authui] ${hint} (endpoint=${this.config?.endpoint ?? "?"}, project=${this.config?.project ?? "?"})`
           );

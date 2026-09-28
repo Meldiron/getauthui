@@ -492,9 +492,12 @@ describe("<authui-modal> and <authui-button>", () => {
     await tick();
     await (button as any).updateComplete;
     const text = shadowText(button);
-    expect(text).toContain(hint!);
+    expect(text).toContain("Check project ID, endpoint, and Web platform.");
+    expect(text).not.toContain(hint!);
+    const alert = button.shadowRoot!.querySelector(".alert.alert-error[role=alert]");
+    expect(alert).not.toBeNull();
+    expect(alert!.getAttribute("title")).toBe(hint);
     expect(button.getAttribute("data-config-error")).toBe("");
-    expect(button.shadowRoot!.querySelector(".alert.alert-error[role=alert]")).not.toBeNull();
     // Modal stays unmounted until click.
     expect(document.querySelector("authui-modal")).toBeNull();
     warn.mockRestore();
@@ -1120,6 +1123,99 @@ describe("0.1.10 features", () => {
     const cfg = authStore.getConfig()!;
     expect(cfg.legal?.requireAcceptance).toBe(true);
     expect(cfg.methods?.oauthLayout).toBe("stack");
+  });
+
+  it("parses help-url, forgot-password, sign-up-url and oauth-position", async () => {
+    await mount(
+      `<authui-config endpoint="https://x/v1" project="p" help-url="/support" forgot-password="false" sign-up="false" sign-up-url="https://example.com/join" oauth-position="bottom" methods="email-password oauth:google"></authui-config>`
+    );
+    const cfg = authStore.getConfig()!;
+    expect(cfg.legal?.helpUrl).toBe("/support");
+    expect(cfg.forgotPassword).toBe(false);
+    expect(cfg.signUp).toBe(false);
+    expect(cfg.signUpUrl).toBe("https://example.com/join");
+    expect(cfg.oauthPosition).toBe("bottom");
+  });
+
+  it("hides Forgot password when forgotPassword is false", async () => {
+    authStore.configure({ ...config, forgotPassword: false });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const forgot = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Forgot password/i.test(b.textContent ?? "")
+    );
+    expect(forgot).toBeUndefined();
+  });
+
+  it("keeps external sign-up link when signUp is false and signUpUrl is set", async () => {
+    authStore.configure({
+      ...config,
+      signUp: false,
+      signUpUrl: "https://example.com/join",
+      methods: { emailPassword: true },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const link = el.shadowRoot!.querySelector('a[href="https://example.com/join"]');
+    expect(link).toBeTruthy();
+    expect(link!.textContent).toMatch(/Sign up/i);
+  });
+
+  it("places OAuth below the form when oauthPosition is bottom", async () => {
+    authStore.configure({
+      ...config,
+      oauthPosition: "bottom",
+      methods: { emailPassword: true, oauth: ["google"] },
+    });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const stack = el.shadowRoot!.querySelector(".stack");
+    expect(stack).toBeTruthy();
+    const children = [...stack!.children];
+    const formIdx = children.findIndex(
+      (c) => c.tagName === "FORM" || c.classList?.contains("form")
+    );
+    const providersIdx = children.findIndex((c) => c.classList?.contains("providers"));
+    expect(formIdx).toBeGreaterThanOrEqual(0);
+    expect(providersIdx).toBeGreaterThan(formIdx);
+  });
+
+  it("offers switch to sign-in when sign-up hits email already exists", async () => {
+    authStore.configure({ ...config, methods: { emailPassword: true }, signUp: true });
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in view="sign-up"></authui-sign-in>`);
+    await (el as any).updateComplete;
+    (el as any).email = "taken@example.com";
+    (el as any).error = (el as any).t("errorUserExists");
+    await (el as any).updateComplete;
+    const handoff = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Sign in instead/i.test(b.textContent ?? "")
+    );
+    expect(handoff).toBeTruthy();
+    handoff!.click();
+    await (el as any).updateComplete;
+    expect((el as any).step).toBe("sign-in");
+    expect((el as any).email).toBe("taken@example.com");
+  });
+
+  it("shows Create account CTA for guest on signed-in chrome", async () => {
+    authStore.configure({
+      ...config,
+      preview: true,
+      methods: { emailPassword: true, anonymous: true },
+    });
+    await tick();
+    await authStore.signInAnonymously();
+    await tick();
+    const el = await mount<HTMLElement>(`<authui-sign-in></authui-sign-in>`);
+    await (el as any).updateComplete;
+    const create = [...el.shadowRoot!.querySelectorAll("button")].find((b) =>
+      /Create your account/i.test(b.textContent ?? "")
+    );
+    expect(create).toBeTruthy();
   });
 });
 

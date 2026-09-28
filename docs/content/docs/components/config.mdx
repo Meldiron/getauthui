@@ -16,8 +16,11 @@ description: Declarative configuration element. Invisible; configures the global
   success-url="/dashboard"
   terms-url="/terms"
   privacy-url="/privacy"
+  help-url="/support"
   require-acceptance="true"
   oauth-layout="icon"
+  oauth-position="top"
+  forgot-password="true"
   locale="fr"
   one-tap="true"
   google-client-id="YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
@@ -34,7 +37,7 @@ The element renders nothing. Changing any attribute reconfigures the store. All 
 Auth UI checks the connection on startup:
 
 - **Endpoint must end with `/v1`.** Without it Appwrite returns an HTML 404 page. Auth UI warns in the console and shows a developer-facing banner instead of a working-looking form.
-- **Wrong project ID or unregistered hostname.** The first `account.get()` returns `project_not_found` or `general_unknown_origin`. Auth UI emits an `error` event, logs a console warning, and shows the same banner on `<authui-sign-in>`, `<authui-button>`, and the signed-out state of `<authui-user-button>` (so guestbook / launcher chrome surfaces it without opening the modal).
+- **Wrong project ID or unregistered hostname.** The first `account.get()` returns `project_not_found` or `general_unknown_origin`. On some origins Appwrite omits CORS for bad projects, so the browser surfaces `Failed to fetch`; Auth UI still maps that bootstrap failure to the project / platform config banner (not "Check your connection"). The same banner appears on `<authui-sign-in>`, `<authui-button>`, and the signed-out state of `<authui-user-button>`.
 - **Missing `endpoint` or `project` on `<authui-config>`.** The element no longer leaves the UI stuck on a loading spinner. It reports the gap and the banner above shows how to finish the setup.
 
 See also [Common mistakes](/docs/common-mistakes) for endpoint, platform, CDN and FOUC pitfalls.

@@ -19,6 +19,9 @@ export const cs: AuthUIStrings = {
   forgotPassword: "Zapomenuté heslo?",
   noAccount: "Nemáte účet?",
   haveAccount: "Už máte účet?",
+  switchToSignIn: "Přihlásit se místo toho",
+  help: "Nápověda",
+  contactSupport: "Kontaktovat podporu",
   or: "nebo",
   continueWith: "Pokračovat s {provider}",
   continueWithEmail: "Pokračovat e-mailem",
@@ -185,7 +188,7 @@ export const cs: AuthUIStrings = {
   errorInvalidPhone: "Zadejte telefonní číslo ve formátu E.164, začínající +.",
   errorInvalidName: "Zadejte jméno.",
   errorUserExists: "Účet s tímto e-mailem už existuje.",
-  errorUserBlocked: "Tento účet je zablokován. Kontaktujte podporu.",
+  errorUserBlocked: "Tento účet je zablokován.",
   errorRateLimit: "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
   errorInvalidToken: "Tento odkaz je neplatný nebo vypršel. Vyžádejte nový.",
   errorInvalidCode: "Tento kód není platný. Zkontrolujte ho a zkuste to znovu.",
@@ -205,6 +208,7 @@ export const cs: AuthUIStrings = {
     "Auth UI chybí endpoint nebo project. Nastavte je na <authui-config> nebo je předejte do AuthUI.init().",
   errorConfig:
     "Auth UI nemůže dosáhnout tohoto Appwrite projektu. Zkontrolujte, že endpoint končí /v1, ID projektu je správné a tento hostname je registrován jako Web platforma.",
+  errorConfigShort: "Zkontrolujte project ID, endpoint a Web platformu.",
   errorConfigEndpoint:
     "Zkontrolujte, že endpoint končí /v1. Appwrite API URL vypadají jako https://cloud.appwrite.io/v1.",
   passwordHint: "Alespoň 8 znaků.",

@@ -36,6 +36,11 @@ interface Settings {
   preview: boolean;
 }
 
+function isPlaceholderProject(project: string): boolean {
+  const p = project.trim();
+  return !p || p === "YOUR_PROJECT_ID" || p === "playground";
+}
+
 const defaults: Settings = {
   endpoint: "https://cloud.appwrite.io/v1",
   project: "",
@@ -54,6 +59,7 @@ const defaults: Settings = {
 };
 
 function toConfig(s: Settings): AuthUIConfig {
+  const liveBlocked = !s.preview && isPlaceholderProject(s.project);
   return {
     endpoint: s.endpoint,
     project: s.project || "playground",
@@ -72,7 +78,8 @@ function toConfig(s: Settings): AuthUIConfig {
       radius: s.radius,
       primary: s.primary || undefined,
     },
-    preview: s.preview,
+    // Soft guard: stay in preview until a real project ID is pasted.
+    preview: s.preview || liveBlocked,
   };
 }
 
@@ -178,6 +185,15 @@ export function Playground() {
               ? "No requests are made. Any email, password or code works, and a sample account with sessions, MFA and connections is used."
               : "Live mode. Requests go to the endpoint and project below, which must list this hostname as a Web platform."}
           </p>
+          {!settings.preview && isPlaceholderProject(settings.project) ? (
+            <p
+              className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] leading-5 text-fd-foreground"
+              role="status"
+            >
+              Paste a real Appwrite project ID and register this hostname as a Web platform before
+              turning Preview off. Live mode stays on sample data until then.
+            </p>
+          ) : null}
         </div>
         <div className="px-5 py-4 border-b border-fd-border">
           <h2 className="text-[15px] font-semibold">Project</h2>

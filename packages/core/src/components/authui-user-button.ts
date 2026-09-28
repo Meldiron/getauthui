@@ -36,10 +36,20 @@ export class AuthUIUserButton extends AuthUIElement {
         flex-direction: column;
         align-items: stretch;
         gap: 8px;
-        max-width: min(100%, 360px);
+        max-width: min(100%, 280px);
       }
       .config-error {
         box-sizing: border-box;
+      }
+      .config-error-compact {
+        max-width: min(100%, 280px);
+      }
+      .config-error-compact .alert-body {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+        line-height: 1.35;
       }
       .trigger {
         border: 1px solid transparent;
@@ -367,9 +377,13 @@ export class AuthUIUserButton extends AuthUIElement {
       return html`
         ${
           this.auth.configError
-            ? html`<div class="alert alert-error config-error" role="alert">
+            ? html`<div
+                class="alert alert-error config-error config-error-compact"
+                role="alert"
+                title=${this.auth.configError}
+              >
                 ${icons.alert}
-                <div class="alert-body">${this.auth.configError}</div>
+                <div class="alert-body">${this.t("errorConfigShort")}</div>
               </div>`
             : nothing
         }
@@ -479,6 +493,20 @@ export class AuthUIUserButton extends AuthUIElement {
                       }}
                     >
                       ${icons.users} ${this.t("manageTeams")}
+                    </button>`
+                  : nothing
+              }
+              ${
+                !user.email && !user.phone
+                  ? html`<button
+                      class="menu-item"
+                      role="menuitem"
+                      @click=${() => {
+                        this.menuOpen = false;
+                        openModal("account");
+                      }}
+                    >
+                      ${this.t("createAccount")}
                     </button>`
                   : nothing
               }

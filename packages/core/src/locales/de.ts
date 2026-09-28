@@ -19,6 +19,9 @@ export const de: AuthUIStrings = {
   forgotPassword: "Passwort vergessen?",
   noAccount: "Noch kein Konto?",
   haveAccount: "Bereits ein Konto?",
+  switchToSignIn: "Stattdessen anmelden",
+  help: "Hilfe",
+  contactSupport: "Support kontaktieren",
   or: "oder",
   continueWith: "Weiter mit {provider}",
   continueWithEmail: "Weiter mit E-Mail",
@@ -191,7 +194,7 @@ export const de: AuthUIStrings = {
   errorInvalidPhone: "Geben Sie eine Telefonnummer im E.164-Format ein, beginnend mit +.",
   errorInvalidName: "Geben Sie einen Namen ein.",
   errorUserExists: "Ein Konto mit dieser E-Mail existiert bereits.",
-  errorUserBlocked: "Dieses Konto ist gesperrt. Kontaktieren Sie den Support.",
+  errorUserBlocked: "Dieses Konto ist gesperrt.",
   errorRateLimit: "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
   errorInvalidToken: "Dieser Link ist ungültig oder abgelaufen. Fordern Sie einen neuen an.",
   errorInvalidCode: "Dieser Code ist ungültig. Prüfen Sie ihn und versuchen Sie es erneut.",
@@ -212,6 +215,7 @@ export const de: AuthUIStrings = {
     "Auth UI fehlt endpoint oder project. Setzen Sie sie auf <authui-config> oder übergeben Sie sie an AuthUI.init().",
   errorConfig:
     "Auth UI kann dieses Appwrite-Projekt nicht erreichen. Prüfen Sie, dass der Endpoint mit /v1 endet, die Projekt-ID korrekt ist und dieser Hostname als Web-Plattform registriert ist.",
+  errorConfigShort: "Projekt-ID, Endpoint und Web-Plattform prüfen.",
   errorConfigEndpoint:
     "Prüfen Sie, dass der Endpoint mit /v1 endet. Appwrite-API-URLs sehen aus wie https://cloud.appwrite.io/v1.",
   passwordHint: "Mindestens 8 Zeichen.",

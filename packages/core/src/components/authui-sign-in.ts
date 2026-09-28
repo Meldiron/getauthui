@@ -154,7 +154,10 @@ export class AuthUISignIn extends AuthUIElement {
 
   protected updated(changed: Map<string, unknown>): void {
     if (
-      (changed.has("step") || changed.has("identifierPhase")) &&
+      (changed.has("step") ||
+        changed.has("identifierPhase") ||
+        changed.has("challenge") ||
+        changed.has("token")) &&
       (this.focusOnStep || this.embedded)
     ) {
       this.focusOnStep = false;
@@ -168,6 +171,15 @@ export class AuthUISignIn extends AuthUIElement {
         ) {
           const pw = this.renderRoot.querySelector("#authui-password") as HTMLInputElement | null;
           pw?.focus();
+          return;
+        }
+        // MFA challenge / email-phone OTP code entry: focus #authui-code.
+        if (
+          (this.step === "mfa" && this.challenge) ||
+          (this.token && (this.step === "email-otp" || this.step === "phone"))
+        ) {
+          const code = this.renderRoot.querySelector("#authui-code") as HTMLInputElement | null;
+          code?.focus();
           return;
         }
         this.firstInput?.focus();
@@ -569,6 +581,7 @@ export class AuthUISignIn extends AuthUIElement {
         phrase: token.phrase,
       };
       this.code = "";
+      this.focusOnStep = true;
       this.resendCooldownUntil = Date.now() + 30000;
       window.setTimeout(() => this.requestUpdate(), 30000);
     });
@@ -581,6 +594,7 @@ export class AuthUISignIn extends AuthUIElement {
       const token = await authStore.sendPhoneOtp(this.phone);
       this.token = { userId: token.userId, kind: "phone", target: this.phone };
       this.code = "";
+      this.focusOnStep = true;
       this.resendCooldownUntil = Date.now() + 30000;
       window.setTimeout(() => this.requestUpdate(), 30000);
     });
@@ -605,6 +619,7 @@ export class AuthUISignIn extends AuthUIElement {
       const challenge = await authStore.createMfaChallenge(factor);
       this.challenge = { id: challenge.$id, factor };
       this.code = "";
+      this.focusOnStep = true;
     });
   };
 
@@ -677,7 +692,19 @@ export class AuthUISignIn extends AuthUIElement {
           this.notice && !(this.auth.configError && this.notice.message === this.auth.configError)
             ? html`<div class="alert alert-${this.notice.tone}" role="status">
                 ${this.notice.tone === "success" ? icons.checkCircle : this.notice.tone === "error" ? icons.alert : icons.info}
-                <div class="alert-body">${this.notice.message}</div>
+                <div class="alert-body">
+                  ${this.notice.message}
+                  ${
+                    this.notice.message === this.t("errorUserBlocked") &&
+                    this.config?.legal?.helpUrl
+                      ? html` <a href=${this.config.legal.helpUrl} target="_blank" rel="noopener"
+                          >${this.t("contactSupport")}</a
+                        >`
+                      : this.notice.message === this.t("errorUserBlocked")
+                        ? html` ${this.t("contactSupport")}`
+                        : nothing
+                  }
+                </div>
                 <button
                   class="btn btn-ghost btn-icon dismiss"
                   @click=${() => this.dismissNotice()}
@@ -755,12 +782,34 @@ export class AuthUISignIn extends AuthUIElement {
   }
 
   private renderError(): TemplateResult | typeof nothing {
-    return this.error
-      ? html`<div class="alert alert-error" role="alert" id=${ERROR_ALERT_ID}>
-          ${icons.alert}
-          <div class="alert-body">${this.error}</div>
-        </div>`
-      : nothing;
+    if (!this.error) return nothing;
+    const handoff =
+      this.step === "sign-up" &&
+      this.error === this.t("errorUserExists") &&
+      this.config?.signUp !== false;
+    return html`<div class="alert alert-error" role="alert" id=${ERROR_ALERT_ID}>
+      ${icons.alert}
+      <div class="alert-body">
+        <div>${this.error}</div>
+        ${
+          handoff
+            ? html`<div class="links" style="margin-top: 0.5rem">
+                <button
+                  type="button"
+                  class="btn btn-link"
+                  @click=${() => {
+                    const email = this.email;
+                    this.go("sign-in");
+                    this.email = email;
+                  }}
+                >
+                  ${this.t("switchToSignIn")}
+                </button>
+              </div>`
+            : nothing
+        }
+      </div>
+    </div>`;
   }
 
   private submitButton(label: string, variant = "btn-primary", disabled = false): TemplateResult {
@@ -922,12 +971,28 @@ export class AuthUISignIn extends AuthUIElement {
     }`;
   }
 
+  private helpLink(): TemplateResult | typeof nothing {
+    const url = this.config?.legal?.helpUrl?.trim();
+    if (!url) return nothing;
+    return html`<a href=${url} target="_blank" rel="noopener">${this.t("help")}</a>`;
+  }
+
   private legal(): TemplateResult | typeof nothing {
     const legal = this.config?.legal;
-    if (!legal?.termsUrl && !legal?.privacyUrl) return nothing;
-    // On sign-up with requireAcceptance the checkbox replaces the passive footer.
-    if (this.step === "sign-up" && this.needsLegalAcceptance()) return nothing;
-    return html`<p class="legal">${this.t("agreeTo")} ${this.legalLinks()}.</p>`;
+    const hasTerms = !!(legal?.termsUrl || legal?.privacyUrl);
+    const help = this.helpLink();
+    if (!hasTerms && help === nothing) return nothing;
+    // On sign-up with requireAcceptance the checkbox replaces the passive footer terms;
+    // still show Help when set.
+    if (this.step === "sign-up" && this.needsLegalAcceptance()) {
+      return help !== nothing ? html`<p class="legal">${help}</p>` : nothing;
+    }
+    if (hasTerms) {
+      return html`<p class="legal">
+        ${this.t("agreeTo")} ${this.legalLinks()}. ${help !== nothing ? html` · ${help}` : nothing}
+      </p>`;
+    }
+    return html`<p class="legal">${help}</p>`;
   }
 
   /** Required acceptance checkbox on sign-up when legal.requireAcceptance is set. */
@@ -1039,6 +1104,19 @@ export class AuthUISignIn extends AuthUIElement {
               ? html`<a class="btn btn-primary btn-block" href=${this.config.successUrl}
                   >${this.t("continue")}</a
                 >`
+              : nothing
+          }
+          ${
+            !user.email && !user.phone
+              ? html`<button
+                  class="btn btn-primary btn-block"
+                  @click=${() => {
+                    if (this.embedded) this.fire("authui-open", { view: "account" });
+                    else openModal("account");
+                  }}
+                >
+                  ${this.t("createAccount")}
+                </button>`
               : nothing
           }
           <button
@@ -1209,15 +1287,16 @@ export class AuthUISignIn extends AuthUIElement {
 
     // OAuth + passwordless + guest stay on the identifier step (Clerk-like).
     const showChrome = !onPasswordStep;
+    const oauthBottom = this.config?.oauthPosition === "bottom";
+    const oauthBlock = showChrome ? this.renderProviders() : nothing;
+    const oauthSep =
+      showChrome && hasProviders && (emailPassword || passwordless.length > 0)
+        ? html`<div class="separator-text">${this.t("or")}</div>`
+        : nothing;
 
     return html`
       <div class="stack">
-        ${showChrome ? this.renderProviders() : nothing}
-        ${
-          showChrome && hasProviders && (emailPassword || passwordless.length > 0)
-            ? html`<div class="separator-text">${this.t("or")}</div>`
-            : nothing
-        }
+        ${oauthBottom ? nothing : oauthBlock} ${oauthBottom ? nothing : oauthSep}
         ${
           emailPassword
             ? identifierFirst
@@ -1235,7 +1314,7 @@ export class AuthUISignIn extends AuthUIElement {
                       : nothing
                   }
                   ${this.emailField()}
-                  ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
+                  ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: this.config?.forgotPassword !== false })}
                   ${this.renderError()} ${this.submitButton(this.t("signIn"))}
                 </form>`
             : this.renderError()
@@ -1275,6 +1354,7 @@ export class AuthUISignIn extends AuthUIElement {
               </button>`
             : nothing
         }
+        ${oauthBottom ? oauthSep : nothing} ${oauthBottom ? oauthBlock : nothing}
         ${
           emailPassword && this.config?.signUp !== false
             ? html`<div class="links">
@@ -1283,7 +1363,19 @@ export class AuthUISignIn extends AuthUIElement {
                   ${this.t("signUp")}
                 </button>
               </div>`
-            : nothing
+            : emailPassword && this.config?.signUp === false && this.config?.signUpUrl
+              ? html`<div class="links">
+                  <span>${this.t("noAccount")}</span>
+                  <a
+                    class="btn btn-link"
+                    href=${this.config.signUpUrl}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    ${this.t("signUp")}
+                  </a>
+                </div>`
+              : nothing
         }
         ${this.legal()}
       </div>
@@ -1320,7 +1412,7 @@ export class AuthUISignIn extends AuthUIElement {
           .value=${this.email}
         />
       </div>
-      ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: true })}
+      ${this.passwordField({ label: this.t("password"), autocomplete: "current-password", id: "authui-password", field: "password", forgot: this.config?.forgotPassword !== false })}
       ${this.renderError()} ${this.submitButton(this.t("signIn"))}
       <div class="links">
         <button

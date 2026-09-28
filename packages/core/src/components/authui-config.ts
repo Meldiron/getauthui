@@ -30,6 +30,12 @@ export class AuthUIConfigElement extends LitElement {
   /** Space separated list, e.g. "email-password magic-url email-otp phone anonymous oauth:google". */
   @property({ type: String }) methods = "email-password";
   @property({ type: String, attribute: "sign-up" }) signUp = "true";
+  /** External sign-up URL when sign-up is false. */
+  @property({ type: String, attribute: "sign-up-url" }) signUpUrl = "";
+  /** Show Forgot password link. Default true. */
+  @property({ type: String, attribute: "forgot-password" }) forgotPassword = "true";
+  /** Place OAuth above or below the credential form: top | bottom. */
+  @property({ type: String, attribute: "oauth-position" }) oauthPosition = "";
   @property({ type: String, attribute: "require-name" }) requireName = "true";
   @property({ type: String }) mfa = "true";
   @property({ type: String, attribute: "security-phrase" }) securityPhrase = "true";
@@ -41,6 +47,8 @@ export class AuthUIConfigElement extends LitElement {
   @property({ type: String, attribute: "primary-foreground" }) primaryForeground = "";
   @property({ type: String, attribute: "terms-url" }) termsUrl = "";
   @property({ type: String, attribute: "privacy-url" }) privacyUrl = "";
+  /** Optional help / support URL (legal footer + blocked-user contact). */
+  @property({ type: String, attribute: "help-url" }) helpUrl = "";
   /** When "true", sign-up requires accepting terms/privacy before submit or OAuth. */
   @property({ type: String, attribute: "require-acceptance" }) requireAcceptance = "";
   /** OAuth button layout: stack | accordion | icon | horizontal. */
@@ -103,6 +111,12 @@ export class AuthUIConfigElement extends LitElement {
       successUrl: this.successUrl || undefined,
       methods,
       signUp: this.signUp !== "false",
+      signUpUrl: this.signUpUrl.trim() || undefined,
+      forgotPassword: this.forgotPassword !== "false",
+      oauthPosition:
+        this.oauthPosition === "bottom" || this.oauthPosition === "top"
+          ? this.oauthPosition
+          : undefined,
       requireName: this.requireName !== "false",
       mfa: this.mfa !== "false",
       securityPhrase: this.securityPhrase !== "false",
@@ -119,6 +133,7 @@ export class AuthUIConfigElement extends LitElement {
         privacyUrl: this.privacyUrl || undefined,
         requireAcceptance:
           this.requireAcceptance !== "" && this.requireAcceptance !== "false" ? true : undefined,
+        helpUrl: this.helpUrl || undefined,
       },
       preview: this.preview === "" || this.preview === "false" ? undefined : true,
       locale: this.locale.trim() || undefined,

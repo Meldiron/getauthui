@@ -19,8 +19,8 @@ Full docs: https://getauthui.appwrite.network/llms-full.txt
     <meta charset="UTF-8" />
     <title>My app</title>
     <!-- Critical CSS: hide protected content before the module runs -->
-    <link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.44/dist/fouc.css" />
-    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.44"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@getauthui/core@0.1.45/dist/fouc.css" />
+    <script type="module" src="https://unpkg.com/@getauthui/core@0.1.45"></script>
   </head>
   <body>
     <authui-config
@@ -158,6 +158,63 @@ const databases = new Databases(client);
 
 Do not store `cookieFallback`, JWTs or session secrets yourself. Do not pass them through URLs.
 
+## Common Patterns
+
+### Modal + show (CDN / HTML)
+
+```html
+<authui-config endpoint="https://cloud.appwrite.io/v1" project="YOUR_PROJECT_ID"></authui-config>
+<header>
+  <authui-show when="signed-out"><authui-button>Sign in</authui-button></authui-show>
+  <authui-show when="signed-in"><authui-user-button></authui-user-button></authui-show>
+</header>
+```
+
+The modal is created automatically when the button opens it.
+
+### Inline panels
+
+```html
+<authui-sign-in></authui-sign-in>
+<!-- or, once signed in -->
+<authui-account></authui-account>
+```
+
+### Protect content
+
+```html
+<authui-show when="signed-in">
+  <main>Only signed-in users see this</main>
+</authui-show>
+```
+
+### Short React
+
+```tsx
+import { AuthUIProvider, AuthUIButton, AuthUIModal, Show, useAuthUI } from "@getauthui/core/react";
+
+export function App() {
+  return (
+    <AuthUIProvider config={{ endpoint: "...", project: "..." }}>
+      <AuthUIModal />
+      <Show when="signed-out">
+        <AuthUIButton>Sign in</AuthUIButton>
+      </Show>
+      <Show when="signed-in">
+        <Dashboard />
+      </Show>
+    </AuthUIProvider>
+  );
+}
+
+function Dashboard() {
+  const { user } = useAuthUI();
+  return <p>Hello {user?.name}</p>;
+}
+```
+
+React `Show` unmounts children when hidden (unlike `<authui-show>`, which only hides the slot).
+
 ## Tips for AI-Generated Code
 
 1. Always include the critical FOUC CSS in `<head>` for CDN installs.
@@ -166,7 +223,7 @@ Do not store `cookieFallback`, JWTs or session secrets yourself. Do not pass the
 4. Prefer `<authui-config>` + `<authui-button>` / `<authui-show>`; do not invent custom login forms.
 5. CDN-safe script URLs only: bare `https://unpkg.com/@getauthui/core@…` (or jsDelivr), `…/dist/authui.cdn.mjs`, or IIFE `…/dist/authui.cdn.js`. Never load `…/dist/authui.js` from a CDN (bundler entry; fails with `Failed to resolve module specifier "appwrite"`).
 6. ESM CDN does **not** set `window.AuthUI`. Use `<authui-config>` or the IIFE build / npm `AuthUI.init`.
-7. Pin the CDN version (`@0.1.44` or newer).
+7. Pin the CDN version (`@0.1.45` or newer).
 8. In React use `AuthUIProvider`, `Show`, and `@getauthui/core/react`. Do not wrap children in `<authui-show>` if you need true conditional mounting.
 9. For `close-on-success` off in HTML use `close-on-success="false"` (string). In React use `closeOnSuccess={false}`.
 10. Read common mistakes: docs `/docs/common-mistakes`. Machine docs: `/llms-full.txt`.

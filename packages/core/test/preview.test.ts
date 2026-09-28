@@ -60,6 +60,15 @@ describe("preview mode", () => {
     expect(authStore.user?.email).toBe("otp@example.com");
   });
 
+  it("respects securityPhrase=false for magic URL and email OTP in preview", async () => {
+    authStore.configure({ ...config, preview: true, securityPhrase: false });
+    await settle();
+    const otp = await authStore.sendEmailOtp("otp@example.com");
+    expect(otp.phrase ?? "").toBe("");
+    const magic = await authStore.sendMagicUrl("magic@example.com");
+    expect(magic.phrase ?? "").toBe("");
+  });
+
   it("runs the full MFA lifecycle including step-up", async () => {
     authStore.configure({ ...config, preview: true });
     await settle();
